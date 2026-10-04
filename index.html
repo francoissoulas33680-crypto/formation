@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lire une ferme vue du ciel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f4;--paper:#fff;--ink:#14201a;--muted:#55635b;--line:#d3dbd5;--shade:#14201a;--accent:#2e7d4f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1411;--paper:#18211c;--ink:#eef3ef;--muted:#a9b7ae;--line:#33423a;--shade:#000;--accent:#56b57c}}
+:root[data-theme="dark"]{--bg:#0e1411;--paper:#18211c;--ink:#eef3ef;--muted:#a9b7ae;--line:#33423a;--shade:#000;--accent:#56b57c}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;height:100%;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font-family:Lexend,"Segoe UI",Arial,sans-serif;font-size:17px;line-height:1.4}
+button,input,select{font:inherit}
+header{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 16px;border-bottom:2px solid var(--line);background:var(--paper)}
+header h1{margin:0;font-size:20px;font-weight:700;flex:1;min-width:200px}
+.who{color:var(--muted);font-size:15px}
+.btn{border:2px solid var(--shade);background:var(--paper);color:var(--ink);border-radius:10px;padding:8px 14px;cursor:pointer;box-shadow:3px 3px 0 var(--shade)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shade)}
+.btn.main{background:var(--accent);color:#fff}
+.btn.on{background:var(--ink);color:var(--paper)}
+.btn.small{padding:5px 10px;font-size:15px;box-shadow:2px 2px 0 var(--shade)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:focus-visible,.card:focus-visible{outline:3px solid #1f6fd1;outline-offset:2px}
+.view{flex:1;min-height:0;display:none}
+.view.show{display:flex}
+.center{flex-direction:column;align-items:center;overflow:auto;padding:24px 16px}
+.box{width:100%;max-width:720px;display:flex;flex-direction:column;gap:16px}
+.box h2{margin:0;font-size:24px}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:600}
+label.f input,label.f select{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.card{border:2px solid var(--shade);border-radius:14px;background:var(--paper);overflow:hidden;cursor:pointer;box-shadow:4px 4px 0 var(--shade);text-align:left;padding:0;color:var(--ink)}
+.card img,.card svg{display:block;width:100%;height:150px;object-fit:cover;background:#ccd}
+.card .t{padding:10px 12px;font-weight:600}
+.card .s{padding:0 12px 10px;color:var(--muted);font-size:14px}
+.work{flex-direction:row}
+#stage{flex:1;position:relative;min-width:0;background:#cfd8d2}
+svg.map{width:100%;height:100%;display:block;touch-action:none;user-select:none;cursor:crosshair}
+svg.map.pan{cursor:grab}
+.tools{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.tools .btn{pointer-events:auto;font-size:15px;padding:7px 11px}
+.tip{position:absolute;left:10px;top:10px;right:10px;pointer-events:none;display:flex}
+.tip span{background:var(--paper);border:2px solid var(--shade);border-radius:10px;padding:6px 12px;font-size:15px;max-width:100%}
+aside{width:320px;flex:none;border-left:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;min-height:0}
+aside .in{padding:14px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+aside h3{margin:0;font-size:18px}
+ul.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+ul.items li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+ul.items li .n{flex:1;min-width:0;overflow-wrap:anywhere}
+ul.items li button{border:0;background:none;cursor:pointer;font-size:18px;color:var(--ink)}
+.dot{width:14px;height:14px;border-radius:4px;flex:none;border:1.5px solid var(--shade)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.muted{color:var(--muted);font-size:15px}
+.msg{padding:10px 12px;border-radius:10px;border:2px solid var(--shade);background:#fff6cc;color:#14201a}
+.msg.ok{background:#d9f5e1}.msg.err{background:#ffd9d4}
+dialog{border:2px solid var(--shade);border-radius:14px;padding:18px;background:var(--paper);color:var(--ink);box-shadow:5px 5px 0 var(--shade);max-width:92vw;width:420px}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.legend{display:flex;flex-direction:column;gap:6px}
+.legend div{display:flex;gap:8px;align-items:center;font-size:15px}
+@media (max-width:820px){.work{flex-direction:column}aside{width:auto;border-left:0;border-top:2px solid var(--line);max-height:38%}}
+</style></head><body>
+<header>
+<h1>🛰️ Lire une ferme vue du ciel</h1>
+<span class="who" id="who"></span>
+<button class="btn small" id="btnHome" hidden>🏠 Accueil</button>
+</header>
+
+<!-- ÉLÈVE : accueil -->
+<section class="view center" id="vAccueil"><div class="box">
+<h2>Bienvenue 👋</h2>
+<label class="f">Ton prénom<input id="inPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
+<h3 style="margin:0">Choisis une ferme</h3>
+<div class="grid" id="listeFermes"></div>
+<p class="muted" id="fermesVide" hidden>Aucune ferme pour l'instant. Ton formateur va en ajouter.</p>
+<p class="muted"><a href="#formateur" style="color:var(--muted)">Espace formateur</a></p>
+</div></section>
+
+<!-- Zone de travail commune -->
+<section class="view work" id="vTravail">
+<div id="stage">
+<svg class="map" id="map" aria-label="Vue satellite de la ferme"><g id="lImg"></g><g id="lLogic"></g><g id="lItems"></g><g id="lDraft"></g></svg>
+<div class="tip" id="tip"><span id="tipTxt"></span></div>
+<div class="tools" id="tools"></div>
+</div>
+<aside><div class="in" id="panel"></div></aside>
+</section>
+
+<!-- FORMATEUR : connexion -->
+<section class="view center" id="vLogin"><div class="box">
+<h2>🔑 Espace formateur</h2>
+<label class="f">Adresse mail<input id="inMail" type="email" autocomplete="email"></label>
+<label class="f">Mot de passe<input id="inPass" type="password" autocomplete="current-password"></label>
+<div class="row"><button class="btn main" id="btnLogin">Se connecter</button><button class="btn" id="btnSignup">Créer mon accès (1re fois)</button></div>
+<div id="loginMsg"></div>
+</div></section>
+
+<!-- FORMATEUR : tableau de bord -->
+<section class="view center" id="vDash"><div class="box" style="max-width:1100px">
+<div class="tabs"><button class="btn on" data-tab="fermes">🗺️ Mes fermes</button><button class="btn" data-tab="recus">📨 Schémas reçus</button><button class="btn small" id="btnLogout">Se déconnecter</button></div>
+<div id="tabFermes">
+<h2>Mes fermes</h2>
+<div class="grid" id="dashFermes"></div>
+<h3>➕ Ajouter une ferme</h3>
+<label class="f">Nom de la ferme<input id="inNomFerme" maxlength="120" placeholder="ex. Notre ferme, Ferme A…"></label>
+<label class="f">Vue satellite (image)<input id="inImg" type="file" accept="image/*"></label>
+<button class="btn main" id="btnAddFerme">Ajouter</button>
+<div id="addMsg"></div>
+</div>
+<div id="tabRecus" hidden>
+<h2>Schémas reçus</h2>
+<label class="f">Ferme<select id="selFerme"></select></label>
+<div class="row"><button class="btn small" id="btnRefresh">🔄 Actualiser</button><span class="muted" id="nbRecus"></span></div>
+<div class="grid" id="mosaique"></div>
+</div>
+</div></section>
+
+<dialog id="dlg"><form method="dialog" style="display:flex;flex-direction:column;gap:12px">
+<label class="f"><span id="dlgLab">Nom</span><input id="dlgIn" maxlength="80"></label>
+<div class="row"><button class="btn main" value="ok">Valider</button><button class="btn" value="cancel">Annuler</button></div>
+</form></dialog>
+
+<script>
+/* ====== RÉGLAGES ====== */
+const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"}};
+const PEOPLE=["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#9a6324","#469990","#800000"];
+/* ====================== */
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("show",v.id===id));$("btnHome").hidden=id==="vAccueil"||id==="vLogin"}
+function ask(label,val=""){return new Promise(res=>{const d=$("dlg");$("dlgLab").textContent=label;$("dlgIn").value=val;d.returnValue="";d.showModal();$("dlgIn").focus();d.onclose=()=>res(d.returnValue==="ok"?$("dlgIn").value.trim():null)})}
+function msg(el,t,cls){$(el).innerHTML=t?'<div class="msg '+(cls||"")+'">'+esc(t)+'</div>':""}
+
+/* ---------- Carte : affichage, zoom, déplacement ---------- */
+const svg=$("map");let IMG={w:1000,h:700},vb={x:0,y:0,w:1000,h:700},tapCb=null,dblCb=null;
+function applyVB(){svg.setAttribute("viewBox",vb.x+" "+vb.y+" "+vb.w+" "+vb.h)}
+function fitVB(b){const W=svg.clientWidth||1,H=svg.clientHeight||1,ar=W/H;let w=b.w,h=b.h;if(w/h<ar)w=h*ar;else h=w/ar;return{x:b.x+b.w/2-w/2,y:b.y+b.h/2-h/2,w,h}}
+function home(){vb=fitVB({x:0,y:0,w:IMG.w,h:IMG.h});applyVB()}
+function zoomAt(f,cx,cy){const nw=Math.min(IMG.w*4,Math.max(IMG.w/20,vb.w*f)),k=nw/vb.w;vb.x=cx-(cx-vb.x)*k;vb.y=cy-(cy-vb.y)*k;vb.w=nw;vb.h*=k;applyVB();drawAll()}
+function toW(cx,cy){const p=svg.createSVGPoint();p.x=cx;p.y=cy;return p.matrixTransform(svg.getScreenCTM().inverse())}
+const ptr=new Map();let moved=0,pinch=null,lastTap=0,lastPos={x:-99,y:-99};
+svg.addEventListener("pointerdown",e=>{svg.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptr.size===2){const[a,b]=[...ptr.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),w:vb.w}}});
+svg.addEventListener("pointermove",e=>{if(!ptr.has(e.pointerId))return;const p=ptr.get(e.pointerId),c={x:e.clientX,y:e.clientY};
+ if(ptr.size===1){const d=Math.abs(c.x-p.x)+Math.abs(c.y-p.y);moved+=d;if(moved>6){const a=toW(p.x,p.y),b=toW(c.x,c.y);vb.x+=a.x-b.x;vb.y+=a.y-b.y;applyVB()}}
+ ptr.set(e.pointerId,c);
+ if(ptr.size===2&&pinch){const[a,b]=[...ptr.values()],d=Math.hypot(a.x-b.x,a.y-b.y),m=toW((a.x+b.x)/2,(a.y+b.y)/2);zoomAt((pinch.w*pinch.d/d)/vb.w,m.x,m.y);moved=99}});
+function pUp(e){ptr.delete(e.pointerId);if(ptr.size<2)pinch=null}
+svg.addEventListener("pointerup",e=>{const was=moved;pUp(e);if(was<=6&&ptr.size===0){const w=toW(e.clientX,e.clientY),now=Date.now();if(now-lastTap<350&&Math.hypot(e.clientX-lastPos.x,e.clientY-lastPos.y)<25&&dblCb){dblCb();lastTap=0;return}lastTap=now;lastPos={x:e.clientX,y:e.clientY};if(tapCb)tapCb(w.x,w.y)}});
+svg.addEventListener("pointercancel",pUp);
+svg.addEventListener("wheel",e=>{e.preventDefault();const m=toW(e.clientX,e.clientY);zoomAt(Math.pow(1.0015,e.deltaY),m.x,m.y)},{passive:false});
+window.addEventListener("resize",()=>{vb=fitVB(vb);applyVB()});
+function loadImage(url){return new Promise(res=>{if(!url){IMG={w:1000,h:700};$("lImg").innerHTML='<rect width="1000" height="700" fill="#b9c8be"/>';home();return res()}
+ const im=new Image();im.onload=()=>{IMG={w:im.naturalWidth,h:im.naturalHeight};$("lImg").innerHTML='<image href="'+esc(url)+'" x="0" y="0" width="'+IMG.w+'" height="'+IMG.h+'"/>';home();res()};im.onerror=()=>{IMG={w:1000,h:700};$("lImg").innerHTML='<rect width="1000" height="700" fill="#b9c8be"/><text x="500" y="350" text-anchor="middle" font-size="30">Image introuvable</text>';home();res()};im.src=url})}
+
+/* ---------- Dessin des éléments ---------- */
+const U=()=>Math.max(IMG.w,IMG.h)/1000;
+function label(x,y,t,color,fs,style){const w=t.length*fs*.58+fs*1.2,h=fs*1.7;
+ return '<g'+(style?' opacity="'+style+'"':'')+'><rect x="'+(x-w/2)+'" y="'+(y-h/2)+'" width="'+w+'" height="'+h+'" rx="'+h/2+'" fill="#fff" stroke="'+color+'" stroke-width="'+fs*.15+'"/><text x="'+x+'" y="'+(y+fs*.35)+'" text-anchor="middle" font-family="Lexend,Arial" font-weight="600" font-size="'+fs+'" fill="#14201a">'+esc(t)+'</text></g>'}
+function centroid(pts){let x=0,y=0;pts.forEach(p=>{x+=p[0];y+=p[1]});return[x/pts.length,y/pts.length]}
+function renderItems(items,o={}){const u=U(),fs=(o.fs||22)*u;let s="";
+ (items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre,col=o.color||T.c,pts=it.pts||[];
+  if(it.t==="zone"&&pts.length>2){s+='<polygon points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="'+col+'" fill-opacity="'+(o.fillOp??.22)+'" stroke="'+col+'" stroke-width="'+(o.sw||3)+'" vector-effect="non-scaling-stroke"'+(o.dash?' stroke-dasharray="8 6"':'')+'/>';}
+  if(it.t==="trace"&&pts.length>1){s+='<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="'+(o.sw||4)+'" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"'+(it.k==="vehicule"?' stroke-dasharray="14 8"':it.k==="recolte"?' stroke-dasharray="2 8"':'')+'/>';}
+  if(o.labels!==false){if(it.t==="zone"&&pts.length>2){const c=centroid(pts);s+=label(c[0],c[1],it.nom||"?",col,fs)}
+   if(it.t==="trace"&&pts.length>1){const i2=Math.floor(pts.length/2),a1=pts[i2-1]||pts[0],b1=pts[i2],m=pts.length%2?b1:[(a1[0]+b1[0])/2,(a1[1]+b1[1])/2];s+=label(m[0],m[1],(T.e+" ")+(it.nom||T.n),col,fs*.85)}
+   if(it.t==="note")s+=label(it.x,it.y,"📝 "+(it.txt||""),col,fs*.9)}});
+ return s}
+function itemsSVG(items,w,h,img,o){return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid slice">'+(img?'<image href="'+esc(img)+'" width="'+w+'" height="'+h+'"/>':'')+renderItems(items,o)+'</svg>'}
+
+/* ---------- Éditeur ---------- */
+const ED={items:[],tool:null,draft:[],onChange:null,readonly:false};
+const TOOLBTN=[["pan","✋ Déplacer"],["zone","🟪 Zone"],["eau","💧 Irrigation"],["vehicule","🚐 Véhicules"],["recolte","🧺 Récolte"],["libre","✏️ Libre"],["note","📝 Note"]];
+function buildTools(){if(ED.readonly){$("tools").innerHTML='<button class="btn" onclick="zoomBtn(.7)">＋</button><button class="btn" onclick="zoomBtn(1/.7)">－</button><button class="btn" onclick="home()">⤢ Tout voir</button>';return}
+ $("tools").innerHTML=TOOLBTN.map(t=>'<button class="btn'+(ED.tool===t[0]||(!ED.tool&&t[0]==="pan")?" on":"")+'" data-tool="'+t[0]+'">'+t[1]+'</button>').join("")+
+ (ED.draft.length?'<button class="btn main" id="bFin">✔ Terminer</button>':'')+
+ '<button class="btn" id="bUndo">↩ Annuler</button><button class="btn" onclick="zoomBtn(.7)">＋</button><button class="btn" onclick="zoomBtn(1/.7)">－</button><button class="btn" onclick="home()">⤢</button>';
+ $("tools").querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{ED.tool=b.dataset.tool==="pan"?null:b.dataset.tool;ED.draft=[];buildTools();drawAll();tip()});
+ if($("bFin"))$("bFin").onclick=finish;$("bUndo").onclick=undo}
+function zoomBtn(f){zoomAt(f,vb.x+vb.w/2,vb.y+vb.h/2)}
+function tip(){const t=ED.tool;$("tip").style.display=ED.readonly?"none":"flex";
+ $("tipTxt").textContent=!t?"Glisse pour te déplacer, pince ou molette pour zoomer. Choisis un outil en bas.":t==="note"?"Touche la carte là où tu veux écrire une note.":t==="zone"?"Touche la carte pour poser les coins de la zone, puis ✔ Terminer.":"Touche la carte pour tracer le chemin, point par point, puis ✔ Terminer."}
+async function finish(){const t=ED.tool,pts=ED.draft;if(!t)return;
+ if(t==="zone"&&pts.length<3){alert("Une zone a besoin d'au moins 3 points.");return}
+ if(t!=="zone"&&pts.length<2){alert("Un tracé a besoin d'au moins 2 points.");return}
+ let nom="";if(t==="zone"){nom=await ask("Comment appelles-tu cette zone ?");if(nom===null)return}
+ else if(t==="libre"){nom=await ask("Que représente ce tracé ?");if(nom===null)return}
+ ED.items.push(t==="zone"?{t:"zone",nom:nom||"?",pts}:{t:"trace",k:t,nom,pts});ED.draft=[];changed()}
+function undo(){if(ED.draft.length){ED.draft.pop()}else{ED.items.pop();changed();return}buildTools();drawAll()}
+function changed(){buildTools();drawAll();if(ED.onChange)ED.onChange()}
+tapCb=async(x,y)=>{if(ED.readonly||!ED.tool)return;x=Math.round(x);y=Math.round(y);
+ if(ED.tool==="note"){const txt=await ask("Ta note :");if(txt){ED.items.push({t:"note",x,y,txt});changed()}return}
+ ED.draft.push([x,y]);buildTools();drawAll()};
+dblCb=()=>{if(ED.draft.length)finish()};
+function drawAll(){$("lItems").innerHTML=ED.overlay?ED.overlay():renderItems(ED.items);
+ const d=ED.draft,u=U();let s="";if(d.length){const T=TYPES[ED.tool];s+=(ED.tool==="zone"&&d.length>2?'<polygon points="'+d.map(p=>p.join(",")).join(" ")+'" fill="'+T.c+'" fill-opacity=".15" stroke="none"/>':'')+'<polyline points="'+d.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+T.c+'" stroke-width="4" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>'+d.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+6*u*(vb.w/IMG.w)+'" fill="#fff" stroke="'+T.c+'" stroke-width="3" vector-effect="non-scaling-stroke"/>').join("")}
+ $("lDraft").innerHTML=s}
+function itemList(items,onDel){if(!items.length)return'<p class="muted">Rien pour l\'instant.</p>';
+ return'<ul class="items">'+items.map((it,i)=>{const T=TYPES[it.t==="trace"?it.k:it.t];return'<li><span class="dot" style="background:'+T.c+'"></span><span class="n">'+T.e+" "+esc(it.t==="note"?it.txt:(it.nom||T.n))+'</span>'+(onDel?'<button aria-label="Renommer" data-ren="'+i+'">✏️</button><button aria-label="Supprimer" data-del="'+i+'">🗑️</button>':'')+'</li>'}).join("")+'</ul>'}
+function wireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ED.items.splice(+b.dataset.del,1);changed();ED.refreshPanel&&ED.refreshPanel()});
+ root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=ED.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;changed();ED.refreshPanel&&ED.refreshPanel()}})}
+const LEGEND='<div class="legend">'+["zone","eau","vehicule","recolte","libre","note"].map(k=>'<div><span class="dot" style="background:'+TYPES[k].c+'"></span>'+TYPES[k].e+" "+TYPES[k].n+'</div>').join("")+'</div>';
+
+/* ---------- ÉLÈVE ---------- */
+let FERMES=[],CUR=null,pollT=null;
+async function loadFermes(){const{data,error}=await sb.from("fermes").select("id,nom,image_url,revele,ordre,created_at").order("ordre").order("created_at");FERMES=error?[]:data;return FERMES}
+async function accueil(){show("vAccueil");$("who").textContent="";$("inPrenom").value=LS.get("prenom","");await loadFermes();
+ $("fermesVide").hidden=!!FERMES.length;
+ $("listeFermes").innerHTML=FERMES.map(f=>'<button class="card" data-id="'+f.id+'">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+'</div></button>').join("");
+ $("listeFermes").querySelectorAll(".card").forEach(c=>c.onclick=()=>{const p=$("inPrenom").value.trim();if(!p){alert("Écris d'abord ton prénom.");$("inPrenom").focus();return}LS.set("prenom",p);eleve(FERMES.find(f=>f.id===c.dataset.id))})}
+async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;
+ ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get("schema:"+f.id,[]);ED.onChange=()=>{LS.set("schema:"+f.id,ED.items);panelEleve()};ED.refreshPanel=panelEleve;
+ $("lLogic").innerHTML="";await loadImage(f.image_url);buildTools();tip();drawAll();panelEleve();
+ clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleve()}},15000)}
+let showLogic=false;
+function panelEleve(){const p=$("panel");
+ p.innerHTML='<h3>Mon schéma</h3>'+itemList(ED.items,true)+'<button class="btn main" id="bSend">📤 Envoyer mon schéma</button><div id="sendMsg"></div>'+
+ (CUR.revele?'<button class="btn" id="bLogic">'+(showLogic?"🙈 Cacher":"👁️ Voir")+' la logique du formateur</button>':'')+'<h3>Légende</h3>'+LEGEND;
+ wireList(p);$("bSend").onclick=send;if($("bLogic"))$("bLogic").onclick=toggleLogic}
+async function toggleLogic(){showLogic=!showLogic;if(showLogic){const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();$("lLogic").innerHTML=renderLogic((data&&data.logique&&data.logique.items)||[])}else $("lLogic").innerHTML="";panelEleve()}
+function renderLogic(items){return renderItems(items,{color:"#ffd400",fillOp:.12,sw:5,dash:true,fs:24})}
+async function send(){if(!ED.items.length){msg("sendMsg","Ton schéma est vide.","err");return}
+ $("bSend").disabled=true;const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:LS.get("prenom","?").slice(0,60),contenu:{items:ED.items,w:IMG.w,h:IMG.h}});
+ $("bSend").disabled=false;msg("sendMsg",error?"Envoi impossible : vérifie ta connexion et réessaie.":"✅ Envoyé ! Ton formateur l'a reçu.",error?"err":"ok")}
+
+/* ---------- FORMATEUR ---------- */
+async function login(){const{error}=await sb.auth.signInWithPassword({email:$("inMail").value.trim(),password:$("inPass").value});if(error)msg("loginMsg","Connexion refusée : "+error.message,"err");else dash()}
+async function signup(){const{error}=await sb.auth.signUp({email:$("inMail").value.trim(),password:$("inPass").value});msg("loginMsg",error?"Erreur : "+error.message:"Compte créé. Ouvre le mail de confirmation, clique le lien, puis reviens te connecter ici.",error?"err":"ok")}
+async function isTrainer(){const{data}=await sb.auth.getSession();return!!(data&&data.session)}
+async function dash(tab){clearInterval(pollT);if(!await isTrainer()){show("vLogin");return}show("vDash");const{data:u}=await sb.auth.getUser();$("who").textContent="🧑‍🌾 "+(u&&u.user?u.user.email:"");
+ await loadFermes();renderDashFermes();fillSel();setTab(tab||"fermes")}
+function setTab(t){document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));$("tabFermes").hidden=t!=="fermes";$("tabRecus").hidden=t!=="recus";if(t==="recus")loadRecus()}
+function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+'</div><div class="s row"><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button><button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
+ $("dashFermes").querySelectorAll("[data-logic]").forEach(b=>b.onclick=()=>editLogic(FERMES.find(f=>f.id===b.dataset.logic)));
+ $("dashFermes").querySelectorAll("[data-rev]").forEach(b=>b.onclick=async()=>{const f=FERMES.find(x=>x.id===b.dataset.rev);const{error}=await sb.from("fermes").update({revele:!f.revele}).eq("id",f.id);if(!error){f.revele=!f.revele;renderDashFermes()}});
+ $("dashFermes").querySelectorAll("[data-delf]").forEach(b=>b.onclick=async()=>{if(!confirm("Supprimer cette ferme et tous ses schémas reçus ?"))return;await sb.from("fermes").delete().eq("id",b.dataset.delf);dash("fermes")})}
+async function addFerme(){const nom=$("inNomFerme").value.trim(),file=$("inImg").files[0];if(!nom||!file){msg("addMsg","Il faut un nom et une image.","err");return}
+ msg("addMsg","Envoi en cours…");const path=Date.now()+"-"+file.name.replace(/[^a-z0-9.\-_]/gi,"_");
+ const up=await sb.storage.from("vues").upload(path,file);if(up.error){msg("addMsg","Image refusée : "+up.error.message,"err");return}
+ const url=sb.storage.from("vues").getPublicUrl(path).data.publicUrl;
+ const{error}=await sb.from("fermes").insert({nom,image_url:url,ordre:FERMES.length});if(error){msg("addMsg","Erreur : "+error.message,"err");return}
+ $("inNomFerme").value="";$("inImg").value="";msg("addMsg","✅ Ferme ajoutée.","ok");await loadFermes();renderDashFermes();fillSel()}
+async function editLogic(f){CUR=f;show("vTravail");$("who").textContent="🧑‍🌾 Ma logique · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
+ ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=(data&&data.logique&&data.logique.items)||[];ED.onChange=()=>{panelLogic(true)};ED.refreshPanel=()=>panelLogic(true);
+ $("lLogic").innerHTML="";await loadImage(f.image_url);buildTools();tip();drawAll();panelLogic(false)}
+function panelLogic(dirty){const p=$("panel");p.innerHTML='<h3>Ma logique</h3><p class="muted">Dessine ta lecture de la ferme, avec les bons termes.</p>'+itemList(ED.items,true)+'<button class="btn main" id="bSaveL">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsg"></div><button class="btn" id="bBack">⬅ Retour</button><h3>Légende</h3>'+LEGEND;
+ wireList(p);$("bSaveL").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:ED.items,w:IMG.w,h:IMG.h}}).eq("id",CUR.id);msg("saveMsg",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBack").onclick=()=>dash("fermes")}
+function fillSel(){const s=$("selFerme"),v=s.value;s.innerHTML=FERMES.map(f=>'<option value="'+f.id+'">'+esc(f.nom)+'</option>').join("");if(v)s.value=v}
+let RECUS=[];
+async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").innerHTML="";return}const f=FERMES.find(x=>x.id===fid);
+ const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:data;
+ $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
+ $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Tous superposés</div><div class="s">Chaque prénom a sa couleur</div></button>':'')+
+ RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+itemsSVG(c.items,c.w||1000,c.h||700,f.image_url,{fs:30})+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
+ $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>openRecus(f,[b.dataset.r]));if($("allSup"))$("allSup").onclick=()=>openRecus(f,RECUS.map(r=>r.id))}
+async function openRecus(f,ids){CUR=f;show("vTravail");const sel=RECUS.filter(r=>ids.includes(r.id)),multi=sel.length>1;let idx=0,withLogic=false,logic=[];
+ const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();logic=(data&&data.logique&&data.logique.items)||[];
+ ED.readonly=true;ED.tool=null;ED.draft=[];await loadImage(f.image_url);buildTools();tip();
+ const draw=()=>{ED.overlay=()=>multi?sel.map((r,i)=>renderItems((r.contenu||{}).items,{color:PEOPLE[i%PEOPLE.length],fillOp:.12,labels:true})).join(""):renderItems((sel[idx].contenu||{}).items);
+  $("lLogic").innerHTML=withLogic?renderLogic(logic):"";drawAll();$("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"tous superposés":sel[idx].auteur);
+  const p=$("panel");p.innerHTML=(multi?'<h3>Tous superposés</h3><div class="legend">'+sel.map((r,i)=>'<div><span class="dot" style="background:'+PEOPLE[i%PEOPLE.length]+'"></span>'+esc(r.auteur)+'</div>').join("")+'</div>'
+   :'<h3>'+esc(sel[idx].auteur)+'</h3><div class="row"><button class="btn small" id="bPrev">⬅</button><span class="muted">'+(idx+1)+' / '+sel.length+'</span><button class="btn small" id="bNext">➡</button></div>'+itemList((sel[idx].contenu||{}).items,false))+
+   '<button class="btn'+(withLogic?" on":"")+'" id="bWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button><button class="btn" id="bBk">⬅ Retour aux schémas</button>'+(multi?'':'<button class="btn small" id="bDelR">🗑️ Supprimer ce schéma</button>');
+  $("bWL").onclick=()=>{withLogic=!withLogic;draw()};$("bBk").onclick=()=>{ED.overlay=null;dash("recus")};
+  if(!multi){$("bPrev").disabled=idx===0;$("bNext").disabled=idx===sel.length-1;$("bPrev").onclick=()=>{idx--;draw()};$("bNext").onclick=()=>{idx++;draw()};
+   $("bDelR").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",sel[idx].id);ED.overlay=null;dash("recus")}}};
+ if(!multi){idx=0;const all=RECUS;sel.length=0;all.forEach(r=>sel.push(r));idx=all.findIndex(r=>r.id===ids[0])}
+ draw()}
+
+/* ---------- Navigation ---------- */
+$("btnHome").onclick=()=>{location.hash.startsWith("#formateur")?dash():accueil()};
+$("btnLogin").onclick=login;$("btnSignup").onclick=signup;
+$("btnLogout").onclick=async()=>{await sb.auth.signOut();location.hash="";accueil()};
+$("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+function route(){if(location.hash.startsWith("#formateur"))dash();else accueil()}
+window.addEventListener("hashchange",route);route();
+</script></body></html>
