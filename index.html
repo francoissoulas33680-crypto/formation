@@ -126,9 +126,6 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
 .portageHelp{border:2px dashed #c43d20;border-radius:10px;padding:9px 10px;background:#fff8f5}
 
-
-.demoCompareNote{border-left:4px solid var(--accent,#173d2d);padding-left:10px}
-
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -671,14 +668,14 @@ async function isTrainer(){
 async function dash(tab){clearInterval(pollT);if(!await isTrainer()){show("vLogin");return}show("vDash");const{data:u}=await sb.auth.getUser();$("who").textContent="🧑‍🌾 "+(u&&u.user?u.user.email:"");
  await loadFermes();renderDashFermes();fillSel();setTab(tab||"fermes")}
 function setTab(t){document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));$("tabFermes").hidden=t!=="fermes";$("tabRecus").hidden=t!=="recus";if(t==="recus")loadRecus()}
-function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+(f.mode==='carte'?' 🗺️':'')+'</div><div class="s row"><button class="btn small" data-link="'+f.id+'">🔗 Lien</button><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button>'+(f.mode==='carte'?'<button class="btn small" data-ex3guide="'+f.id+'">🎯 Ex.3 · repères</button><button class="btn small" data-ex3demo="'+f.id+'">🎬 Ex.3 · démo</button>':'')+'<button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
+function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+(f.mode==='carte'?' 🗺️':'')+'</div><div class="s row"><button class="btn small" data-link="'+f.id+'">🔗 Lien</button><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button>'+(f.mode==='carte'?'<button class="btn small" data-ex3guide="'+f.id+'">🎯 Ex.3 · repères</button><button class="btn small" data-ex3demo="'+f.id+'">🎬 Ex.3 · démo</button><button class="btn small" data-ex4demo="'+f.id+'">🎬 Ex.4 · démo</button>':'')+'<button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
  $("dashFermes").querySelectorAll("[data-logic]").forEach(b=>b.onclick=()=>editLogicAny(FERMES.find(f=>f.id===b.dataset.logic)));
  $("dashFermes").querySelectorAll("[data-ex3guide]").forEach(b=>b.onclick=()=>setupEx3Guide(FERMES.find(f=>f.id===b.dataset.ex3guide)));
  $("dashFermes").querySelectorAll("[data-ex3demo]").forEach(b=>b.onclick=()=>setupEx3Demo(FERMES.find(f=>f.id===b.dataset.ex3demo)));
+ $("dashFermes").querySelectorAll("[data-ex4demo]").forEach(b=>b.onclick=()=>setupEx4Demo(FERMES.find(f=>f.id===b.dataset.ex4demo)));
  $("dashFermes").querySelectorAll("[data-link]").forEach(b=>b.onclick=()=>copyLink(b.dataset.link));
  $("dashFermes").querySelectorAll("[data-rev]").forEach(b=>b.onclick=async()=>{const f=FERMES.find(x=>x.id===b.dataset.rev);const{error}=await sb.from("fermes").update({revele:!f.revele}).eq("id",f.id);if(!error){f.revele=!f.revele;renderDashFermes()}});
  $("dashFermes").querySelectorAll("[data-delf]").forEach(b=>b.onclick=async()=>{if(!confirm("Supprimer cette ferme et tous ses schémas reçus ?"))return;await sb.from("fermes").delete().eq("id",b.dataset.delf);dash("fermes")})}
-
 function ex3DemoDistance(k){return (CM.items||[]).filter(x=>x.k===k).reduce((s,x)=>s+(+x.distance||0),0)}
 function ex3DemoVisibleItems(){
  if(CM.ex3DemoMode==="c1")return (CM.items||[]).filter(x=>x.k==="trajet_actuel");
@@ -932,7 +929,15 @@ function ex4Load(fid){
  };
  return {base:{crates:"",weight:"",weeks:"",perWeek:""},states:Array.from({length:4},()=>ex4BlankState())}
 }
-function ex4Save(){if(CUR)LS.set(ex4DraftKey(CUR.id),{base:CM.ex4Base,states:CM.ex4States})}
+function ex4Save(){
+ if(CM.ex4TrainerDemo){CM.ex4DemoDirty=true;return}
+ if(CUR)LS.set(ex4DraftKey(CUR.id),{base:CM.ex4Base,states:CM.ex4States})
+}
+function ex4Refresh(){
+ cmRender();
+ if(CM.ex4TrainerDemo)panelEx4Demo(true);
+ else panelEleveEx4()
+}
 
 async function ex4LoadEx3Items(f){
  const local=ex3Load(f.id).items||[];
@@ -997,11 +1002,11 @@ function ex4AddRange(i,a,b){
 function ex4UndoRange(i){
  if(!CM.ex4States[i])return;
  CM.ex4States[i].carryRanges=(CM.ex4States[i].carryRanges||[]).slice(0,-1);
- CM.ex4PickStart=null;ex4Save();cmRender();panelEleveEx4()
+ CM.ex4PickStart=null;ex4Save();ex4Refresh()
 }
 function ex4ClearRanges(i){
  if(!CM.ex4States[i])return;
- CM.ex4States[i].carryRanges=[];CM.ex4PickStart=null;ex4Save();cmRender();panelEleveEx4()
+ CM.ex4States[i].carryRanges=[];CM.ex4PickStart=null;ex4Save();ex4Refresh()
 }
 function ex4MapTap(e){
  const i=CM.ex4Step;if(i<0||i>3)return;
@@ -1011,11 +1016,11 @@ function ex4MapTap(e){
  }
  if(CM.ex4PickStart===null||CM.ex4PickStart===undefined){
   CM.ex4PickStart=hit.m;
-  cmRender();panelEleveEx4();
+  ex4Refresh();
  }else{
   ex4AddRange(i,CM.ex4PickStart,hit.m);
   CM.ex4PickStart=null;
-  cmRender();panelEleveEx4()
+  ex4Refresh()
  }
 }
 function ex4Pieces(i){
@@ -1074,11 +1079,127 @@ function ex4MetricBox(i){
 function ex4Comparison(){
  return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m de portage · '+Math.round(x.annualKg/100)/10+' t manipulées/an</div>'}).join("")+'</div>'
 }
+
+function ex4DemoRouteDistance(k){
+ const tr=(CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k===k);
+ return tr?+(tr.distance||0):0
+}
+function ex4DemoRelevantCase(){
+ return CM.ex4Step===3?"c1":"c2"
+}
+function ex4DemoRelevantTool(){
+ return CM.ex4Step===3?"trajet_actuel":"trajet_ancien"
+}
+function ex4DemoGuideItems(){
+ return ex3GuideItems(ex4DemoRelevantCase(),CM.ex3Guide||[])
+}
+function drawEx4DemoCompare(){
+ const old=(CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k==="trajet_ancien");
+ const cur=(CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k==="trajet_actuel");
+ if(old)drawGeo(CM.g.items,[old],{labels:false,weight:7});
+ if(cur)drawGeo(CM.g.items,[cur],{labels:false,weight:7});
+}
+function ex4DemoCompareHtml(){
+ const old=ex4DemoRouteDistance("trajet_ancien"),cur=ex4DemoRouteDistance("trajet_actuel");
+ return '<div class="kpis">'+
+   '<div class="kpi"><b>'+Math.round(old)+' m</b><small>trajet ancien</small></div>'+
+   '<div class="kpi"><b>'+Math.round(cur)+' m</b><small>trajet actuel</small></div>'+
+   '<div class="kpi"><b>'+(old&&cur?((old-cur)>=0?"+":"")+Math.round(old-cur)+" m":"—")+'</b><small>ancien − actuel</small></div>'+
+  '</div>'+ex4Comparison()
+}
+async function setupEx4Demo(f){
+ if(!f||f.mode!=="carte"){alert("La démonstration de l’exercice 4 nécessite une carte vivante IGN.");return}
+ history.replaceState({}, "", location.pathname+"#formateur");
+ CUR=f;$("who").textContent="🧑‍🌾 Exercice 4 · démonstration · "+f.nom;
+ const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
+ const base=(data&&data.logique)||{},saved=base.ex4Demo||{};
+ await cmInit(f);
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;CM.exercise3Demo=false;CM.ex4TrainerDemo=true;
+ CM.readonly=false;CM.logic=null;CM.overlays=[];CM.items=[];
+ CM.ex3Guide=normalizeEx3Guides(base.ex3Guide);
+ CM.ex4Ex3Items=Array.isArray(saved.routes)?saved.routes:[];
+ CM.ex4Base={crates:saved.base?.crates||"",weight:saved.base?.weight||"",weeks:saved.base?.weeks||"",perWeek:saved.base?.perWeek||""};
+ CM.ex4States=Array.from({length:4},(_,i)=>({...ex4BlankState(),...((saved.states||[])[i]||{}),carryRanges:Array.isArray((saved.states||[])[i]?.carryRanges)?(saved.states||[])[i].carryRanges:[]}));
+ CM.ex4Step=0;CM.ex4PickStart=null;CM.ex4DemoAction=ex4SourceTrace(0)?"select":"draw";CM.ex4DemoTool="trajet_ancien";CM.ex4DemoDirty=false;CM.onChange=null;
+ cmSetMode(CM.ex4DemoAction==="draw"?"draw":"move");panelEx4Demo(false);$("btnHelp").hidden=true
+}
+function panelEx4Demo(dirty){
+ show("vCarte");
+ const p=$("panelC"),i=CM.ex4Step,st=EX4_STATES[i];
+ $("who").textContent="🧑‍🌾 Exercice 4 · démonstration · "+(CUR?CUR.nom:"");
+ if(i>=4){
+  p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 4 · FORMATEUR</div><h3>🎬 Comparaison avec le groupe</h3>'+
+   '<div class="msg"><b>Affiche les deux organisations et les quatre états.</b><br>L’objectif est de faire verbaliser ce qui a réellement été supprimé : déplacement, portage ou manutention.</div>'+
+   ex4DemoCompareHtml()+
+   '<div class="msg ok"><b>À faire verbaliser</b><br>Un trajet peut rester presque identique alors que le travail physique change fortement. La question est donc : <b>où est-ce que je porte ? combien de fois je soulève ? et qu’est-ce que l’organisation permet d’éviter ?</b></div>'+
+   '<div class="row"><button class="btn small" id="demo4Prev">⬅ État 4</button><button class="btn main" id="demo4Save">💾 Enregistrer'+(dirty||CM.ex4DemoDirty?' *':'')+'</button></div>'+
+   '<div id="demo4Msg"></div><button class="btn" id="demo4Back">⬅ Retour aux fermes</button>'+creditC();
+  $("demo4Prev").onclick=()=>{CM.ex4Step=3;CM.ex4PickStart=null;CM.ex4DemoAction="select";cmSetMode("move");panelEx4Demo(true)};
+  $("demo4Save").onclick=saveEx4Demo;
+  $("demo4Back").onclick=()=>{CM.exercise4=false;CM.ex4TrainerDemo=false;dash("fermes")};
+  cmTools();cmTip();cmRender();return
+ }
+
+ const tool=ex4DemoRelevantTool(),trace=ex4SourceTrace(i),routeDist=trace?(+trace.distance||ex4Route(i).total):0,portDist=ex4SelectedDistance(i),ranges=ex4Ranges(i);
+ const guideOk=ex4DemoGuideItems().length>0;
+ let body='<div class="muted">MODULE 1 · EXERCICE 4 · FORMATEUR</div><h3>🎬 Démonstration en direct</h3>'+ex4Stepbar()+
+  '<div class="msg"><b>'+st.title+'</b><br>'+st.reveal+'</div>'+
+  '<div class="msg '+(guideOk?'ok':'')+'"><b>Repères affichés : '+(i===3?'organisation actuelle':'ancienne organisation')+'</b><br>'+
+   (guideOk?'Utilise-les pour raconter le trajet devant les élèves.':'Aucun repère enregistré pour ce cas dans Ex.3 · repères.')+'</div>'+
+  '<div class="row"><button class="btn'+(CM.ex4DemoAction==="draw"?' on':'')+'" id="demo4Draw">✏️ '+(trace?'Retracer':'Tracer')+' ce trajet</button>'+
+  '<button class="btn'+(CM.ex4DemoAction==="select"?' on':'')+'" id="demo4Carry" '+(!trace?'disabled':'')+'>📦 Montrer le portage</button>'+
+  '<button class="btn" id="demo4Move">✋ Déplacer</button></div>'+
+  (trace?'<div class="kpis"><div class="kpi"><b>'+Math.round(routeDist)+' m</b><small>trajet total</small></div><div class="kpi"><b>'+Math.round(portDist)+' m</b><small>portage sélectionné</small></div><div class="kpi"><b>'+ranges.length+'</b><small>portion(s) portée(s)</small></div></div>':
+   '<div class="msg err"><b>Commence par tracer ce trajet devant le groupe.</b><br>Tu pourras ensuite montrer uniquement les portions où les caisses étaient portées.</div>')+
+  (CM.ex4DemoAction==="select"&&trace?'<div id="ex4MapMsg" class="msg '+(CM.ex4PickStart!==null?'ok':'')+'">'+
+    (CM.ex4PickStart!==null?'<b>Début du portage choisi ✅</b><br>Clique sur la fin de cette portion.':'<b>1er clic = début · 2e clic = fin</b><br>La portion devient rouge automatiquement.')+'</div>':'')+
+  '<div class="calcbox"><h4>Données de la démonstration</h4>'+
+   (i===0?'<label class="f">Nombre de caisses<input id="d4Crates" type="number" min="0" step="1" value="'+esc(CM.ex4Base.crates)+'" placeholder="Valeur ou estimation"></label>'+
+   '<label class="f">Poids moyen d’une caisse (kg)<input id="d4Weight" type="number" min="0" step="0.1" value="'+esc(CM.ex4Base.weight)+'" placeholder="Valeur ou estimation"></label>'+
+   '<label class="f">Semaines de récolte<input id="d4Weeks" type="number" min="0" step="1" value="'+esc(CM.ex4Base.weeks)+'" placeholder="Valeur ou estimation"></label>'+
+   '<label class="f">Récoltes / semaine<input id="d4PerWeek" type="number" min="0" step="0.1" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Valeur ou estimation"></label>':'')+
+   '<label class="f">Nombre de manipulations par caisse<input id="d4Manips" type="number" min="0" step="1" value="'+esc(CM.ex4States[i].manips)+'" placeholder="À estimer avec le groupe"></label>'+
+   ex4MetricBox(i)+
+  '</div>'+
+  '<div class="row">'+
+   (CM.ex4DemoAction==="select"&&trace?'<button class="btn small" id="d4Undo" '+(!ranges.length?'disabled':'')+'>↩ Retirer la dernière portion</button><button class="btn small" id="d4Clear" '+(!ranges.length&&CM.ex4PickStart===null?'disabled':'')+'>🧹 Effacer le portage</button>':'')+
+  '</div>'+
+  '<div class="row"><button class="btn small" id="demo4Prev" '+(i===0?'disabled':'')+'>⬅ État précédent</button><button class="btn main" id="demo4Next">'+(i===3?'Comparer ➡':'État suivant ➡')+'</button></div>'+
+  '<button class="btn main" id="demo4Save">💾 Enregistrer la démonstration'+(dirty||CM.ex4DemoDirty?' *':'')+'</button><div id="demo4Msg"></div>'+
+  '<button class="btn" id="demo4Back">⬅ Retour aux fermes</button>'+creditC();
+
+ p.innerHTML=body;
+
+ $("demo4Draw").onclick=()=>{CM.ex4DemoAction="draw";CM.ex4DemoTool=tool;CM.ex4PickStart=null;cmSetMode("draw");panelEx4Demo(true)};
+ $("demo4Carry").onclick=()=>{CM.ex4DemoAction="select";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
+ $("demo4Move").onclick=()=>{CM.ex4DemoAction="move";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
+ if($("d4Undo"))$("d4Undo").onclick=()=>ex4UndoRange(i);
+ if($("d4Clear"))$("d4Clear").onclick=()=>ex4ClearRanges(i);
+
+ ["d4Crates","d4Weight","d4Weeks","d4PerWeek"].forEach(id=>{if($(id))$(id).onchange=()=>{
+  CM.ex4Base={crates:$("d4Crates").value,weight:$("d4Weight").value,weeks:$("d4Weeks").value,perWeek:$("d4PerWeek").value};CM.ex4DemoDirty=true;panelEx4Demo(true)
+ }});
+ if($("d4Manips"))$("d4Manips").onchange=()=>{CM.ex4States[i].manips=$("d4Manips").value;CM.ex4DemoDirty=true;panelEx4Demo(true)};
+
+ $("demo4Prev").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step--;CM.ex4DemoTool=ex4DemoRelevantTool();CM.ex4DemoAction=ex4SourceTrace(CM.ex4Step)?"select":"draw";cmSetMode(CM.ex4DemoAction==="draw"?"draw":"move");panelEx4Demo(true)};
+ $("demo4Next").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step++;if(CM.ex4Step<4){CM.ex4DemoTool=ex4DemoRelevantTool();CM.ex4DemoAction=ex4SourceTrace(CM.ex4Step)?"select":"draw";cmSetMode(CM.ex4DemoAction==="draw"?"draw":"move")}else cmSetMode("move");panelEx4Demo(true)};
+ $("demo4Save").onclick=saveEx4Demo;
+ $("demo4Back").onclick=()=>{CM.exercise4=false;CM.ex4TrainerDemo=false;CM.ex4PickStart=null;dash("fermes")};
+ cmTools();cmTip();cmRender()
+}
+async function saveEx4Demo(){
+ const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();
+ const base=(data&&data.logique)||{};
+ const payload={routes:CM.ex4Ex3Items||[],base:CM.ex4Base,states:CM.ex4States};
+ const{error}=await sb.from("fermes").update({logique:{...base,ex4Demo:payload}}).eq("id",CUR.id);
+ if(error){msg("demo4Msg","Erreur : "+error.message,"err");return}
+ CM.ex4DemoDirty=false;msg("demo4Msg","✅ Démonstration Exercice 4 enregistrée.","ok")
+}
 async function eleveCarteEx4(f){
  if(f.mode!=="carte"){alert("L’exercice 4 nécessite une carte vivante IGN.");return studentDash()}
  CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Charges";await cmInit(f);
  const d=ex4Load(f.id),ex3items=await ex4LoadEx3Items(f);
- CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;CM.exercise3Demo=false;
  CM.readonly=true;CM.items=[];CM.logic=null;CM.overlays=[];CM.ex4Step=0;CM.ex4Base=d.base;CM.ex4States=d.states;CM.ex4Ex3Items=ex3items;CM.ex4PickStart=null;CM.onChange=null;
  cmSetMode("move");panelEleveEx4();cmRender();$("btnHelp").hidden=true
 }
@@ -1209,7 +1330,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -1220,7 +1341,7 @@ async function cmInit(f){show("vCarte");await loadLeaflet();
   ["over","logic","items","draft","topo"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
   CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
- CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.exercise3Demo=false;CM.ex3DemoTool=null;CM.ex4PickStart=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.exercise3Demo=false;CM.ex3DemoTool=null;CM.ex4TrainerDemo=false;CM.ex4DemoAction="select";CM.ex4DemoTool=null;CM.ex4DemoDirty=false;CM.ex4PickStart=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
 
 const GUIDE_LABEL_OFFSETS=[[88,-42],[88,14],[-88,-42],[-88,14],[70,58],[-70,58]];
@@ -1266,12 +1387,16 @@ const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"
 function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLayers());
  CM.overlays.forEach(o=>drawGeo(CM.g.over,o.items,{color:o.color,fill:.12,labels:!CM.exercise3}));
  if(CM.exercise3Guide){if(CM.guideShow!==false)drawGuideItems(CM.g.logic,ex3GuideItems(CM.guideCase||"c1",CM.guideItems),true)}
+ else if(CM.exercise4&&CM.ex4TrainerDemo&&CM.ex4Step<4){drawGuideItems(CM.g.logic,ex4DemoGuideItems(),false)}
  else if(CM.exercise3Demo){
   if(CM.ex3DemoShowGuides!==false&&CM.ex3DemoMode!=="compare")drawGuideItems(CM.g.logic,ex3GuideItems(CM.ex3DemoMode,CM.guideItems),false)
  }
  else if(CM.exercise3){drawGuideItems(CM.g.logic,ex3GuideForStep(CM.ex3Step,CM.ex3Guide),false)}
  else if(CM.logic)drawGeo(CM.g.logic,CM.logic,{dash:"8 6",fill:.06,weight:5});
- if(CM.exercise4)drawEx4Portage();
+ if(CM.exercise4){
+  if(CM.ex4TrainerDemo&&CM.ex4Step>=4)drawEx4DemoCompare();
+  else drawEx4Portage()
+ }
  else if(CM.exercise3Demo)drawGeo(CM.g.items,ex3DemoVisibleItems(),{labels:false,weight:7});
  else drawGeo(CM.g.items,CM.exercise3?ex3VisibleItems():CM.items,CM.exercise3?{labels:false}:{});
  if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
@@ -1284,10 +1409,20 @@ function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
  const min=CM.exercise1?3:(CM.exercise2&&CM.ex2Tool==="accumulation"?3:2);
  if(v.length<min){cmTools();cmTip();cmRender();return}
  const px=v.map(q=>{const c=CM.map.latLngToContainerPoint({lat:q[1],lng:q[0]});return{x:c.x,y:c.y}});
- CM.pending={px,pts:v,type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:null)))};cmTools();cmTip();cmSheet();cmRender()}
+ CM.pending={px,pts:v,type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null))))};cmTools();cmTip();cmSheet();cmRender()}
 function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
 function cmTools(){const t=$("toolsC");
  if(CM.pending){t.innerHTML="";t.style.display="none";return}
+ if(CM.exercise4&&CM.ex4TrainerDemo){
+  t.style.display="flex";
+  if(CM.ex4Step>=4){t.innerHTML='<button class="btn on">⇄ Comparaison finale</button>';return}
+  const tool=ex4DemoRelevantTool();
+  t.innerHTML='<button class="btn'+(CM.ex4DemoAction==="draw"?" on":"")+'" id="mD4Draw">✏️ Tracer</button><button class="btn'+(CM.ex4DemoAction==="select"?" on":"")+'" id="mD4Carry" '+(!ex4SourceTrace(CM.ex4Step)?'disabled':'')+'>📦 Portage</button><button class="btn'+(CM.ex4DemoAction==="move"?" on":"")+'" id="mD4Move">✋ Déplacer</button>';
+  $("mD4Draw").onclick=()=>{CM.ex4DemoAction="draw";CM.ex4DemoTool=tool;CM.ex4PickStart=null;cmSetMode("draw");panelEx4Demo(true)};
+  if($("mD4Carry"))$("mD4Carry").onclick=()=>{CM.ex4DemoAction="select";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
+  $("mD4Move").onclick=()=>{CM.ex4DemoAction="move";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
+  return
+ }
  if(CM.exercise4){t.style.display="flex";t.innerHTML='<button class="btn on">📦 Début puis fin du portage</button>';return}
  if(CM.readonly){t.style.display="flex";t.innerHTML=topoBtnHtml();topoWire();return}
  t.style.display="flex";
@@ -1409,6 +1544,10 @@ async function topoTap(e){
  }
 }
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
+ if(CM.exercise4&&CM.ex4TrainerDemo){
+  tx.textContent=CM.ex4Step>=4?"⇄ Comparez ensemble l’ancien et l’actuel.":CM.ex4DemoAction==="draw"?"✏️ Trace le trajet devant les élèves en expliquant vos anciennes habitudes.":CM.ex4DemoAction==="select"?"📦 1er clic = début du portage · 2e clic = fin. Rouge = caisse portée.":"✋ Déplace et zoome sur la carte.";
+  return
+ }
  if(CM.exercise4){tx.textContent=CM.ex4Step<4?"📦 1er clic = début du portage · 2e clic = fin. La portion sélectionnée devient rouge.":"📦 Compare les quatre états.";return}
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
@@ -1421,7 +1560,7 @@ function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
   return
  }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
-async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.exercise4){ex4MapTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.exercise4&&(!CM.ex4TrainerDemo||CM.ex4DemoAction==="select")){ex4MapTap(e);return}if(CM.exercise4&&CM.ex4TrainerDemo&&CM.ex4DemoAction==="move")return;if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
  if(CM.exercise3Guide&&CM.guideTool){const def=EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool);if(def){const previous=ex3GuideItem(def.id,CM.guideItems),caseIndex=Math.max(0,ex3Defs(def.caseId).findIndex(x=>x.id===def.baseId)),lp=previous&&Number.isFinite(+previous.labelLat)&&Number.isFinite(+previous.labelLng)?{labelLat:+previous.labelLat,labelLng:+previous.labelLng}:guideDefaultLabel(lat,lng,caseIndex);CM.guideItems=(CM.guideItems||[]).filter(x=>x.guideId!==def.id);CM.guideItems.push({t:"point",k:def.k,guideId:def.id,baseId:def.baseId,caseId:def.caseId,nom:def.label,lat,lng,...lp});CM.logic=null;CM.guideTool=null;CM.guideShow=true;panelEx3Guide(true);cmTools();cmTip();cmRender()}return}
  if(CM.exercise2&&CM.mode==="draw"&&["source","stockage","question"].includes(CM.ex2Tool)){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:CM.ex2Tool,lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
  if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
@@ -1430,7 +1569,7 @@ function dpSimplify(pts,tol){if(pts.length<3)return pts;const a=pts[0],b=pts[pts
  for(let i=1;i<pts.length-1;i++){const p=pts[i],d=len<1e-6?Math.hypot(p.x-a.x,p.y-a.y):Math.abs(dy*p.x-dx*p.y+b.x*a.y-b.y*a.x)/len;if(d>max){max=d;idx=i}}
  if(max>tol){const l=dpSimplify(pts.slice(0,idx+1),tol),r=dpSimplify(pts.slice(idx),tol);return l.slice(0,-1).concat(r)}return[a,b]}
 const ACT=new Set();
-function cmCanDraw(e){if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
+function cmCanDraw(e){if(CM.exercise4&&CM.ex4TrainerDemo&&CM.ex4DemoAction!=="draw")return false;if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
 function cmDown(e){if(e.pointerType==="mouse"&&e.button!==0)return;ACT.add(e.pointerId);
  if(ACT.size>1){CM.stroke=null;cmRender();return}
  if(!cmCanDraw(e))return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll);CM.stroke=[{x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng}]}
@@ -1441,9 +1580,21 @@ function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;
  if(len<20){cmRender();return}
  const simp=dpSimplify(s,3.5);
  if((CM.exercise1||CM.exercise2&&CM.ex2Tool==="accumulation")&&simp.length<3){cmRender();return}
- CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:null)))};
+ CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null))))};
  cmTools();cmTip();cmSheet();cmRender()}
 function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
+ if(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"){
+  const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre;sh.hidden=false;
+  let dist=0;const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
+  sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4><div class="msg ok"><b>Distance du trajet : '+Math.round(dist)+' m</b></div><p class="muted">Valide pour l’utiliser ensuite comme support du portage.</p><div class="row"><button class="btn main" id="shOk">✔ Valider</button><button class="btn" id="shNo">✖ Recommencer</button></div>';
+  $("shNo").onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};
+  $("shOk").onclick=()=>{
+   CM.ex4Ex3Items=(CM.ex4Ex3Items||[]).filter(x=>x.k!==ty);
+   CM.ex4Ex3Items.push({t:"trace",k:ty,nom:T.n,distance:dist,pts:CM.pending.pts.slice()});
+   CM.pending=null;CM.ex4PickStart=null;CM.ex4DemoAction="select";CM.ex4DemoDirty=true;cmSheet();cmSetMode("move");panelEx4Demo(true)
+  };
+  return
+ }
  if(CM.exercise3Demo){
   const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre;sh.hidden=false;
   let dist=0;const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
@@ -1518,7 +1669,7 @@ function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerH
    CM.items.push({t:"zone",nom:nom||"?",freq,pts})}else CM.items.push({t:"trace",k:t,nom,pts});
   CM.pending=null;CM.lastDel=null;cmSheet();cmChanged()};
  $("shName").focus()}
-function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}if(CM.exercise3Demo){const k=CM.ex3DemoMode==="c1"?"trajet_actuel":CM.ex3DemoMode==="c2"?"trajet_ancien":null;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}if(CM.exercise3){const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
+function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}if(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"){const k=ex4DemoRelevantTool();CM.ex4Ex3Items=(CM.ex4Ex3Items||[]).filter(x=>x.k!==k);CM.ex4DemoDirty=true;panelEx4Demo(true);return}if(CM.exercise3Demo){const k=CM.ex3DemoMode==="c1"?"trajet_actuel":CM.ex3DemoMode==="c2"?"trajet_ancien":null;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}if(CM.exercise3){const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
 function cmChanged(){cmTools();cmTip();cmRender();if(CM.onChange)CM.onChange()}
 function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const i=+b.dataset.del,it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()});
  if($("bRestore"))$("bRestore").onclick=()=>{if(CM.lastDel){CM.items.splice(CM.lastDel.i,0,CM.lastDel.item);CM.lastDel=null;cmChanged()}};
