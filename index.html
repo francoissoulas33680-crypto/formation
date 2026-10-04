@@ -141,6 +141,15 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .receivedSelect.validated{background:#eef8f1;color:#245b44;cursor:default}
 .receivedWrap.selected{outline:3px solid rgba(36,91,68,.25);outline-offset:3px;border-radius:12px}
 
+
+.validationDiag{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.validationDiagRow{display:flex;gap:9px;align-items:flex-start;padding:9px;border-radius:10px;border:1px solid #dfe4e0;background:#fff}
+.validationDiagRow.ok{background:#eef8f1;border-color:#b9d9c3}
+.validationDiagRow.pending{background:#fff8ea;border-color:#ead8aa}
+.validationDiagIcon{font-size:20px;line-height:1.15}
+.validationDiagRow small{color:#59645f}
+@media(max-width:620px){.validationDiag{grid-template-columns:1fr}}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -492,6 +501,35 @@ async function sendStudentMagicLink(farmId=null,fromDirect=false){
  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:redirect,data:{role:"student",prenom}}});
  msg(msgId,error?("Impossible d'envoyer le lien : "+error.message):"✅ Lien envoyé ! Ouvre ton e-mail et clique dessus. Tu reviendras directement ici.",error?"err":"ok")
 }
+
+function studentValidationStatusHtml(status){
+ const names={ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"};
+ return '<div class="validationDiag">'+
+  ["ex1","ex2","ex3","ex4"].map(ex=>{
+   const s=status[ex]||{sent:0,validated:0,rows:[]},ok=s.validated>0;
+   return '<div class="validationDiagRow '+(ok?'ok':'pending')+'">'+
+    '<span class="validationDiagIcon">'+(ok?'✅':'⏳')+'</span>'+
+    '<div><b>'+names[ex]+'</b><br><small>'+
+     (ok
+      ? s.validated+' envoi'+(s.validated>1?'s':'')+' validé'+(s.validated>1?'s':'')
+      : s.sent
+        ? s.sent+' envoi'+(s.sent>1?'s':'')+' trouvé'+(s.sent>1?'s':'')+', mais 0 validé'
+        : 'aucun envoi trouvé')+
+    '</small></div>'+
+   '</div>'
+  }).join("")+
+ '</div>'
+}
+function studentValidationDebugHtml(status){
+ return '<div class="msg"><b>Détail reçu depuis Supabase</b>'+
+  ["ex1","ex2","ex3","ex4"].map(ex=>{
+   const s=status[ex]||{rows:[]};
+   return '<div style="margin-top:8px"><b>'+ex.toUpperCase()+'</b> : '+
+    (s.rows.length?s.rows.map(r=>'#'+esc(String(r.id||"").slice(0,8))+' '+(r.validated?'✅ validé':'⏳ non validé')).join(' · '):'aucune ligne')+
+   '</div>'
+  }).join("")+
+ '</div>'
+}
 async function studentDash(){
  const u=STUDENT_USER||await getCurrentUser();if(!u){return accueil()}
  if(u.user_metadata&&u.user_metadata.role==="trainer"){STUDENT_USER=null;return dash("fermes")}
@@ -504,7 +542,23 @@ async function studentDash(){
  const{data,error}=await sb.from("schemas").select("id,ferme_id,created_at,contenu").eq("user_id",u.id).order("created_at",{ascending:false});
  if(!error)history=data||[];
  STUDENT_VALID_SIG=history.map(h=>h.id+":"+((h.contenu&&h.contenu.validated)?"1":"0")).sort().join("|");
- const counts={},validated={};history.forEach(h=>{const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;counts[k]=(counts[k]||0)+1;if(h.contenu&&h.contenu.validated)validated[k]=true});
+ const counts={},validated={},validationStatus={
+  ex1:{sent:0,validated:0,rows:[]},
+  ex2:{sent:0,validated:0,rows:[]},
+  ex3:{sent:0,validated:0,rows:[]},
+  ex4:{sent:0,validated:0,rows:[]}
+ };
+ history.forEach(h=>{
+  const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;
+  counts[k]=(counts[k]||0)+1;
+  if(h.contenu&&h.contenu.validated)validated[k]=true;
+  if(validationStatus[ex]){
+   validationStatus[ex].sent++;
+   const ok=!!(h.contenu&&h.contenu.validated);
+   if(ok)validationStatus[ex].validated++;
+   validationStatus[ex].rows.push({id:h.id,validated:ok,ferme_id:h.ferme_id})
+  }
+ });
  $("studentFarms").innerHTML=FERMES.map(f=>{
   const n1=counts[f.id+":ex1"]||0,n2=counts[f.id+":ex2"]||0,n3=counts[f.id+":ex3"]||0,n4=counts[f.id+":ex4"]||0;
   return '<div class="card" style="cursor:default">'+
@@ -527,14 +581,26 @@ async function studentDash(){
    const ex=(h.contenu&&h.contenu.exercise)||"ex1",lab=ex==="ex4"?"Exercice 4 — Charges / manutention":ex==="ex3"?"Exercice 3 — Déplacements":ex==="ex2"?"Exercice 2 — Eau":"Exercice 1 — Organisation";return '<li><span class="dot" style="background:#315a48"></span><span class="n"><b>'+esc(f?f.nom:"Ferme")+'</b> · '+lab+'<br><small>'+d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</small></span></li>'
   }).join("")+'</ul>'
  }
- const globalDone=["ex1","ex2","ex3","ex4"].every(ex=>history.some(h=>h.contenu&&h.contenu.exercise===ex&&h.contenu.validated===true));
- const missing=["ex1","ex2","ex3","ex4"].filter(ex=>!history.some(h=>h.contenu&&h.contenu.exercise===ex&&h.contenu.validated===true));
+ const globalDone=["ex1","ex2","ex3","ex4"].every(ex=>validationStatus[ex]&&validationStatus[ex].validated>0);
+ const missing=["ex1","ex2","ex3","ex4"].filter(ex=>!(validationStatus[ex]&&validationStatus[ex].validated>0));
  if($("labMini"))$("labMini").classList.toggle("active",globalDone);
  $("studentLab").innerHTML=globalDone?
-  '<div class="labUnlock"><div><div class="labIcon">🔓</div><h3>Mon laboratoire de diagnostic</h3><p>Les 4 outils sont acquis. Tu peux maintenant enquêter librement sur une nouvelle ferme.</p></div><button class="btn main" id="newDiagBtn">🔎 Nouvelle analyse</button></div>':
-  '<div class="labLocked"><div class="labIcon">🔒</div><div style="flex:1"><h3>Laboratoire de diagnostic</h3><p>Il se débloque lorsque les 4 exercices ont été validés par le formateur.</p><small>Encore à valider : '+missing.map(x=>({ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"}[x])).join(" · ")+'</small><div style="margin-top:10px"><button class="btn small" id="studentRefreshValid">🔄 Vérifier mes validations</button></div></div></div>';
+  '<div class="labUnlock"><div style="flex:1"><div class="labIcon">🔓</div><h3>Mon laboratoire de diagnostic</h3><p>Les 4 outils sont acquis. Tu peux maintenant enquêter librement sur une nouvelle ferme.</p>'+
+   studentValidationStatusHtml(validationStatus)+
+   '<button class="btn main" id="newDiagBtn">🔎 Nouvelle analyse</button></div></div>':
+  '<div class="labLocked"><div class="labIcon">🔒</div><div style="flex:1"><h3>Laboratoire de diagnostic</h3><p>Il se débloque lorsque les 4 exercices ont été validés par le formateur.</p>'+
+   studentValidationStatusHtml(validationStatus)+
+   '<div class="msg"><b>Encore à valider :</b> '+missing.map(x=>({ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"}[x])).join(" · ")+'</div>'+
+   '<div class="row" style="margin-top:10px"><button class="btn small" id="studentRefreshValid">🔄 Vérifier mes validations</button><button class="btn small" id="studentDebugValid">🧪 Voir le détail</button></div></div></div>';
  if(globalDone)$("newDiagBtn").onclick=()=>newDiagnostic();
  if($("studentRefreshValid"))$("studentRefreshValid").onclick=()=>studentDash();
+ if($("studentDebugValid"))$("studentDebugValid").onclick=()=>{
+  const existing=$("studentValidationRaw");
+  if(existing){existing.remove();return}
+  const box=document.createElement("div");box.id="studentValidationRaw";
+  box.innerHTML=studentValidationDebugHtml(validationStatus);
+  $("studentLab").appendChild(box)
+ };
  const diags=await diagList();renderDiagnosticCards(diags,globalDone);
 
  // Vérifie automatiquement si le formateur vient de valider depuis un autre appareil.
