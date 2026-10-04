@@ -102,6 +102,14 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 @media (max-width:560px){.kpis{grid-template-columns:1fr}.exerciseStrip{grid-template-columns:1fr 1fr}}
 
 @media (max-width:820px){.work{flex-direction:column}aside{width:auto;border-left:0;border-top:2px solid var(--line);max-height:38%}}
+
+.flow-arrow-icon{background:transparent!important;border:0!important}
+.flow-arrow-icon .flow-arrow{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:900;line-height:1;text-shadow:0 1px 2px #fff,0 -1px 2px #fff,1px 0 2px #fff,-1px 0 2px #fff;
+  transform-origin:50% 50%;pointer-events:none
+}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -228,7 +236,7 @@ window.addEventListener("error",e=>{try{const el=document.getElementById("studen
 window.addEventListener("unhandledrejection",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String((e.reason&&e.reason.message)||e.reason||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
 const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
-const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Eau distribuée",e:"🔵",c:"#1976d2"},eau_nat:{n:"Eau naturelle",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"}};
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"}};
 const FREQS={
   1:{n:"Plusieurs fois par jour",c:"#c62828"},
   2:{n:"Tous les jours ou presque",c:"#ef6c00"},
@@ -315,7 +323,7 @@ function itemType(it){return TYPES[(it&&it.k)||((it&&it.t)==="trace"?it.k:(it&&i
 function renderItems(items,o={}){const u=U(),fs=(o.fs||22)*u;let s="";
  (items||[]).forEach(it=>{const T=itemType(it),col=o.color||freqColor(it)||T.c,pts=it.pts||[];
   if(it.t==="zone"&&pts.length>2){s+='<polygon points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="'+col+'" fill-opacity="'+(o.fillOp??.22)+'" stroke="'+col+'" stroke-width="'+(o.sw||3)+'" vector-effect="non-scaling-stroke"'+(o.dash?' stroke-dasharray="8 6"':'')+'/>';}
-  if(it.t==="trace"&&pts.length>1){s+='<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="'+(o.sw||4)+'" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"'+(it.k==="vehicule"?' stroke-dasharray="14 8"':it.k==="recolte"?' stroke-dasharray="2 8"':'')+'/>';}
+  if(it.t==="trace"&&pts.length>1){s+='<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="'+(o.sw||4)+'" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"'+(it.k==="vehicule"?' stroke-dasharray="14 8"':it.k==="recolte"?' stroke-dasharray="2 8"':'')+'/>';if(it.k==="eau_nat"){const a=pts[pts.length-2],b=pts[pts.length-1],ang=Math.atan2(b[1]-a[1],b[0]-a[0]),sz=14*u,p1=[b[0]-sz*Math.cos(ang-.55),b[1]-sz*Math.sin(ang-.55)],p2=[b[0]-sz*Math.cos(ang+.55),b[1]-sz*Math.sin(ang+.55)];s+='<polygon points="'+b[0]+','+b[1]+' '+p1[0]+','+p1[1]+' '+p2[0]+','+p2[1]+'" fill="'+col+'"/>';} }
   if(it.t==="point"){s+='<circle cx="'+it.x+'" cy="'+it.y+'" r="'+(9*u)+'" fill="'+col+'" stroke="#fff" stroke-width="'+(3*u)+'"/>';}
   if(o.labels!==false){if(it.t==="zone"&&pts.length>2){const c=centroid(pts);s+=label(c[0],c[1],it.nom||"?",col,fs)}
    if(it.t==="trace"&&pts.length>1){const i2=Math.floor(pts.length/2),a1=pts[i2-1]||pts[0],b1=pts[i2],m=pts.length%2?b1:[(a1[0]+b1[0])/2,(a1[1]+b1[1])/2];s+=label(m[0],m[1],(T.e+" ")+(it.nom||T.n),col,fs*.85)}
@@ -455,8 +463,8 @@ const EX2_STEPS=[
  {title:"Observer",tool:null,tip:"Observe la ferme sans dessiner. Zoome et déplace la carte.",help:"Avant de tracer quoi que ce soit, regarde simplement ce qui pourrait être lié à l’eau."},
  {title:"Ressource",tool:"source",tip:"Clique à l’endroit où tu situes une source d’eau.",help:"Place une ou plusieurs ressources : forage, puits, réseau, mare… Distingue ce que tu vois de ce que tu supposes."},
  {title:"Stockage",tool:"stockage",tip:"Clique à l’endroit où tu situes un stockage d’eau.",help:"Repère les réserves, bassins ou stockages éventuels. Si tu n’en vois pas, tu peux passer à l’étape suivante."},
- {title:"Eau distribuée",tool:"eau_dist",tip:"Trace le trajet supposé de l’eau distribuée. Termine le tracé pour obtenir sa distance.",help:"Trace source → pompe / stockage → zones cultivées. La longueur de chaque tracé est calculée automatiquement."},
- {title:"Eau naturelle",tool:"eau_nat",tip:"Trace le sens probable de l’eau quand elle suit le relief.",help:"Utilise « Comprendre la pente » si nécessaire, puis représente les écoulements probables."},
+ {title:"Réseau primaire",tool:"eau_dist",tip:"Trace le réseau primaire : source → pompe / stockage → grands secteurs de culture. Termine pour obtenir la distance.",help:"Reste sur les grandes lignes du réseau. Ne dessine pas chaque goutte-à-goutte ni les lignes secondaires, sauf si elles sont indispensables pour comprendre l’organisation."},
+ {title:"Écoulement naturel",tool:"eau_nat",tip:"Dessine une flèche dans le sens probable de l’écoulement : du point haut vers le point bas.",help:"La pointe de la flèche indique le sens supposé de l’eau. Utilise « Comprendre la pente » pour vérifier ton hypothèse si nécessaire."},
  {title:"Accumulations",tool:"accumulation",tip:"Dessine le contour d’une zone où l’eau pourrait s’accumuler.",help:"Repère les points bas ou zones qui pourraient rester humides. Il s’agit d’une hypothèse à vérifier."},
  {title:"Questions",tool:"question",tip:"Clique sur la carte pour placer une question ou un point de vigilance.",help:"Note ce que la vue aérienne ne permet pas de trancher : ressource réelle, panne, stockage, réseau, humidité…"},
  {title:"Synthèse",tool:null,tip:"Relis ta carte avant de l’envoyer.",help:"Ta carte doit distinguer ce que tu observes, ce que tu supposes et ce qu’il faudra vérifier sur la ferme."}
@@ -482,7 +490,8 @@ function panelEleveEx2(){
  p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 2</div><h3>💧 Suivre l’eau</h3>'+ex2Stepbar()+
   '<div class="msg"><b>Étape '+(CM.ex2Step+1)+' / '+EX2_STEPS.length+' — '+st.title+'</b><br>'+st.help+'</div>'+ 
   (CM.items.length?itemList(CM.items,true):'<p class="muted">Aucun élément dessiné pour l’instant.</p>')+
-  '<div class="kpis"><div class="kpi"><b>'+ex2Count('source')+'</b><small>source(s)</small></div><div class="kpi"><b>'+Math.round(dist)+' m</b><small>réseau distribué tracé</small></div></div>'+ 
+  '<div class="kpis"><div class="kpi"><b>'+ex2Count('source')+'</b><small>source(s)</small></div><div class="kpi"><b>'+Math.round(dist)+' m</b><small>réseau primaire tracé</small></div></div>'+
+  (st.tool==="eau_dist"?'<div class="msg"><b>🔵 Ici : réseau primaire seulement.</b><br>Source, pompage, stockage et grandes arrivées vers les secteurs. Pas besoin de dessiner chaque ligne de goutte-à-goutte.</div>':st.tool==="eau_nat"?'<div class="msg"><b>🌧️ La pointe de la flèche donne le sens.</b><br>Dessine du point haut vers le point bas supposé. Vérifie avec l’outil pente si besoin.</div>':'')+ 
   '<div class="row"><button class="btn small" id="ex2Prev" '+(CM.ex2Step===0?'disabled':'')+'>⬅ Étape précédente</button><button class="btn main" id="ex2Next" '+(CM.ex2Step===EX2_STEPS.length-1?'disabled':'')+'>Étape suivante ➡</button></div>'+ 
   '<button class="btn" id="ex2Overlay">'+(CM.ex2ShowEx1?'🙈 Masquer':'👁️ Afficher')+' les zones de l’exercice 1</button>'+ 
   '<button class="btn main" id="ex2Send">📤 Envoyer l’exercice 2</button><div id="ex2SendMsg"></div>'+ 
@@ -705,9 +714,16 @@ async function cmInit(f){show("vCarte");await loadLeaflet();
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
  CM.f=f;CM.mode="draw";CM.stroke=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
+function addFlowArrow(group,pts,col){
+ if(!CM.map||!pts||pts.length<2)return;
+ const a=CM.map.latLngToLayerPoint(pts[pts.length-2]),b=CM.map.latLngToLayerPoint(pts[pts.length-1]);
+ const ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+ const icon=L.divIcon({className:"flow-arrow-icon",html:'<div class="flow-arrow" style="color:'+col+';transform:rotate('+ang+'deg)">➤</div>',iconSize:[28,28],iconAnchor:[14,14]});
+ L.marker(pts[pts.length-1],{icon,interactive:false,keyboard:false}).addTo(group)
+}
 function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=itemType(it),col=o.color||freqColor(it)||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]);
  if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);cLabel(group,c[0],c[1],it.nom||"?",col)}
- else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);const m=pts[Math.floor(pts.length/2)],d=it.distance?(" · "+Math.round(it.distance)+" m"):"";cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n)+d,col)}
+ else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);if(it.k==="eau_nat")addFlowArrow(group,pts,col);const m=pts[Math.floor(pts.length/2)],d=it.distance?(" · "+Math.round(it.distance)+" m"):"";cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n)+d,col)}
  else if(it.t==="point"){L.circleMarker([it.lat,it.lng],{radius:8,color:"#fff",weight:3,fillColor:col,fillOpacity:1,interactive:false}).addTo(group);cLabel(group,it.lat,it.lng,T.e+" "+(it.nom||T.n),col)}
  else if(it.t==="note")cLabel(group,it.lat,it.lng,"📝 "+(it.txt||""),col)})}
 const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"],["eau","💧 L'eau","tuyau, forage, réserve…"],["vehicule","🚐 Les véhicules","passage de camion, tracteur…"],["recolte","🧺 La récolte à pied","chemin des caisses, brouettes…"],["libre","✏️ Autre tracé","je le nomme moi-même"]];
@@ -719,7 +735,7 @@ function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLay
  const pv=CM.pending?CM.pending.pts.map(p=>[p[1],p[0]]):(CM.stroke&&CM.stroke.length>1?CM.stroke.map(s=>[s.lat,s.lng]):null);
  if(pv){const T=CM.pending&&CM.pending.type?TYPES[CM.pending.type]:null,col=T?T.c:"#14201a";
   if(T&&CM.pending.type==="zone"&&pv.length>2)L.polygon(pv,{color:col,weight:4,fillColor:col,fillOpacity:.2,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);
-  else L.polyline(pv,{color:col,weight:5,lineCap:"round",lineJoin:"round",dashArray:CM.pending?"6 5":null,interactive:false}).addTo(CM.g.draft)}
+  else {L.polyline(pv,{color:col,weight:5,lineCap:"round",lineJoin:"round",dashArray:CM.pending?"6 5":null,interactive:false}).addTo(CM.g.draft);if(CM.pending&&CM.pending.type==="eau_nat"&&pv.length>1)addFlowArrow(CM.g.draft,pv,col)}}
  $("cm").classList.toggle("draw",CM.mode==="draw"&&!CM.readonly&&!CM.pending)}
 function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
  const min=CM.exercise1?3:(CM.exercise2&&CM.ex2Tool==="accumulation"?3:2);
@@ -735,7 +751,7 @@ function cmTools(){const t=$("toolsC");
   $("mDone").onclick=cmVertsDone;$("mUndo").onclick=cmUndo;$("mCancel").onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
  if(CM.exercise2){
   const tool=EX2_STEPS[CM.ex2Step]&&EX2_STEPS[CM.ex2Step].tool;CM.ex2Tool=tool||null;
-  const action=tool?'<button class="btn'+(CM.mode==="draw"&&!CM.topoMode?" on":"")+'" id="mEx2">'+itemType({k:tool}).e+' '+(tool==="source"?"Placer une source":tool==="stockage"?"Placer un stockage":tool==="eau_dist"?"Tracer l’eau distribuée":tool==="eau_nat"?"Tracer l’eau naturelle":tool==="accumulation"?"Dessiner une accumulation":"Placer une question")+'</button>':'';
+  const action=tool?'<button class="btn'+(CM.mode==="draw"&&!CM.topoMode?" on":"")+'" id="mEx2">'+itemType({k:tool}).e+' '+(tool==="source"?"Placer une source":tool==="stockage"?"Placer un stockage":tool==="eau_dist"?"Tracer le réseau primaire":tool==="eau_nat"?"Tracer une flèche d’écoulement":tool==="accumulation"?"Dessiner une accumulation":"Placer une question")+'</button>':'';
   t.innerHTML=action+'<button class="btn'+(CM.mode==="move"&&!CM.topoMode?" on":"")+'" id="mMove">✋ Déplacer</button><button class="btn" id="mUndo">↩ Effacer le dernier</button>'+topoBtnHtml();
   if($("mEx2"))$("mEx2").onclick=()=>{if(CM.topoMode)topoClose();CM.ex2Tool=tool;cmSetMode("draw")};
   $("mMove").onclick=()=>{if(CM.topoMode)topoClose();cmSetMode("move")};$("mUndo").onclick=cmUndo;topoWire();return
@@ -775,6 +791,11 @@ function topoProfileSvg(arr){
  const pts=zs.map((z,i)=>[(p+i*(W-2*p)/(zs.length-1)).toFixed(1),(H-p-(z-mn)*(H-2*p)/span).toFixed(1)]).map(q=>q.join(",")).join(" ");
  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;background:#f7faf7;border:1px solid #d9e1dc;border-radius:10px"><polyline points="'+pts+'" fill="none" stroke="#315a48" stroke-width="3"/><text x="10" y="16" font-size="11" fill="#52665d">'+mx.toFixed(1)+' m</text><text x="10" y="'+(H-6)+'" font-size="11" fill="#52665d">'+mn.toFixed(1)+' m</text></svg>'
 }
+function slopeReading(s){
+ if(s<2)return {label:"Pente faible",txt:"Elle peut déjà orienter l’eau, mais son effet dépend fortement du sol, de sa couverture et de la pluie."};
+ if(s<=5)return {label:"Influence notable",txt:"Le relief commence à jouer clairement sur le sens d’écoulement et le ruissellement."};
+ return {label:"Influence forte",txt:"Le relief mérite une attention particulière pour les écoulements, l’érosion et les zones d’accumulation."}
+}
 function topoPanel(){
  const sh=$("sheetC");sh.hidden=false;
  if(!CM.topoPts.length){
@@ -788,11 +809,12 @@ function topoPanel(){
  if(!CM.topoData){
   sh.innerHTML='<h4>⛰️ Calcul en cours…</h4><p class="muted">Lecture de l’altitude IGN.</p>';return
  }
- const d=CM.topoData,down=d.dz<0?"A → B descend":d.dz>0?"B → A descend":"Terrain presque horizontal entre A et B";
+ const d=CM.topoData,down=d.dz<0?"A → B descend":d.dz>0?"B → A descend":"Terrain presque horizontal entre A et B",sr=slopeReading(d.slope);
  sh.innerHTML='<h4>⛰️ Lecture de la pente</h4>'+
   '<div class="msg ok"><b>A : '+d.za.toFixed(2)+' m</b> &nbsp; → &nbsp; <b>B : '+d.zb.toFixed(2)+' m</b></div>'+
   '<p><b>Dénivelé :</b> '+(d.dz>=0?"+":"")+d.dz.toFixed(2)+' m<br><b>Distance :</b> '+Math.round(d.dist)+' m<br><b>Pente moyenne :</b> '+d.slope.toFixed(2)+' %</p>'+
   '<p><b>↘ '+down+'</b></p>'+
+  '<div class="msg"><b>'+sr.label+' · '+d.slope.toFixed(2)+' %</b><br>'+sr.txt+'<br><span class="muted">Repères pédagogiques : &lt; 2 % faible · 2–5 % notable · &gt; 5 % forte.</span></div>'+
   topoProfileSvg(d.profile)+
   '<p class="muted">Le profil montre le terrain entre A et B. Il ne prédit pas à lui seul tout le trajet réel de l’eau.</p>'+
   '<div class="row"><button class="btn main" id="topoReset">Comparer deux autres points</button><button class="btn" id="topoClose">Fermer</button></div>';
