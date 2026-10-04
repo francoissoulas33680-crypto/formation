@@ -425,6 +425,7 @@ async function sendStudentMagicLink(farmId=null,fromDirect=false){
 }
 async function studentDash(){
  const u=STUDENT_USER||await getCurrentUser();if(!u){return accueil()}
+ if(u.user_metadata&&u.user_metadata.role==="trainer"){STUDENT_USER=null;return dash("fermes")}
  STUDENT_USER=u;show("vEleveDash");
  const prenom=(u.user_metadata&&u.user_metadata.prenom)||studentName()||"";
  $("who").textContent="👤 "+(prenom||u.email);
@@ -834,24 +835,25 @@ async function openRecusEx3(f,ids){
 
 
 
+
 /* ---------- MODULE 1 · EXERCICE 4 : CHARGES / MANUTENTION ---------- */
 const EX4_STATES=[
- {title:"État 1 — Récolte à la main",source:"trajet_ancien",reveal:"Au départ, pas de brouette de récolte : les caisses pleines étaient déplacées à la main, amenées à la chambre froide, puis reprises pour préparer les commandes.",question:"Sur le trajet de l’ancienne organisation, sélectionne uniquement les portions où tu portes réellement une caisse."},
- {title:"État 2 — Brouette de récolte",source:"trajet_ancien",reveal:"Amélioration réellement mise en place : cultures davantage espacées pour passer avec une brouette / un chariot. Mais les cagettes de récupération avaient des tares différentes : il fallait sortir les caisses, les peser, les remettre sur le chariot, puis les ressortir devant la marche de la chambre froide.",question:"Même trajet, mais le chariot change le travail. Sélectionne seulement les portions où il reste du portage."},
- {title:"État 3 — Caisses standardisées",source:"trajet_ancien",reveal:"Amélioration suivante : mêmes caisses, même tare et poids standard lorsque la caisse est pleine. La pesée systématique disparaît.",question:"Sélectionne à nouveau uniquement les portions où une caisse est encore portée."},
- {title:"État 4 — Bâtiment central + rampe",source:"trajet_actuel",reveal:"Dernière évolution : station de lavage, chambre froide et préparation de commandes regroupées, avec une rampe permettant au chariot d’entrer directement dans la chambre froide.",question:"Le trajet actuel est affiché. Sélectionne les dernières portions où il reste réellement du portage."},
+ {title:"État 1 — Récolte à la main",source:"trajet_ancien",reveal:"Au départ, pas de brouette de récolte : les caisses pleines étaient déplacées à la main, amenées à la chambre froide, puis reprises pour préparer les commandes.",question:"Sur le trajet de l’ancienne organisation, indique seulement les portions où tu portes réellement une caisse."},
+ {title:"État 2 — Brouette de récolte",source:"trajet_ancien",reveal:"Amélioration réellement mise en place : cultures davantage espacées pour passer avec une brouette / un chariot. Mais les cagettes de récupération avaient des tares différentes : il fallait sortir les caisses, les peser, les remettre sur le chariot, puis les ressortir devant la marche de la chambre froide.",question:"Même trajet, mais le chariot change le travail. Indique seulement les portions où il reste du portage."},
+ {title:"État 3 — Caisses standardisées",source:"trajet_ancien",reveal:"Amélioration suivante : mêmes caisses, même tare et poids standard lorsque la caisse est pleine. La pesée systématique disparaît.",question:"Indique à nouveau uniquement les portions où une caisse est encore portée."},
+ {title:"État 4 — Bâtiment central + rampe",source:"trajet_actuel",reveal:"Dernière évolution : station de lavage, chambre froide et préparation de commandes regroupées, avec une rampe permettant au chariot d’entrer directement dans la chambre froide.",question:"Le trajet actuel est affiché. Indique les dernières portions où il reste réellement du portage."},
  {title:"Synthèse",source:null,reveal:"Compare les quatre états successifs.",question:"L’objectif n’est pas de trouver une solution parfaite d’un coup : on observe le travail, on retire une contrainte, puis on regarde ce qui reste."}
 ];
 
-function ex4DraftKey(fid){return "schema:"+fid+":ex4:v2"}
-function ex4BlankState(){return {manips:"",carrySegments:[],proposal:""}}
+function ex4DraftKey(fid){return "schema:"+fid+":ex4:v3"}
+function ex4BlankState(){return {manips:"",carryRanges:[],proposal:""}}
 function ex4Load(fid){
  const d=LS.get(ex4DraftKey(fid),null);
  if(d&&typeof d==="object")return {
   base:{crates:d.base?.crates||"",weight:d.base?.weight||"",weeks:d.base?.weeks||"",perWeek:d.base?.perWeek||""},
   states:Array.from({length:4},(_,i)=>{
    const old=((d.states||[])[i]||{});
-   return {...ex4BlankState(),...old,carrySegments:Array.isArray(old.carrySegments)?old.carrySegments:[]}
+   return {...ex4BlankState(),...old,carryRanges:Array.isArray(old.carryRanges)?old.carryRanges:[]}
   })
  };
  return {base:{crates:"",weight:"",weeks:"",perWeek:""},states:Array.from({length:4},()=>ex4BlankState())}
@@ -876,49 +878,104 @@ function ex4SourceTrace(i){
 function ex4TraceLabel(i){
  const st=EX4_STATES[i];return st&&st.source==="trajet_actuel"?"trajet actuel (cas 1)":"trajet ancien (cas 2)"
 }
-function ex4Segments(i){
- const tr=ex4SourceTrace(i),out=[];if(!tr||!CM.map||!Array.isArray(tr.pts)||tr.pts.length<2)return out;
- for(let n=1;n<tr.pts.length;n++){
-  const a=tr.pts[n-1],b=tr.pts[n];
-  const d=CM.map.distance([a[1],a[0]],[b[1],b[0]]);
-  const parts=Math.max(1,Math.ceil(d/12));
-  for(let j=0;j<parts;j++){
-   const t1=j/parts,t2=(j+1)/parts;
-   const p1=[a[1]+(b[1]-a[1])*t1,a[0]+(b[0]-a[0])*t1];
-   const p2=[a[1]+(b[1]-a[1])*t2,a[0]+(b[0]-a[0])*t2];
-   out.push({key:n+"-"+j+"-"+parts,a:p1,b:p2,d:CM.map.distance(p1,p2)})
-  }
+function ex4Route(i){
+ const tr=ex4SourceTrace(i),out=[];if(!tr||!CM.map||!Array.isArray(tr.pts)||tr.pts.length<2)return {pts:[],segs:[],total:0};
+ let cum=0;
+ const pts=tr.pts.map(p=>[p[1],p[0]]);
+ for(let n=1;n<pts.length;n++){
+  const a=pts[n-1],b=pts[n],d=CM.map.distance(a,b);
+  out.push({a,b,start:cum,end:cum+d,d});
+  cum+=d
  }
+ return {pts,segs:out,total:cum}
+}
+function ex4PointAt(i,m){
+ const r=ex4Route(i);if(!r.segs.length)return null;
+ m=Math.max(0,Math.min(r.total,m));
+ let s=r.segs.find(x=>m<=x.end)||r.segs[r.segs.length-1];
+ const t=s.d?Math.max(0,Math.min(1,(m-s.start)/s.d)):0;
+ return [s.a[0]+(s.b[0]-s.a[0])*t,s.a[1]+(s.b[1]-s.a[1])*t]
+}
+function ex4NearestOnTrace(i,latlng){
+ const r=ex4Route(i);if(!r.segs.length)return null;
+ const q=CM.map.latLngToContainerPoint(latlng);let best=null;
+ r.segs.forEach(s=>{
+  const A=CM.map.latLngToContainerPoint(s.a),B=CM.map.latLngToContainerPoint(s.b);
+  const vx=B.x-A.x,vy=B.y-A.y,wx=q.x-A.x,wy=q.y-A.y,den=vx*vx+vy*vy;
+  const t=den?Math.max(0,Math.min(1,(wx*vx+wy*vy)/den)):0;
+  const x=A.x+vx*t,y=A.y+vy*t,px=Math.hypot(q.x-x,q.y-y);
+  if(!best||px<best.px)best={px,m:s.start+s.d*t,latlng:[s.a[0]+(s.b[0]-s.a[0])*t,s.a[1]+(s.b[1]-s.a[1])*t]}
+ });
+ return best
+}
+function ex4Ranges(i){
+ const s=(CM.ex4States||[])[i]||{};
+ return (Array.isArray(s.carryRanges)?s.carryRanges:[]).map(r=>[Math.min(+r[0]||0,+r[1]||0),Math.max(+r[0]||0,+r[1]||0)])
+}
+function ex4SelectedDistance(i){return ex4Ranges(i).reduce((sum,r)=>sum+Math.max(0,r[1]-r[0]),0)}
+function ex4AddRange(i,a,b){
+ if(!CM.ex4States[i])CM.ex4States[i]=ex4BlankState();
+ const lo=Math.min(a,b),hi=Math.max(a,b);
+ if(hi-lo<1)return;
+ CM.ex4States[i].carryRanges=[...(CM.ex4States[i].carryRanges||[]),[lo,hi]];
+ ex4Save()
+}
+function ex4UndoRange(i){
+ if(!CM.ex4States[i])return;
+ CM.ex4States[i].carryRanges=(CM.ex4States[i].carryRanges||[]).slice(0,-1);
+ CM.ex4PickStart=null;ex4Save();cmRender();panelEleveEx4()
+}
+function ex4ClearRanges(i){
+ if(!CM.ex4States[i])return;
+ CM.ex4States[i].carryRanges=[];CM.ex4PickStart=null;ex4Save();cmRender();panelEleveEx4()
+}
+function ex4MapTap(e){
+ const i=CM.ex4Step;if(i<0||i>3)return;
+ const hit=ex4NearestOnTrace(i,e.latlng);
+ if(!hit||hit.px>24){
+  msg("ex4MapMsg","Clique directement sur le trajet gris.","err");return
+ }
+ if(CM.ex4PickStart===null||CM.ex4PickStart===undefined){
+  CM.ex4PickStart=hit.m;
+  cmRender();panelEleveEx4();
+ }else{
+  ex4AddRange(i,CM.ex4PickStart,hit.m);
+  CM.ex4PickStart=null;
+  cmRender();panelEleveEx4()
+ }
+}
+function ex4Pieces(i){
+ const r=ex4Route(i),out=[];
+ r.segs.forEach(s=>{
+  const parts=Math.max(1,Math.ceil(s.d/6));
+  for(let j=0;j<parts;j++){
+   const t1=j/parts,t2=(j+1)/parts,m1=s.start+s.d*t1,m2=s.start+s.d*t2;
+   out.push({
+    a:[s.a[0]+(s.b[0]-s.a[0])*t1,s.a[1]+(s.b[1]-s.a[1])*t1],
+    b:[s.a[0]+(s.b[0]-s.a[0])*t2,s.a[1]+(s.b[1]-s.a[1])*t2],
+    m1,m2,mid:(m1+m2)/2
+   })
+  }
+ });
  return out
-}
-function ex4SelectedDistance(i){
- const selected=new Set(((CM.ex4States||[])[i]?.carrySegments)||[]);
- return ex4Segments(i).reduce((s,g)=>s+(selected.has(g.key)?g.d:0),0)
-}
-function ex4ToggleSegment(i,key){
- const s=CM.ex4States[i]||ex4BlankState(),set=new Set(s.carrySegments||[]);
- if(set.has(key))set.delete(key);else set.add(key);
- s.carrySegments=[...set];CM.ex4States[i]=s;ex4Save();cmRender();panelEleveEx4()
-}
-function ex4ClearSegments(i){
- if(!CM.ex4States[i])return;CM.ex4States[i].carrySegments=[];ex4Save();cmRender();panelEleveEx4()
 }
 function drawEx4Portage(){
  const i=CM.ex4Step;if(i<0||i>3)return;
- const tr=ex4SourceTrace(i);if(!tr)return;
- const pts=(tr.pts||[]).map(p=>[p[1],p[0]]);
- if(pts.length<2)return;
- L.polyline(pts,{color:"#66736d",weight:5,opacity:.65,lineCap:"round",lineJoin:"round",interactive:false}).addTo(CM.g.items);
- const selected=new Set((CM.ex4States[i]&&CM.ex4States[i].carrySegments)||[]);
- ex4Segments(i).forEach(seg=>{
-  const on=selected.has(seg.key);
-  L.polyline([seg.a,seg.b],{
-   color:on?"#c43d20":"#66736d",weight:on?9:6,opacity:on?1:.72,
-   lineCap:"round",interactive:false
-  }).addTo(CM.g.items);
-  const hit=L.polyline([seg.a,seg.b],{color:"#000",weight:24,opacity:.01,interactive:true}).addTo(CM.g.items);
-  hit.on("click",e=>{L.DomEvent.stopPropagation(e);ex4ToggleSegment(i,seg.key)})
+ const r=ex4Route(i);if(!r.pts.length)return;
+ L.polyline(r.pts,{color:"#66736d",weight:7,opacity:.82,lineCap:"round",lineJoin:"round",interactive:false}).addTo(CM.g.items);
+ const ranges=ex4Ranges(i);
+ ex4Pieces(i).forEach(p=>{
+  if(ranges.some(rr=>p.mid>=rr[0]&&p.mid<=rr[1])){
+   L.polyline([p.a,p.b],{color:"#c43d20",weight:10,opacity:1,lineCap:"round",interactive:false}).addTo(CM.g.items)
+  }
  });
+ if(CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined){
+  const q=ex4PointAt(i,CM.ex4PickStart);
+  if(q){
+   L.circleMarker(q,{radius:9,color:"#c43d20",weight:4,fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(CM.g.items);
+   cLabel(CM.g.items,q[0],q[1],"DÉBUT DU PORTAGE","#c43d20")
+  }
+ }
 }
 function ex4Metrics(i){
  const b=CM.ex4Base||{},s=(CM.ex4States||[])[i]||{},cr=+b.crates||0,w=+b.weight||0,weeks=+b.weeks||0,pw=+b.perWeek||0,m=+s.manips||0,dist=ex4SelectedDistance(i),harv=weeks*pw;
@@ -939,7 +996,7 @@ function ex4MetricBox(i){
   '<div class="kpi"><b>'+Math.round(x.carryPerHarvest)+' m</b><small>portage sélectionné</small></div>'+
   '<div class="kpi"><b>'+Math.round(x.annualKg/100)/10+' t</b><small>manipulées / an</small></div>'+
  '</div>'+
- (x.harvests?'<div class="msg"><b>Projection annuelle</b><br>'+Math.round(x.harvests)+' récoltes estimées · '+Math.round(x.annualCarry/100)/10+' km de portions de trajet avec portage.</div>':'')
+ (x.harvests?'<div class="msg"><b>Projection annuelle</b><br>'+Math.round(x.harvests)+' récoltes estimées · '+Math.round(x.annualCarry/100)/10+' km de portage cumulé.</div>':'')
 }
 function ex4Comparison(){
  return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m de portage · '+Math.round(x.annualKg/100)/10+' t manipulées/an</div>'}).join("")+'</div>'
@@ -949,7 +1006,7 @@ async function eleveCarteEx4(f){
  CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Charges";await cmInit(f);
  const d=ex4Load(f.id),ex3items=await ex4LoadEx3Items(f);
  CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;
- CM.readonly=true;CM.items=[];CM.logic=null;CM.overlays=[];CM.ex4Step=0;CM.ex4Base=d.base;CM.ex4States=d.states;CM.ex4Ex3Items=ex3items;CM.onChange=null;
+ CM.readonly=true;CM.items=[];CM.logic=null;CM.overlays=[];CM.ex4Step=0;CM.ex4Base=d.base;CM.ex4States=d.states;CM.ex4Ex3Items=ex3items;CM.ex4PickStart=null;CM.onChange=null;
  cmSetMode("move");panelEleveEx4();cmRender();$("btnHelp").hidden=true
 }
 function panelEleveEx4(){
@@ -957,9 +1014,9 @@ function panelEleveEx4(){
  let body='<div class="muted">MODULE 1 · EXERCICE 4</div><h3>📦 Charges / manutention</h3>'+ex4Stepbar()+
   '<div class="msg"><b>Étape '+(i+1)+' / '+EX4_STATES.length+' — '+st.title+'</b><br>'+st.reveal+'</div>';
  if(i<4){
-  const trace=ex4SourceTrace(i),dist=ex4SelectedDistance(i);
+  const trace=ex4SourceTrace(i),dist=ex4SelectedDistance(i),ranges=ex4Ranges(i);
   body+=(trace?
-   '<div class="msg ok"><b>Trajet repris automatiquement : '+ex4TraceLabel(i)+'</b><br>Clique directement sur la carte sur les portions où tu <b>portes une caisse</b>. Elles deviennent rouges. Reclique pour les retirer.</div>':
+   '<div class="msg ok"><b>Trajet repris automatiquement : '+ex4TraceLabel(i)+'</b><br><b>1er clic sur le trajet = début du portage.<br>2e clic = fin du portage.</b><br>La portion devient rouge et les mètres sont calculés automatiquement. Répète l’opération s’il y a plusieurs périodes de portage.</div>':
    '<div class="msg err"><b>Trajet introuvable.</b><br>Il faut d’abord tracer le '+ex4TraceLabel(i)+' dans l’exercice 3.</div>');
   if(i===0)body+='<div class="calcbox"><h4>Base commune pour les 4 états</h4>'+
    '<label class="f">Combien de caisses pour cette récolte ?<input id="ex4Crates" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.crates)+'" placeholder="Votre estimation"></label>'+
@@ -967,8 +1024,10 @@ function panelEleveEx4(){
    '<label class="f">Combien de semaines de récolte tomate ?<input id="ex4Weeks" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.weeks)+'" placeholder="Votre estimation"></label>'+
    '<label class="f">Combien de récoltes par semaine ?<input id="ex4PerWeek" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Votre estimation"></label></div>';
   body+='<div class="calcbox"><h4>'+st.question+'</h4>'+
-   '<div class="msg"><b>'+Math.round(dist)+' m sélectionnés comme portage</b><br><span class="muted">On ne redessine rien : on qualifie le trajet déjà construit.</span></div>'+
-   '<button class="btn small" id="ex4ClearCarry" '+(!dist?'disabled':'')+'>🧹 Effacer ma sélection de portage</button>'+
+   '<div id="ex4MapMsg" class="msg '+(CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined?'ok':'')+'">'+
+    (CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined?'<b>Début choisi ✅</b><br>Clique maintenant sur la fin de cette portion de portage.':'<b>'+Math.round(dist)+' m de portage sélectionnés</b><br>'+ranges.length+' portion(s) enregistrée(s).')+
+   '</div>'+
+   '<div class="row"><button class="btn small" id="ex4UndoCarry" '+(!ranges.length?'disabled':'')+'>↩ Retirer la dernière portion</button><button class="btn small" id="ex4ClearCarry" '+(!ranges.length&&CM.ex4PickStart===null?'disabled':'')+'>🧹 Tout effacer</button></div>'+
    '<label class="f">Combien de fois chaque caisse est-elle soulevée / reposée ?<input id="ex4Manips" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].manips)+'" placeholder="Votre estimation"></label>'+
    '<label class="f">'+(i<3?'Quelle amélioration proposeriez-vous maintenant ?':'Qu’est-ce qui a été principalement amélioré ?')+'<textarea id="ex4Proposal" rows="3" placeholder="Votre réflexion…">'+esc(CM.ex4States[i].proposal)+'</textarea></label>'+
    ex4MetricBox(i)+'</div>';
@@ -988,16 +1047,17 @@ function panelEleveEx4(){
  }});
  if($("ex4Manips"))$("ex4Manips").onchange=()=>{CM.ex4States[i].manips=$("ex4Manips").value;ex4Save();panelEleveEx4()};
  if($("ex4Proposal"))$("ex4Proposal").oninput=()=>{CM.ex4States[i].proposal=$("ex4Proposal").value;ex4Save()};
- if($("ex4ClearCarry"))$("ex4ClearCarry").onclick=()=>ex4ClearSegments(i);
- $("ex4Prev").onclick=()=>{CM.ex4Step--;cmRender();panelEleveEx4()};
- $("ex4Next").onclick=()=>{CM.ex4Step++;cmRender();panelEleveEx4()};
+ if($("ex4UndoCarry"))$("ex4UndoCarry").onclick=()=>ex4UndoRange(i);
+ if($("ex4ClearCarry"))$("ex4ClearCarry").onclick=()=>ex4ClearRanges(i);
+ $("ex4Prev").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step--;cmRender();panelEleveEx4()};
+ $("ex4Next").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step++;cmRender();panelEleveEx4()};
  $("ex4Send").onclick=sendEx4;
- $("ex4Back").onclick=()=>{CM.exercise4=false;studentDash()}
+ $("ex4Back").onclick=()=>{CM.exercise4=false;CM.ex4PickStart=null;studentDash()}
  cmTools();cmTip()
 }
 async function sendEx4(){
  if(!STUDENT_USER){msg("ex4SendMsg","Reconnecte-toi à ton espace pour envoyer.","err");return}
- const hasData=(CM.ex4States||[]).some(s=>s.manips!==""||(s.carrySegments||[]).length||s.proposal);
+ const hasData=(CM.ex4States||[]).some(s=>s.manips!==""||(s.carryRanges||[]).length||s.proposal);
  if(!hasData){msg("ex4SendMsg","Commence par renseigner au moins un état.","err");return}
  $("ex4Send").disabled=true;const c=CM.map.getCenter();
  const metrics=[0,1,2,3].map(ex4Metrics);
@@ -1076,7 +1136,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],ex4Ex3Items:[],collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -1087,13 +1147,14 @@ async function cmInit(f){show("vCarte");await loadLeaflet();
   ["over","logic","items","draft","topo"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
   CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
- CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.ex4PickStart=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
 
 const GUIDE_LABEL_OFFSETS=[[88,-42],[88,14],[-88,-42],[-88,14],[70,58],[-70,58]];
 function guideDefaultLabel(lat,lng,idx){
  if(!CM.map)return {labelLat:lat,labelLng:lng};
- const p=CM.map.latLngToContainerPoint([lat,lng]),o=GUIDE_LABEL_OFFSETS[idx%GUIDE_LABEL_OFFSETS.length],ll=CM.map.containerPointToLatLng([p.x+o[0],p.y+o[1]]);
+ const safeIdx=((Number.isFinite(+idx)?+idx:0)%GUIDE_LABEL_OFFSETS.length+GUIDE_LABEL_OFFSETS.length)%GUIDE_LABEL_OFFSETS.length;
+ const p=CM.map.latLngToContainerPoint([lat,lng]),o=GUIDE_LABEL_OFFSETS[safeIdx],ll=CM.map.containerPointToLatLng([p.x+o[0],p.y+o[1]]);
  return {labelLat:+ll.lat.toFixed(6),labelLng:+ll.lng.toFixed(6)}
 }
 function ensureGuideLabel(it,idx){
@@ -1150,7 +1211,7 @@ function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
 function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
 function cmTools(){const t=$("toolsC");
  if(CM.pending){t.innerHTML="";t.style.display="none";return}
- if(CM.exercise4){t.style.display="flex";t.innerHTML='<button class="btn on">📦 Cliquer sur les portions portées</button>';return}
+ if(CM.exercise4){t.style.display="flex";t.innerHTML='<button class="btn on">📦 Début puis fin du portage</button>';return}
  if(CM.readonly){t.style.display="flex";t.innerHTML=topoBtnHtml();topoWire();return}
  t.style.display="flex";
  if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
@@ -1264,7 +1325,7 @@ async function topoTap(e){
  }
 }
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
- if(CM.exercise4){tx.textContent=CM.ex4Step<4?"📦 Clique sur le trajet uniquement là où une caisse est portée. Rouge = portage sélectionné.":"📦 Compare les quatre états.";return}
+ if(CM.exercise4){tx.textContent=CM.ex4Step<4?"📦 1er clic = début du portage · 2e clic = fin. La portion sélectionnée devient rouge.":"📦 Compare les quatre états.";return}
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
  if(CM.exercise3Guide){tx.textContent=CM.guideTool?"🎯 Clique sur la carte pour placer : "+(EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool)?.label||"ce repère")+".":"🎯 Choisis un repère à droite. Tu peux ensuite déplacer son point et sa vignette.";return}
@@ -1275,8 +1336,8 @@ function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
   return
  }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
-async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
- if(CM.exercise3Guide&&CM.guideTool){const def=EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool);if(def){const previous=ex3GuideItem(def.id,CM.guideItems),baseIndex=EX3_GUIDE_BASE.findIndex(x=>x.id===def.baseId),lp=previous&&Number.isFinite(+previous.labelLat)&&Number.isFinite(+previous.labelLng)?{labelLat:+previous.labelLat,labelLng:+previous.labelLng}:guideDefaultLabel(lat,lng,baseIndex);CM.guideItems=(CM.guideItems||[]).filter(x=>x.guideId!==def.id);CM.guideItems.push({t:"point",k:def.k,guideId:def.id,baseId:def.baseId,caseId:def.caseId,nom:def.label,lat,lng,...lp});CM.logic=null;CM.guideTool=null;CM.guideShow=true;panelEx3Guide(true);cmTools();cmTip();cmRender()}return}
+async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.exercise4){ex4MapTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+ if(CM.exercise3Guide&&CM.guideTool){const def=EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool);if(def){const previous=ex3GuideItem(def.id,CM.guideItems),caseIndex=Math.max(0,ex3Defs(def.caseId).findIndex(x=>x.id===def.baseId)),lp=previous&&Number.isFinite(+previous.labelLat)&&Number.isFinite(+previous.labelLng)?{labelLat:+previous.labelLat,labelLng:+previous.labelLng}:guideDefaultLabel(lat,lng,caseIndex);CM.guideItems=(CM.guideItems||[]).filter(x=>x.guideId!==def.id);CM.guideItems.push({t:"point",k:def.k,guideId:def.id,baseId:def.baseId,caseId:def.caseId,nom:def.label,lat,lng,...lp});CM.logic=null;CM.guideTool=null;CM.guideShow=true;panelEx3Guide(true);cmTools();cmTip();cmRender()}return}
  if(CM.exercise2&&CM.mode==="draw"&&["source","stockage","question"].includes(CM.ex2Tool)){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:CM.ex2Tool,lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
  if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
  CM.noteArmed=false;const txt=await ask("Ta note :");cmSetMode("draw");if(txt){CM.items.push({t:"note",lat,lng,txt});cmChanged()}}
