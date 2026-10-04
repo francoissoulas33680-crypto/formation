@@ -456,35 +456,35 @@ const P = {
 
 /* ---------- Pupitre formateur compact ---------- */
 const PILOT={
- oiseaux:{q:"Pour qui ?",em:"Où ? → Qui ? → Attentes ? → Habitudes ? → Relation ?",idee:"Territoire → Population → Clients potentiels → Débouchés possibles",trans:"Clients → Opportunité → Envie → 🌰 Graine",next:"graine",label:"🌰 Faire apparaître la graine"},
- graine:{q:"Pourquoi une ferme ici ?",em:"Opportunité ↔ Envie personnelle",idee:"Je sens que c’est possible → Envie → Idée → Intention",trans:"Envie → Projet personnel → Besoins → Contraintes",next:"racines",label:"🌱 Faire pousser les racines"},
- racines:{q:"Qu’est-ce que j’attends de cette ferme ?",em:"Motivation → Revenu → Temps → Santé → Vie perso → Compétences → Seul / plusieurs",idee:"Besoins différents → Objectifs différents → Ferme différente",trans:"Ce que je veux → Ce que le lieu permet",next:"sol",label:"🌍 Faire apparaître le sol"},
- sol:{q:"Sur quoi mon projet va-t-il pousser ?",em:"Physique ↔ Chimique ↔ Biologique → Observer → Comprendre → Adapter",idee:"Sol → Potentiels + Contraintes → Pratiques possibles",trans:"Sol + Eau + Lumière + Température",next:"ciel",label:"🌧️ Faire apparaître le ciel"},
- ciel:{q:"Avec quelles ressources ?",em:"Eau → Lumière → Température → Climat → Protection",idee:"Ressources disponibles ↔ Besoins → Sécurisation",trans:"Clients + Projet + Sol + Climat → Que produire ?",next:"tronc",label:"🪵 Faire pousser le tronc"},
- tronc:{q:"Que produire ?",em:"Pour qui ? → Quoi ? → Quand ? → Combien ?",idee:"Clients ↔ Projet ↔ Ressources → Gamme cohérente",trans:"Gamme choisie → Travail nécessaire → Organisation",next:"branches",label:"🌿 Faire pousser les branches"},
- branches:{q:"Que faut-il faire ?",em:"🛒 Vente ↔ 🌱 Production ↔ 🧺 Récolte ↔ 👥 Main-d’œuvre",idee:"Une branche bouge → Les autres bougent",trans:"Branches identifiées → Explorer les fonctions",next:"vente",label:"🛒 Explorer la vente",special:["vente","production","recolte","mo"]},
- vente:{q:"Comment transformer les légumes en revenu ?",em:"Circuit → Client → Prix → Temps → Relation",idee:"Débouché → Volume → Gamme → Calendrier",trans:"Ce que je veux vendre → Ce que je dois produire",next:"production",label:"🌱 Passer à la production"},
- production:{q:"Comment produire ce dont j’ai besoin ?",em:"Design → Abris → Standardisation → Implantation → Planification → Mécanisation",idee:"Design → Distances → Déplacements → Temps → Coûts",trans:"Produit disponible → Récolter",next:"recolte",label:"🧺 Passer à la récolte"},
- recolte:{q:"Combien coûte réellement la récolte ?",em:"Temps → €/h → Moment → Outils → Produits",idee:"Temps ↑ → Coût ↑ → Marge ↓",trans:"Travail nécessaire → Temps disponible → Qui le fait ?",next:"mo",label:"👥 Passer à la main-d’œuvre"},
- mo:{q:"Qui fait le travail ?",em:"Seul → Associés → Salariés → Saisonniers → Stagiaires",idee:"Travail ↔ Temps ↔ Compétences ↔ Personnes",trans:"Plus de personnes + produits → Plus de flux + informations",next:"seve",label:"💧 Faire circuler la sève"},
- seve:{q:"Qu’est-ce qui circule ?",em:"🥕 Produits ↔ 📦 Matériel ↔ 🧠 Informations",idee:"Déplacements → Manipulations → Temps → Pénibilité → Coût → Supprimer → Simplifier → Fluidifier",trans:"Produire + Récolter + Vendre + Travailler + Circuler → Résultat",next:"fruits",label:"🍎 Faire pousser les fruits"},
- fruits:{q:"Qu’est-ce que la ferme me donne réellement ?",em:"Revenu → Temps → Santé → Sens → Marge de manœuvre",idee:"CA ≠ Revenu → Revenu + Temps + Santé + Qualité de vie + Sécurité → Résultat global",trans:"Résultat ≠ seulement mes décisions → Ferme ↔ Milieu",next:"animaux",label:"🦊🐝 Révéler l’écosystème"},
- animaux:{q:"L’arbre était-il vraiment seul ?",em:"Marché → Territoire → Climat → Ressources → Fournisseurs → Producteurs → Réseaux → Règles",idee:"Écosystème → façonne la ferme ↔ Ferme → s’adapte ↔ Ferme → participe",trans:"Système complexe → Résultats variables → Besoin d’observer → Qui pilote ?",next:"jardinier",label:"👨‍🌾 Faire apparaître le jardinier"},
- jardinier:{q:"Où agir ?",em:"👁️ Observer → 📏 Mesurer → 🎯 Comparer → 🔍 Prioriser → ✂️ Agir → 🔄 Vérifier",idee:"Écart → Facteur limitant → Action → Nouvelle observation",trans:"🌰 Intention initiale ↔ 🍎 Résultats obtenus → 🔄 Adapter",next:null,label:"🔄 Voir le système complet"}
+ oiseaux:{q:"Pour qui ?",em:"Où ? → Qui ? → Attentes ? → Habitudes ? → Relation ?",mots:["Où ?","Qui ?","Attentes ?","Habitudes ?","Relation ?"],idee:"Territoire → Population → Clients potentiels → Débouchés possibles",trans:"Clients → Opportunité → Envie → 🌰 Graine",next:"graine",label:"🌰 Faire apparaître la graine"},
+ graine:{q:"Pourquoi une ferme ici ?",em:"Opportunité ↔ Envie personnelle",mots:["Opportunité","Envie personnelle","Idée","Intention","Première vision"],idee:"Je sens que c’est possible → Envie → Idée → Intention",trans:"Envie → Projet personnel → Besoins → Contraintes",next:"racines",label:"🌱 Faire pousser les racines"},
+ racines:{q:"Qu’est-ce que j’attends de cette ferme ?",em:"Motivation → Revenu → Temps → Santé → Vie perso → Compétences → Seul / plusieurs",mots:["Motivation","Revenu","Temps","Santé","Vie personnelle","Compétences","Seul / plusieurs"],idee:"Besoins différents → Objectifs différents → Ferme différente",trans:"Ce que je veux → Ce que le lieu permet",next:"sol",label:"🌍 Faire apparaître le sol"},
+ sol:{q:"Sur quoi mon projet va-t-il pousser ?",em:"Physique ↔ Chimique ↔ Biologique → Observer → Comprendre → Adapter",mots:["Physique","Chimique","Biologique","Lire son sol"],idee:"Sol → Potentiels + Contraintes → Pratiques possibles",trans:"Sol + Eau + Lumière + Température",next:"ciel",label:"🌧️ Faire apparaître le ciel"},
+ ciel:{q:"Avec quelles ressources ?",em:"Eau → Lumière → Température → Climat → Protection",mots:["Eau","Lumière","Température","Climat","Protection"],idee:"Ressources disponibles ↔ Besoins → Sécurisation",trans:"Clients + Projet + Sol + Climat → Que produire ?",next:"tronc",label:"🪵 Faire pousser le tronc"},
+ tronc:{q:"Que produire ?",em:"Pour qui ? → Quoi ? → Quand ? → Combien ?",mots:["Pour qui ?","Quoi ?","Quand ?","Combien ?","Phares / secondaires / trésors"],idee:"Clients ↔ Projet ↔ Ressources → Gamme cohérente",trans:"Gamme choisie → Travail nécessaire → Organisation",next:"branches",label:"🌿 Faire pousser les branches"},
+ branches:{q:"Que faut-il faire ?",em:"🛒 Vente ↔ 🌱 Production ↔ 🧺 Récolte ↔ 👥 Main-d’œuvre",mots:["🛒 Vente","🌱 Production","🧺 Récolte","👥 Main-d’œuvre"],idee:"Une branche bouge → Les autres bougent",trans:"Branches identifiées → Explorer les fonctions",next:"vente",label:"🛒 Explorer la vente",special:["vente","production","recolte","mo"]},
+ vente:{q:"Comment transformer les légumes en revenu ?",em:"Circuit → Client → Prix → Temps → Relation",mots:["Circuit","Client","Prix / valeur","Temps","Relation"],idee:"Débouché → Volume → Gamme → Calendrier",trans:"Ce que je veux vendre → Ce que je dois produire",next:"production",label:"🌱 Passer à la production"},
+ production:{q:"Comment produire ce dont j’ai besoin ?",em:"Design → Abris → Standardisation → Implantation → Planification → Mécanisation",mots:["Design","Abris","Standardisation","Implantation","Planification","Mécanisation"],idee:"Design → Distances → Déplacements → Temps → Coûts",trans:"Produit disponible → Récolter",next:"recolte",label:"🧺 Passer à la récolte"},
+ recolte:{q:"Combien coûte réellement la récolte ?",em:"Temps → €/h → Moment → Outils → Produits",mots:["Temps","€/h","Moment","Outils","Produits"],idee:"Temps ↑ → Coût ↑ → Marge ↓",trans:"Travail nécessaire → Temps disponible → Qui le fait ?",next:"mo",label:"👥 Passer à la main-d’œuvre"},
+ mo:{q:"Qui fait le travail ?",em:"Seul → Associés → Salariés → Saisonniers → Stagiaires",mots:["Seul","Associés","Salariés","Saisonniers","Stagiaires","Organiser / coordonner"],idee:"Travail ↔ Temps ↔ Compétences ↔ Personnes",trans:"Plus de personnes + produits → Plus de flux + informations",next:"seve",label:"💧 Faire circuler la sève"},
+ seve:{q:"Qu’est-ce qui circule ?",em:"🥕 Produits ↔ 📦 Matériel ↔ 🧠 Informations",mots:["🥕 Produits","📦 Matériel","🧠 Informations","Porter moins","Préparer / stocker","Dimensionner"],idee:"Déplacements → Manipulations → Temps → Pénibilité → Coût → Supprimer → Simplifier → Fluidifier",trans:"Produire + Récolter + Vendre + Travailler + Circuler → Résultat",next:"fruits",label:"🍎 Faire pousser les fruits"},
+ fruits:{q:"Qu’est-ce que la ferme me donne réellement ?",em:"Revenu → Temps → Santé → Sens → Marge de manœuvre",mots:["Revenu","Temps","Santé","Sens / qualité de vie","Marge de manœuvre"],idee:"CA ≠ Revenu → Revenu + Temps + Santé + Qualité de vie + Sécurité → Résultat global",trans:"Résultat ≠ seulement mes décisions → Ferme ↔ Milieu",next:"animaux",label:"🦊🐝 Révéler l’écosystème"},
+ animaux:{q:"L’arbre était-il vraiment seul ?",em:"Marché → Territoire → Climat → Ressources → Fournisseurs → Producteurs → Réseaux → Règles",mots:["Marché","Territoire","Climat / ressources","Écosystème humain","Cadre extérieur"],idee:"Écosystème → façonne la ferme ↔ Ferme → s’adapte ↔ Ferme → participe",trans:"Système complexe → Résultats variables → Besoin d’observer → Qui pilote ?",next:"jardinier",label:"👨‍🌾 Faire apparaître le jardinier"},
+ jardinier:{q:"Où agir ?",em:"👁️ Observer → 📏 Mesurer → 🎯 Comparer → 🔍 Prioriser → ✂️ Agir → 🔄 Vérifier",mots:["👁️ Observer","📏 Mesurer","🎯 Comparer","🔍 Prioriser","✂️ Agir","🔄 Vérifier"],idee:"Écart → Facteur limitant → Action → Nouvelle observation",trans:"🌰 Intention initiale ↔ 🍎 Résultats obtenus → 🔄 Adapter",next:null,label:"🔄 Voir le système complet"}
 };
 
 /* ---------- État ---------- */
 const CLE = "arbre-tea-etat";
-let etat = {etats:Object.fromEntries(ORDRE.map(k=>[k,0])), actif:null};
+let etat = {etats:Object.fromEntries(ORDRE.map(k=>[k,0])), actif:null, mots:{}};
 let canal=null;
 try{ if("BroadcastChannel" in window) canal=new BroadcastChannel("arbre-tea"); }catch(_){ canal=null; }
 
-function charger(){ try{ const v = localStorage.getItem(CLE); if(v){ const e = JSON.parse(v); if(e && e.etats) etat = e; } }catch(_){ } }
+function charger(){ try{ const v = localStorage.getItem(CLE); if(v){ const e = JSON.parse(v); if(e && e.etats){ etat = e; if(!etat.mots) etat.mots={}; } } }catch(_){ } }
 function diffuser(){
   try{ localStorage.setItem(CLE, JSON.stringify(etat)); }catch(_){ }
   try{ canal && canal.postMessage(etat); }catch(_){ }
 }
-function recevoir(e){ if(e && e.etats){ etat = e; afficher(); } }
+function recevoir(e){ if(e && e.etats){ etat = e; if(!etat.mots) etat.mots={}; afficher(); } }
 if(canal) canal.onmessage = ev => recevoir(ev.data);
 window.addEventListener("storage", ev => { if(ev.key===CLE && ev.newValue){ try{ recevoir(JSON.parse(ev.newValue)); }catch(_){ } } });
 
@@ -502,7 +502,7 @@ function precedent(){ changer(()=>{
 });}
 function cliquer(k){ changer(()=>{ if(etat.etats[k]<2 && (etat.actif===k || etat.etats[k]===0)) etat.etats[k]++; etat.actif=k; }); }
 function toutReveler(){ changer(()=>{ ORDRE.forEach(k=>etat.etats[k]=2); etat.actif=null; }); }
-function recommencer(){ changer(()=>{ ORDRE.forEach(k=>etat.etats[k]=0); etat.actif=null; }); }
+function recommencer(){ changer(()=>{ ORDRE.forEach(k=>etat.etats[k]=0); etat.actif=null; etat.mots={}; }); }
 
 /* ---------- Affichage ---------- */
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -523,8 +523,11 @@ function afficherPanneau(){
   }
   const d = P[k], n = etat.etats[k];
   let h = `<h1>${esc(d.titre)}</h1><p class="role">${esc(d.role)}</p>`;
-  if(n===1){ h += `<p class="question">${esc(d.question)}</p>`; }
-  else { h += `<ul>` + d.rameaux.map(r=>`<li><div><strong>${esc(r[0])}</strong><span class="q">${esc(r[1])}</span></div></li>`).join("") + `</ul>`; }
+  h += `<p class="question">${esc(d.question)}</p>`;
+  const choisis=(etat.mots && etat.mots[k]) ? etat.mots[k] : [];
+  if(choisis.length){
+    h += `<ul class="mots-projetes">` + choisis.map(m=>`<li><div><strong>${esc(m)}</strong></div></li>`).join("") + `</ul>`;
+  }
   el.innerHTML = h;
 }
 
@@ -585,13 +588,20 @@ function afficherStagiaire(){
 }
 
 function revelerDepuisPupitre(k){ changer(()=>{ if(etat.etats[k]===0) etat.etats[k]=1; etat.actif=k; }); }
+function basculerMot(k,mot){ changer(()=>{
+  if(etat.etats[k]===0) etat.etats[k]=1;
+  etat.actif=k; if(!etat.mots) etat.mots={};
+  const a=Array.isArray(etat.mots[k]) ? [...etat.mots[k]] : [];
+  const i=a.indexOf(mot); if(i>=0) a.splice(i,1); else a.push(mot);
+  etat.mots[k]=a;
+}); }
 function afficherPilotage(k){
   const el=document.getElementById("f-pilotage"); if(!el) return;
   if(!k){ el.innerHTML=`<div class="pilot-card"><h2>Départ</h2><div class="flow">🌍 Écosystème → 🐦 Clients potentiels → Opportunité</div></div><button class="transition-btn" data-reveal="oiseaux">🐦 Faire apparaître les oiseaux</button>`; return; }
   const d=PILOT[k]; if(!d){el.innerHTML="";return;}
   let special="";
   if(d.special) special=`<div class="pilot-card"><h2>Révélation libre</h2><div class="reveal-grid">${d.special.map(x=>`<button data-reveal="${x}" class="${etat.etats[x]>0?'on':''}">${esc(P[x].titre.split(' :')[0])}</button>`).join('')}</div></div>`;
-  el.innerHTML=`<div class="pilot-card"><h2>❓ Question</h2><div class="flow">${esc(d.q)}</div></div><div class="pilot-card"><h2>🔎 Faire émerger</h2><div class="flow">${esc(d.em)}</div></div><div class="pilot-card"><h2>🧠 Logique</h2><div class="flow">${esc(d.idee)}</div></div>${special}<div class="pilot-card"><h2>🔗 Transition</h2><div class="flow">${esc(d.trans)}</div></div><button class="transition-btn" data-transition="${d.next||''}">${esc(d.label)}</button>`;
+  el.innerHTML=`<div class="pilot-card"><h2>❓ Question</h2><div class="flow">${esc(d.q)}</div></div><div class="pilot-card"><h2>🔎 Faire émerger</h2><div class="reveal-grid">${(d.mots||[]).map(m=>`<button data-mot="${esc(m)}" class="${(etat.mots&&etat.mots[k]||[]).includes(m)?'on':''}">${esc(m)}</button>`).join('')}</div></div><div class="pilot-card"><h2>🧠 Logique</h2><div class="flow">${esc(d.idee)}</div></div>${special}<div class="pilot-card"><h2>🔗 Transition</h2><div class="flow">${esc(d.trans)}</div></div><button class="transition-btn" data-transition="${d.next||''}">${esc(d.label)}</button>`;
 }
 
 function afficher(){
@@ -646,6 +656,7 @@ document.getElementById("f-plan").addEventListener("click", e=>{
   changer(()=>{ const k=b.dataset.aller; if(etat.etats[k]===0) etat.etats[k]=1; etat.actif=k; });
 });
 document.getElementById("f-pilotage").addEventListener("click",e=>{
+  const m=e.target.closest("[data-mot]"); if(m && etat.actif){ basculerMot(etat.actif,m.dataset.mot); return; }
   const r=e.target.closest("[data-reveal]"); if(r){revelerDepuisPupitre(r.dataset.reveal);return;}
   const t=e.target.closest("[data-transition]"); if(!t)return;
   const next=t.dataset.transition;
@@ -664,7 +675,7 @@ if(MODE==="formateur") document.body.classList.add("vue-formateur");
 if(MODE==="projection") document.body.classList.add("vue-projection");
 if(EST_STAGIAIRE){
   document.body.classList.add("vue-stagiaire");
-  etat={etats:Object.fromEntries(ORDRE.map(k=>[k,2])),actif:null};
+  etat={etats:Object.fromEntries(ORDRE.map(k=>[k,2])),actif:null,mots:{}};
 }else{
   charger();
 }
