@@ -130,6 +130,10 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .simpleCompare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
 @media(max-width:760px){.simpleCompare{grid-template-columns:1fr}}
 
+
+.phaseRail{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}.phaseRail span{padding:7px 11px;border-radius:999px;background:#eef1ee;color:var(--muted);font-size:13px;font-weight:700}.phaseRail span.on{background:#173d2d;color:#fff}.phaseRail span.done{background:#dcecdf;color:#173d2d}.phaseRail.compact{margin-bottom:10px}.labUnlock,.labLocked{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px;border-radius:14px;margin:8px 0 18px}.labUnlock{background:#eaf4ec;border:2px solid #87b493}.labLocked{background:#f2f3f1;border:1px solid #d9ddd9}.labUnlock h3,.labLocked h3{margin:0 0 5px}.labUnlock p,.labLocked p{margin:0}.labIcon{font-size:32px}.diagGrid{margin-bottom:22px}.diagCard{padding-bottom:14px}.diagSearchHit{margin-top:14px;padding:14px;border:1px solid #cdd8d1;border-radius:12px;background:#f7faf7}.diagTabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}.diag4{display:grid;grid-template-columns:1fr;gap:8px}.diagField{display:block;padding:9px;border:1px solid #e0e5e1;border-radius:10px;background:#fafcfa}.diagField b{display:block;margin-bottom:5px}.diagField textarea{width:100%;box-sizing:border-box}.priorityList{display:grid;gap:7px;margin:10px 0}.priorityList label{display:flex;gap:9px;align-items:flex-start;padding:9px;border:1px solid #dde3df;border-radius:9px;background:#fff}.priorityList input{margin-top:3px}.visitQuestions{display:grid;gap:10px}.visitQ{padding:12px;border:1px solid #dce2de;border-radius:12px;background:#fff}.statusRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.photoInput{display:inline-flex}.photoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:10px 0}.photoCard{border:1px solid #dce2de;border-radius:10px;overflow:hidden;background:#fff}.photoCard img{width:100%;height:130px;object-fit:cover;display:block}.photoCard>div{padding:8px}.afterTheme{padding:12px 0;border-bottom:1px solid #e2e6e3}.beforeBox{padding:10px;border-radius:10px;background:#f1f4f2;margin-bottom:10px}.beforeBox small{font-weight:800;color:#607168}.beforeBox p{margin:5px 0 0;white-space:pre-wrap}@media(min-width:900px){.diag4{grid-template-columns:1fr 1fr}}@media(max-width:650px){.labUnlock,.labLocked{align-items:flex-start;flex-direction:column}.labUnlock .btn{width:100%}}
+
+.receivedWrap{min-width:0}.receivedWrap>.card{width:100%;height:auto}.receivedWrap>[data-validate-r]{width:100%;margin-top:6px}
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -162,12 +166,37 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
  <div class="exMini active"><b>2 · Eau</b><small>Source, réseau, relief</small></div>
  <div class="exMini active"><b>3 · Déplacements</b><small>Trajets et spaghetti</small></div>
  <div class="exMini active"><b>4 · Charges</b><small>Portage et manutention</small></div>
- <div class="exMini"><b>5 · Pré-visite</b><small>Prochain lot</small></div>
+ <div class="exMini" id="labMini"><b>🔓 Autonomie</b><small>Laboratoire de diagnostic</small></div>
 </div>
 <h3>Choisis une ferme pour travailler</h3>
 <div class="grid" id="studentFarms"></div>
-<h3>Mon historique</h3>
+<div id="studentLab" style="margin-top:20px"></div>
+<div id="studentDiagnostics"></div>
+<h3>Mon historique de formation</h3>
 <div id="studentHistory"><p class="muted">Chargement…</p></div>
+</div></section>
+
+<!-- STAGIAIRE : créer un diagnostic autonome -->
+<section class="view center" id="vDiagNew"><div class="box" style="max-width:820px">
+<div class="phaseRail"><span class="on">1 · Avant visite</span><span>2 · Pendant</span><span>3 · Après</span></div>
+<h2>🔎 Nouvelle analyse de ferme</h2>
+<p class="muted">Cherche une ferme que tu ne connais pas encore. La carte sert à préparer une enquête, pas à donner directement les réponses.</p>
+<label class="f">Nom de la ferme<input id="diagNom" maxlength="120" placeholder="ex. Ferme des ..."></label>
+<label class="f">Commune / lieu<input id="diagCommune" maxlength="160" placeholder="ex. Chauvigny (86)"></label>
+<div class="row"><button class="btn main" id="diagSearchBtn">🔎 Rechercher</button><button class="btn" id="diagNewBack">⬅ Mon espace</button></div>
+<div id="diagSearchMsg"></div><div id="diagSearchResult"></div>
+</div></section>
+
+<!-- STAGIAIRE : pendant la visite -->
+<section class="view center" id="vDiagVisit"><div class="box" style="max-width:900px">
+<div class="phaseRail"><span class="done">✅ Avant</span><span class="on">2 · Pendant la visite</span><span>3 · Après</span></div>
+<div id="diagVisitBody"></div>
+</div></section>
+
+<!-- STAGIAIRE : après la visite -->
+<section class="view center" id="vDiagAfter"><div class="box" style="max-width:900px">
+<div class="phaseRail"><span class="done">✅ Avant</span><span class="done">✅ Visite</span><span class="on">3 · Après la visite</span></div>
+<div id="diagAfterBody"></div>
 </div></section>
 
 <!-- Zone de travail commune -->
@@ -256,7 +285,7 @@ window.addEventListener("error",e=>{try{const el=document.getElementById("studen
 window.addEventListener("unhandledrejection",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String((e.reason&&e.reason.message)||e.reason||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
 const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
-const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"},guide_depart:{n:"Départ / chargement vente",e:"🚩",c:"#455a64"},guide_tomate:{n:"Planche de tomates",e:"🍅",c:"#d84315"},guide_stockage:{n:"Stockage / chambre froide",e:"🧊",c:"#1565c0"},guide_prepa:{n:"Préparation de commande",e:"📦",c:"#6a1b9a"},guide_salade:{n:"Récolte salade",e:"🥬",c:"#2e7d32"},guide_caisses:{n:"Stock de caisses",e:"📦",c:"#8d6e63"}};
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"},guide_depart:{n:"Départ / chargement vente",e:"🚩",c:"#455a64"},guide_tomate:{n:"Planche de tomates",e:"🍅",c:"#d84315"},guide_stockage:{n:"Stockage / chambre froide",e:"🧊",c:"#1565c0"},guide_prepa:{n:"Préparation de commande",e:"📦",c:"#6a1b9a"},guide_salade:{n:"Récolte salade",e:"🥬",c:"#2e7d32"},guide_caisses:{n:"Stock de caisses",e:"📦",c:"#8d6e63"},diag_deplacement:{n:"Déplacement",e:"🚶",c:"#ef6c00"},diag_portage:{n:"Portage",e:"📦",c:"#c62828"},diag_manutention:{n:"Manutention",e:"💪",c:"#8e24aa"}};
 const FREQS={
   1:{n:"Plusieurs fois par jour",c:"#c62828"},
   2:{n:"Tous les jours ou presque",c:"#ef6c00"},
@@ -438,13 +467,13 @@ async function studentDash(){
  let history=[];
  const{data,error}=await sb.from("schemas").select("id,ferme_id,created_at,contenu").eq("user_id",u.id).order("created_at",{ascending:false});
  if(!error)history=data||[];
- const counts={};history.forEach(h=>{const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;counts[k]=(counts[k]||0)+1});
+ const counts={},validated={};history.forEach(h=>{const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;counts[k]=(counts[k]||0)+1;if(h.contenu&&h.contenu.validated)validated[k]=true});
  $("studentFarms").innerHTML=FERMES.map(f=>{
   const n1=counts[f.id+":ex1"]||0,n2=counts[f.id+":ex2"]||0,n3=counts[f.id+":ex3"]||0,n4=counts[f.id+":ex4"]||0;
   return '<div class="card" style="cursor:default">'+
    (f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+
    '<div class="t">'+esc(f.nom)+'</div>'+
-   '<div class="s">1 Organisation : '+(n1?'✅ envoyé':'à faire')+'<br>2 Eau : '+(n2?'✅ envoyé':'à faire')+'<br>3 Déplacements : '+(n3?'✅ envoyé':'à faire')+'<br>4 Charges : '+(n4?'✅ envoyé':'à faire')+'</div>'+
+   '<div class="s">1 Organisation : '+(validated[f.id+":ex1"]?'✅ validé':n1?'⏳ envoyé':'à faire')+'<br>2 Eau : '+(validated[f.id+":ex2"]?'✅ validé':n2?'⏳ envoyé':'à faire')+'<br>3 Déplacements : '+(validated[f.id+":ex3"]?'✅ validé':n3?'⏳ envoyé':'à faire')+'<br>4 Charges : '+(validated[f.id+":ex4"]?'✅ validé':n4?'⏳ envoyé':'à faire')+'</div>'+
    '<div class="farmActions"><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex1">1 · Organisation</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex2" '+(f.mode!=="carte"?'disabled title="L’exercice Eau nécessite une carte vivante"':'')+'>2 · Eau</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex3" '+(f.mode!=="carte"?'disabled title="L’exercice Déplacements nécessite une carte vivante"':'')+'>3 · Déplacements</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex4" '+(f.mode!=="carte"?'disabled title="L’exercice Charges nécessite une carte vivante"':'')+'>4 · Charges</button></div></div>'
  }).join("")||'<p class="muted">Aucune ferme disponible pour le moment.</p>';
  $("studentFarms").querySelectorAll("[data-sfarm]").forEach(b=>b.onclick=()=>{
@@ -461,6 +490,14 @@ async function studentDash(){
    const ex=(h.contenu&&h.contenu.exercise)||"ex1",lab=ex==="ex4"?"Exercice 4 — Charges / manutention":ex==="ex3"?"Exercice 3 — Déplacements":ex==="ex2"?"Exercice 2 — Eau":"Exercice 1 — Organisation";return '<li><span class="dot" style="background:#315a48"></span><span class="n"><b>'+esc(f?f.nom:"Ferme")+'</b> · '+lab+'<br><small>'+d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</small></span></li>'
   }).join("")+'</ul>'
  }
+ const globalDone=["ex1","ex2","ex3","ex4"].every(ex=>history.some(h=>h.contenu&&h.contenu.exercise===ex&&h.contenu.validated===true));
+ const missing=["ex1","ex2","ex3","ex4"].filter(ex=>!history.some(h=>h.contenu&&h.contenu.exercise===ex&&h.contenu.validated===true));
+ if($("labMini"))$("labMini").classList.toggle("active",globalDone);
+ $("studentLab").innerHTML=globalDone?
+  '<div class="labUnlock"><div><div class="labIcon">🔓</div><h3>Mon laboratoire de diagnostic</h3><p>Les 4 outils sont acquis. Tu peux maintenant enquêter librement sur une nouvelle ferme.</p></div><button class="btn main" id="newDiagBtn">🔎 Nouvelle analyse</button></div>':
+  '<div class="labLocked"><div class="labIcon">🔒</div><div><h3>Laboratoire de diagnostic</h3><p>Il se débloque lorsque les 4 exercices ont été validés par le formateur.</p><small>Encore à faire : '+missing.map(x=>({ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"}[x])).join(" · ")+'</small></div></div>';
+ if(globalDone)$("newDiagBtn").onclick=()=>newDiagnostic();
+ const diags=await diagList();renderDiagnosticCards(diags,globalDone)
 }
 async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+studentName()+" · "+f.nom;
  ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);ED.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),ED.items);panelEleve()};ED.refreshPanel=panelEleve;
@@ -791,8 +828,10 @@ async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").
  const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:(data||[]).filter(r=>((r.contenu&&r.contenu.exercise)||"ex1")===ex);
  $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
  $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Stagiaires anonymisés · Formateur · Consensus</div></button>':'')+
- RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
- $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,[b.dataset.r]):ex==="ex3"?openRecusEx3(f,[b.dataset.r]):ex==="ex2"?openRecusEx2(f,[b.dataset.r]):openRecusAny(f,[b.dataset.r])});if($("allSup"))$("allSup").onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,RECUS.map(r=>r.id)):ex==="ex3"?openRecusEx3(f,RECUS.map(r=>r.id)):ex==="ex2"?openRecusEx2(f,RECUS.map(r=>r.id)):openRecusAny(f,RECUS.map(r=>r.id))}}
+ RECUS.map(r=>{const c=r.contenu||{};return'<div class="receivedWrap"><button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+' · '+(c.validated?'✅ validé':'⏳ à valider')+'</div></button><button class="btn small'+(c.validated?' on':'')+'" data-validate-r="'+r.id+'">'+(c.validated?'✅ Validé':'✅ Valider cet exercice')+'</button></div>'}).join("");
+ $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,[b.dataset.r]):ex==="ex3"?openRecusEx3(f,[b.dataset.r]):ex==="ex2"?openRecusEx2(f,[b.dataset.r]):openRecusAny(f,[b.dataset.r])});
+ $("mosaique").querySelectorAll("[data-validate-r]").forEach(b=>b.onclick=async()=>{const r=RECUS.find(x=>x.id===b.dataset.validateR);if(!r)return;const c={...(r.contenu||{})},nv=!c.validated;c.validated=nv;c.validated_at=nv?new Date().toISOString():null;const{error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id);if(error){alert("Validation impossible : "+error.message);return}r.contenu=c;loadRecus()});
+ if($("allSup"))$("allSup").onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,RECUS.map(r=>r.id)):ex==="ex3"?openRecusEx3(f,RECUS.map(r=>r.id)):ex==="ex2"?openRecusEx2(f,RECUS.map(r=>r.id)):openRecusAny(f,RECUS.map(r=>r.id))}}
 let RECUS_FREQ_FILTER="all";
 let RECUS_VISIBLE_IDS=null;
 function anonLabel(i){return "Profil "+String.fromCharCode(65+i)}
@@ -1108,8 +1147,110 @@ $("rotAng").addEventListener("input",drawFrame);$("rotL").onclick=()=>setAng(+$(
 window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
+
+/* ---------- LABORATOIRE DE DIAGNOSTIC : avant / pendant / après visite ---------- */
+let DIAG=null,DIAG_SEARCH=null,DIAG_SYNC_OK=true;
+const DIAG_THEMES={
+ org:{e:"🟠",n:"Organisation",help:"Où semble se concentrer l’activité ? Qu’est-ce qui paraît proche, éloigné ou regroupé ?"},
+ eau:{e:"💧",n:"Eau",help:"D’où pourrait venir l’eau ? Où semble-t-elle être stockée et distribuée ? Que dit le relief ?"},
+ dep:{e:"🚶",n:"Déplacements",help:"Quels trajets paraissent structurants ou potentiellement répétitifs ?"},
+ charges:{e:"📦",n:"Charges / manutention",help:"Où peut-il y avoir portage, reprises de charge ou ruptures de flux ?"},
+ questions:{e:"❓",n:"Questions de visite",help:"Transforme tes hypothèses en questions à vérifier sur le terrain."}
+};
+function diagLocalKey(){return "tea:diagnostics:"+(STUDENT_USER?STUDENT_USER.id:"local")}
+function diagLocalAll(){return LS.get(diagLocalKey(),[])||[]}
+function diagLocalPut(d){const a=diagLocalAll(),i=a.findIndex(x=>x.id===d.id);if(i>=0)a[i]=d;else a.unshift(d);LS.set(diagLocalKey(),a)}
+function diagBlankNotes(){return {org:{see:"",guess:"",verify:"",question:""},eau:{see:"",guess:"",verify:"",question:""},dep:{see:"",guess:"",verify:"",question:""},charges:{see:"",guess:"",verify:"",question:""}}}
+function diagNormalize(d){d=d||{};return {...d,phase:d.phase||"pre",zoom:+d.zoom||17,pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:"",...(d.pre||{}),notes:{...diagBlankNotes(),...((d.pre&&d.pre.notes)||{})}},visit:{answers:{},notes:[],photos:[],...(d.visit||{})},post:{themes:{},learning:"",newQuestions:"",...(d.post||{})}}}
+async function diagList(){
+ if(!STUDENT_USER)return [];
+ try{const{data,error}=await sb.from("diagnostics").select("*").eq("user_id",STUDENT_USER.id).order("updated_at",{ascending:false});if(error)throw error;DIAG_SYNC_OK=true;return (data||[]).map(diagNormalize)}catch(e){DIAG_SYNC_OK=false;return diagLocalAll().map(diagNormalize)}
+}
+async function diagCreateRow(d){
+ d=diagNormalize(d);d.user_id=STUDENT_USER.id;
+ try{const payload={user_id:d.user_id,nom:d.nom,commune:d.commune,lat:d.lat,lng:d.lng,zoom:d.zoom,phase:d.phase,pre:d.pre,visit:d.visit,post:d.post};const{data,error}=await sb.from("diagnostics").insert(payload).select("*").single();if(error)throw error;DIAG_SYNC_OK=true;return diagNormalize(data)}catch(e){DIAG_SYNC_OK=false;d.id="local-"+((crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now());d.created_at=new Date().toISOString();d.updated_at=d.created_at;diagLocalPut(d);return d}
+}
+async function diagSave(d){
+ if(!d)return false;d.updated_at=new Date().toISOString();
+ if(String(d.id||"").startsWith("local-")){diagLocalPut(d);return true}
+ try{const{error}=await sb.from("diagnostics").update({nom:d.nom,commune:d.commune,lat:d.lat,lng:d.lng,zoom:d.zoom,phase:d.phase,pre:d.pre,visit:d.visit,post:d.post,updated_at:d.updated_at}).eq("id",d.id).eq("user_id",STUDENT_USER.id);if(error)throw error;DIAG_SYNC_OK=true;return true}catch(e){DIAG_SYNC_OK=false;diagLocalPut({...d,id:"local-"+d.id});return false}
+}
+function diagPhaseLabel(p){return p==="visit"?"🚶 Visite":p==="after"?"🧠 Après visite":p==="done"?"✅ Terminé":"🔎 Avant visite"}
+function renderDiagnosticCards(diags,unlocked){
+ const root=$("studentDiagnostics");if(!root)return;
+ if(!unlocked){root.innerHTML="";return}
+ root.innerHTML='<h3>Mes diagnostics</h3>'+(DIAG_SYNC_OK?'':'<div class="msg"><b>Mode local.</b> Le laboratoire fonctionne sur cet appareil. Pour la synchronisation entre appareils, applique le fichier SQL fourni avec cette version.</div>')+
+  (!diags.length?'<p class="muted">Aucune ferme analysée pour le moment.</p>':'<div class="grid diagGrid">'+diags.map(d=>'<div class="card diagCard"><div class="t">'+esc(d.nom)+'</div><div class="s">'+esc(d.commune||"")+'<br><b>'+diagPhaseLabel(d.phase)+'</b></div><button class="btn small" data-open-diag="'+esc(d.id)+'">'+(d.phase==="pre"?'Continuer l’analyse':d.phase==="visit"?'Ouvrir le mode visite':d.phase==="after"?'Faire la relecture':'Revoir le diagnostic')+'</button></div>').join("")+'</div>');
+ root.querySelectorAll("[data-open-diag]").forEach(b=>b.onclick=()=>{const d=diags.find(x=>String(x.id)===b.dataset.openDiag);if(!d)return;d.phase==="pre"?openDiagPre(d):d.phase==="visit"?openDiagVisit(d):openDiagAfter(d)})
+}
+function newDiagnostic(){DIAG_SEARCH=null;show("vDiagNew");$("who").textContent="👤 "+studentName()+" · Nouvelle analyse";$("diagNom").value="";$("diagCommune").value="";$("diagSearchMsg").innerHTML="";$("diagSearchResult").innerHTML=""}
+async function diagSearch(){
+ const nom=$("diagNom").value.trim(),commune=$("diagCommune").value.trim();if(!nom||!commune){msg("diagSearchMsg","Indique le nom de la ferme et une commune / un lieu.","err");return}
+ msg("diagSearchMsg","Recherche en cours…");let g=await geocode(nom+" "+commune),approx=false;if(!g){g=await geocode(commune);approx=true}
+ if(!g){msg("diagSearchMsg","Je n’ai pas trouvé ce lieu. Essaie avec une commune voisine ou le code postal.","err");return}
+ DIAG_SEARCH={nom,commune,lat:g.lat,lng:g.lng,zoom:17,label:g.label,approx};msg("diagSearchMsg",approx?"Commune trouvée. Tu pourras recadrer précisément la ferme sur la carte.":"Lieu trouvé. Vérifie ensuite le cadrage sur la carte.","ok");
+ $("diagSearchResult").innerHTML='<div class="diagSearchHit"><b>📍 '+esc(g.label)+'</b><p>'+(approx?'Point de départ approximatif : la recherche exacte de la ferme n’a pas abouti.':'Point de départ trouvé.')+'</p><button class="btn main" id="diagUseSearch">🗺️ Ouvrir cette zone et commencer</button></div>';
+ $("diagUseSearch").onclick=diagUseSearch
+}
+async function diagUseSearch(){if(!DIAG_SEARCH)return;const d=await diagCreateRow({...DIAG_SEARCH,phase:"pre",pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:""},visit:{answers:{},notes:[],photos:[]},post:{themes:{},learning:"",newQuestions:""}});openDiagPre(d)}
+function diagDraftTheme(){return CM.diagTheme||"org"}
+function diagThemeItems(theme){return (CM.items||[]).filter(x=>x.theme===theme)}
+function diagVisibleItems(){return CM.diagShowAll?(CM.items||[]):diagThemeItems(diagDraftTheme())}
+function diagQuestionCandidates(d){const p=d.pre||{},notes=p.notes||{};let a=[];["org","eau","dep","charges"].forEach(k=>{String((notes[k]||{}).question||"").split(/\n+/).map(s=>s.trim()).filter(Boolean).forEach(q=>a.push(q))});String(p.extraQuestions||"").split(/\n+/).map(s=>s.trim()).filter(Boolean).forEach(q=>a.push(q));return [...new Set(a)]}
+function diagNoteField(theme,key,label,placeholder){const v=((((DIAG||{}).pre||{}).notes||{})[theme]||{})[key]||"";return '<label class="diagField"><b>'+label+'</b><textarea data-diag-note="'+theme+':'+key+'" rows="3" placeholder="'+placeholder+'">'+esc(v)+'</textarea></label>'}
+async function openDiagPre(d,readonly=false){
+ DIAG=diagNormalize(d);const f={id:"diag-"+DIAG.id,nom:DIAG.nom,mode:"carte",lat:+DIAG.lat,lng:+DIAG.lng,zoom:+DIAG.zoom||17,fond:"ign"};$("who").textContent="👤 "+studentName()+" · "+DIAG.nom;await cmInit(f);
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=false;CM.exercise3Guide=false;CM.exercise3Demo=false;CM.diagnostic=true;CM.diag=DIAG;CM.diagTheme="org";CM.diagTool=null;CM.diagShowAll=true;CM.readonly=readonly||DIAG.phase!=="pre";CM.items=(DIAG.pre.items||[]).map(x=>({...x}));CM.logic=null;CM.overlays=[];CM.onChange=()=>diagMapChanged();cmSetMode("move");panelDiagPre(false)
+}
+function diagMapChanged(){if(!DIAG)return;DIAG.pre.items=CM.items;const c=CM.map.getCenter();DIAG.lat=+c.lat.toFixed(6);DIAG.lng=+c.lng.toFixed(6);DIAG.zoom=CM.map.getZoom();panelDiagPre(true)}
+function diagThemeTabs(){return '<div class="diagTabs">'+Object.entries(DIAG_THEMES).map(([k,v])=>'<button class="btn small'+(CM.diagTheme===k?' on':'')+'" data-diag-theme="'+k+'">'+v.e+' '+v.n+'</button>').join("")+'</div>'}
+function diagToolSummary(){const its=diagThemeItems(CM.diagTheme);return its.length?'<div class="msg ok"><b>'+its.length+' élément(s) sur la carte pour ce thème.</b></div>':'<p class="muted">Aucun élément cartographique pour ce thème. Tu n’es pas obligé d’en dessiner si la vue aérienne ne permet rien d’utile.</p>'}
+function panelDiagPre(dirty){
+ const p=$("panelC"),theme=CM.diagTheme||"org",meta=DIAG_THEMES[theme],locked=DIAG.phase!=="pre"||CM.readonly;
+ let content='<div class="phaseRail compact"><span class="on">1 · Avant</span><span>2 · Visite</span><span>3 · Après</span></div><div class="muted">LABORATOIRE DE DIAGNOSTIC</div><h3>🔎 '+esc(DIAG.nom)+'</h3><p class="muted">'+esc(DIAG.commune||"")+'</p>'+diagThemeTabs();
+ if(theme!=="questions")content+='<div class="msg"><b>'+meta.e+' '+meta.n+'</b><br>'+meta.help+'</div>'+diagToolSummary()+
+  '<div class="diag4">'+diagNoteField(theme,"see","👁 Je vois","Faits observables, sans interprétation…")+diagNoteField(theme,"guess","💭 Je suppose","Mon hypothèse…")+diagNoteField(theme,"verify","❓ Je dois vérifier","Ce que la vue aérienne ne permet pas de savoir…")+diagNoteField(theme,"question","🗣 Questions à poser","Une question par ligne…")+'</div>';
+ else{
+  const qs=diagQuestionCandidates(DIAG),sel=new Set(DIAG.pre.priorities||[]);
+  content+='<div class="msg"><b>Prépare 5 à 10 questions prioritaires.</b><br>Ce sont elles qui t’accompagneront pendant la visite.</div><label class="diagField"><b>Autres questions</b><textarea id="diagExtraQ" rows="4" placeholder="Une question par ligne…">'+esc(DIAG.pre.extraQuestions||"")+'</textarea></label>'+
+   '<div class="priorityList">'+(qs.length?qs.map((q,i)=>'<label><input type="checkbox" data-priority="'+i+'" '+(sel.has(q)?'checked':'')+'> <span>'+esc(q)+'</span></label>').join(""):'<p class="muted">Écris d’abord des questions dans les quatre thèmes.</p>')+'</div><div id="diagPriorityMsg" class="muted">'+sel.size+' question(s) sélectionnée(s) · objectif : 5 à 10.</div>';
+ }
+ content+='<div class="row"><button class="btn" id="diagFrame">📍 Enregistrer ce cadrage</button><button class="btn'+(CM.diagShowAll?' on':'')+'" id="diagShowAll">👁️ '+(CM.diagShowAll?'Tous les thèmes':'Thème seul')+'</button></div>'+
+  (locked?'<div class="msg ok"><b>Analyse avant visite verrouillée.</b><br>Elle reste conservée telle qu’elle était avant d’aller sur le terrain.</div>':'<button class="btn main" id="diagSave">💾 Enregistrer'+(dirty?' *':'')+'</button><button class="btn main" id="diagValidate">✅ Valider mon analyse avant visite</button>')+
+  '<div id="diagSaveMsg"></div><button class="btn" id="diagBack">⬅ Mon espace</button>'+creditC();p.innerHTML=content;
+ p.querySelectorAll("[data-diag-theme]").forEach(b=>b.onclick=()=>{diagPersistPanel();CM.diagTheme=b.dataset.diagTheme;CM.diagTool=null;CM.pending=null;CM.verts=[];cmSetMode("move");panelDiagPre(dirty)});
+ p.querySelectorAll("[data-diag-note]").forEach(t=>t.oninput=()=>{const[a,b]=t.dataset.diagNote.split(":");DIAG.pre.notes[a][b]=t.value});
+ if($("diagExtraQ"))$("diagExtraQ").oninput=()=>{DIAG.pre.extraQuestions=$("diagExtraQ").value};
+ p.querySelectorAll("[data-priority]").forEach(ch=>ch.onchange=()=>{const qs=diagQuestionCandidates(DIAG),q=qs[+ch.dataset.priority],s=new Set(DIAG.pre.priorities||[]);if(ch.checked){if(s.size>=10){ch.checked=false;msg("diagPriorityMsg","Maximum 10 questions prioritaires.","err");return}s.add(q)}else s.delete(q);DIAG.pre.priorities=[...s];$("diagPriorityMsg").textContent=s.size+" question(s) sélectionnée(s) · objectif : 5 à 10."});
+ if($("diagFrame"))$("diagFrame").onclick=()=>{const c=CM.map.getCenter();DIAG.lat=+c.lat.toFixed(6);DIAG.lng=+c.lng.toFixed(6);DIAG.zoom=CM.map.getZoom();msg("diagSaveMsg","Cadrage enregistré dans le diagnostic.","ok")};
+ if($("diagShowAll"))$("diagShowAll").onclick=()=>{CM.diagShowAll=!CM.diagShowAll;panelDiagPre(dirty);cmRender()};
+ if($("diagSave"))$("diagSave").onclick=async()=>{diagPersistPanel();DIAG.pre.items=CM.items;const c=CM.map.getCenter();DIAG.lat=+c.lat.toFixed(6);DIAG.lng=+c.lng.toFixed(6);DIAG.zoom=CM.map.getZoom();const ok=await diagSave(DIAG);msg("diagSaveMsg",ok?"✅ Analyse enregistrée.":"✅ Enregistré localement sur cet appareil.",ok?"ok":"")};
+ if($("diagValidate"))$("diagValidate").onclick=async()=>{diagPersistPanel();const n=(DIAG.pre.priorities||[]).length;if(n<5||n>10){CM.diagTheme="questions";panelDiagPre(true);msg("diagPriorityMsg","Choisis entre 5 et 10 questions avant de valider.","err");return}if(!confirm("Valider l’analyse avant visite ? Elle sera conservée telle quelle pour pouvoir la comparer au terrain."))return;DIAG.pre.items=CM.items;DIAG.pre.validated_at=new Date().toISOString();DIAG.phase="visit";await diagSave(DIAG);CM.diagnostic=false;openDiagVisit(DIAG)};
+ $("diagBack").onclick=()=>{diagPersistPanel();CM.diagnostic=false;studentDash()};cmTools();cmTip();cmRender()
+}
+function diagPersistPanel(){if(!DIAG)return;DIAG.pre.items=CM.items}
+function diagToolTheme(k){return k==="source"||k==="stockage"||k==="eau_dist"||k==="eau_nat"||k==="accumulation"?"eau":k==="diag_deplacement"?"dep":k==="diag_portage"||k==="diag_manutention"?"charges":"org"}
+function diagRemoveLast(){const th=CM.diagTheme;for(let i=CM.items.length-1;i>=0;i--){if(CM.items[i].theme===th){CM.items.splice(i,1);cmChanged();return}}}
+function diagPhotoThumb(src,note,idx){return '<div class="photoCard"><img src="'+src+'" alt="Photo de visite"><div><small>'+esc(note||"Photo de visite")+'</small><br><button class="btn small" data-del-photo="'+idx+'">🗑️ Retirer</button></div></div>'}
+async function compressPhoto(file){return new Promise((res,rej)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const max=900,s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.72))};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("Photo illisible"))};im.src=u})}
+async function openDiagVisit(d){DIAG=diagNormalize(d);show("vDiagVisit");$("who").textContent="👤 "+studentName()+" · Visite · "+DIAG.nom;renderDiagVisit()}
+function renderDiagVisit(){
+ const b=$("diagVisitBody"),qs=DIAG.pre.priorities||[],ans=DIAG.visit.answers||{},photos=DIAG.visit.photos||[],notes=DIAG.visit.notes||[];
+ b.innerHTML='<div class="row" style="justify-content:space-between"><div><h2>🚶 '+esc(DIAG.nom)+'</h2><p class="muted">'+esc(DIAG.commune||"")+'</p></div><button class="btn small" id="visitBack">⬅ Mon espace</button></div><div class="msg"><b>Mode terrain volontairement léger.</b><br>Regarde, écoute et échange. Le téléphone sert seulement de pense-bête.</div><h3>Mes questions prioritaires</h3><div class="visitQuestions">'+qs.map((q,i)=>{const s=ans[i]||"todo";return '<div class="visitQ"><b>'+(i+1)+'. '+esc(q)+'</b><div class="statusRow"><button class="btn small'+(s==="confirmed"?' on':'')+'" data-vstatus="'+i+':confirmed">✅ Confirmé</button><button class="btn small'+(s==="different"?' on':'')+'" data-vstatus="'+i+':different">🔄 Différent</button><button class="btn small'+(s==="unknown"?' on':'')+'" data-vstatus="'+i+':unknown">❓ À vérifier</button></div></div>'}).join("")+'</div><h3>📝 Notes rapides</h3><div class="row"><input id="visitNote" placeholder="Une information à ne pas oublier…"><button class="btn" id="addVisitNote">Ajouter</button></div><ul class="items">'+notes.map((n,i)=>'<li><span class="dot" style="background:#c99a00"></span><span class="n">'+esc(n)+'</span><button data-del-vnote="'+i+'">🗑️</button></li>').join("")+'</ul><h3>📷 Photos terrain</h3><label class="btn photoInput">📷 Prendre / ajouter une photo<input id="visitPhoto" type="file" accept="image/*" capture="environment" hidden></label><div class="photoGrid">'+photos.map((x,i)=>diagPhotoThumb(x.data,x.note,i)).join("")+'</div><div class="row"><button class="btn" id="visitSave">💾 Enregistrer</button><button class="btn main" id="visitFinish">✅ Visite terminée · passer à la relecture</button></div><div id="visitMsg"></div>';
+ b.querySelectorAll("[data-vstatus]").forEach(x=>x.onclick=()=>{const[i,s]=x.dataset.vstatus.split(":");DIAG.visit.answers[i]=s;renderDiagVisit()});
+ $("addVisitNote").onclick=()=>{const v=$("visitNote").value.trim();if(v){DIAG.visit.notes.push(v);renderDiagVisit()}};b.querySelectorAll("[data-del-vnote]").forEach(x=>x.onclick=()=>{DIAG.visit.notes.splice(+x.dataset.delVnote,1);renderDiagVisit()});
+ $("visitPhoto").onchange=async()=>{const f=$("visitPhoto").files[0];if(!f)return;if(DIAG.visit.photos.length>=8){msg("visitMsg","Maximum 8 photos dans cette première version.","err");return}try{const data=await compressPhoto(f),note=await ask("Une courte note pour cette photo :","");DIAG.visit.photos.push({data,note:note||""});renderDiagVisit()}catch(e){msg("visitMsg",e.message,"err")}};b.querySelectorAll("[data-del-photo]").forEach(x=>x.onclick=()=>{DIAG.visit.photos.splice(+x.dataset.delPhoto,1);renderDiagVisit()});
+ $("visitSave").onclick=async()=>{const ok=await diagSave(DIAG);msg("visitMsg",ok?"✅ Visite enregistrée.":"✅ Enregistré localement.",ok?"ok":"")};$("visitFinish").onclick=async()=>{if(!confirm("Passer à la relecture après visite ?"))return;DIAG.visit.completed_at=new Date().toISOString();DIAG.phase="after";await diagSave(DIAG);openDiagAfter(DIAG)};$("visitBack").onclick=()=>studentDash()
+}
+async function openDiagAfter(d){DIAG=diagNormalize(d);show("vDiagAfter");$("who").textContent="👤 "+studentName()+" · Relecture · "+DIAG.nom;renderDiagAfter()}
+function renderDiagAfter(){
+ const b=$("diagAfterBody"),themes=["org","eau","dep","charges"];
+ b.innerHTML='<div class="row" style="justify-content:space-between"><div><h2>🧠 '+esc(DIAG.nom)+'</h2><p class="muted">Relecture du diagnostic après le terrain.</p></div><button class="btn small" id="afterBack">⬅ Mon espace</button></div><div class="msg ok"><b>Le but : comparer ce que tu croyais comprendre depuis le ciel avec ce que le terrain t’a réellement appris.</b></div>'+themes.map(k=>{const m=DIAG_THEMES[k],n=DIAG.pre.notes[k]||{},r=(DIAG.post.themes||{})[k]||{status:"",learning:""};return '<div class="afterTheme"><h3>'+m.e+' '+m.n+'</h3><div class="beforeBox"><small>AVANT VISITE · JE SUPPOSAIS</small><p>'+esc(n.guess||"Aucune hypothèse écrite.")+'</p></div><label class="f">Après la visite<select data-post-status="'+k+'"><option value="">Choisir…</option><option value="correct" '+(r.status==="correct"?'selected':'')+'>✅ J’avais bien compris</option><option value="wrong" '+(r.status==="wrong"?'selected':'')+'>🔄 J’avais mal interprété</option><option value="unknowable" '+(r.status==="unknowable"?'selected':'')+'>👀 Impossible à savoir avant</option></select></label><label class="f">💡 Ce que j’ai appris<textarea data-post-learning="'+k+'" rows="3">'+esc(r.learning||"")+'</textarea></label></div>'}).join("")+'<label class="f"><b>💡 Ce que cette visite change dans ma manière de lire une ferme</b><textarea id="postLearning" rows="4">'+esc(DIAG.post.learning||"")+'</textarea></label><label class="f"><b>❓ Nouvelles questions</b><textarea id="postQuestions" rows="3">'+esc(DIAG.post.newQuestions||"")+'</textarea></label><div class="row"><button class="btn" id="afterSave">💾 Enregistrer</button><button class="btn main" id="afterFinish">✅ Terminer ce diagnostic</button></div><div id="afterMsg"></div>';
+ b.querySelectorAll("[data-post-status]").forEach(x=>x.onchange=()=>{DIAG.post.themes[x.dataset.postStatus]=DIAG.post.themes[x.dataset.postStatus]||{};DIAG.post.themes[x.dataset.postStatus].status=x.value});b.querySelectorAll("[data-post-learning]").forEach(x=>x.oninput=()=>{DIAG.post.themes[x.dataset.postLearning]=DIAG.post.themes[x.dataset.postLearning]||{};DIAG.post.themes[x.dataset.postLearning].learning=x.value});$("postLearning").oninput=()=>DIAG.post.learning=$("postLearning").value;$("postQuestions").oninput=()=>DIAG.post.newQuestions=$("postQuestions").value;$("afterSave").onclick=async()=>{const ok=await diagSave(DIAG);msg("afterMsg",ok?"✅ Relecture enregistrée.":"✅ Enregistré localement.",ok?"ok":"")};$("afterFinish").onclick=async()=>{DIAG.phase="done";DIAG.post.completed_at=new Date().toISOString();await diagSave(DIAG);msg("afterMsg","✅ Diagnostic terminé. Il reste dans Mes diagnostics.","ok")};$("afterBack").onclick=()=>studentDash()
+}
+
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,ex4RampPts:[],ex4Note:"",ex4RevealStd:false,ex4RevealRamp:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,diagnostic:false,diag:null,diagTheme:"org",diagTool:null,diagShowAll:true,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,ex4RampPts:[],ex4Note:"",ex4RevealStd:false,ex4RevealRamp:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -1120,7 +1261,7 @@ async function cmInit(f){show("vCarte");await loadLeaflet();
   ["over","logic","items","draft","topo"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
   CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
- CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.exercise3Demo=false;CM.ex3DemoTool=null;CM.ex4TrainerDemo=false;CM.ex4DemoAction="select";CM.ex4DemoTool=null;CM.ex4DemoDirty=false;CM.ex4PickStart=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.diagnostic=false;CM.diag=null;CM.diagTool=null;CM.exercise3Demo=false;CM.ex3DemoTool=null;CM.ex4TrainerDemo=false;CM.ex4DemoAction="select";CM.ex4DemoTool=null;CM.ex4DemoDirty=false;CM.ex4PickStart=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
 
 const GUIDE_LABEL_OFFSETS=[[88,-42],[88,14],[-88,-42],[-88,14],[70,58],[-70,58]];
@@ -1174,18 +1315,19 @@ function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLay
  else if(CM.logic)drawGeo(CM.g.logic,CM.logic,{dash:"8 6",fill:.06,weight:5});
  if(CM.exercise4){drawEx4Portage()}
  else if(CM.exercise3Demo)drawGeo(CM.g.items,ex3DemoVisibleItems(),{labels:false,weight:7});
+ else if(CM.diagnostic)drawGeo(CM.g.items,diagVisibleItems(),{});
  else drawGeo(CM.g.items,CM.exercise3?ex3VisibleItems():CM.items,CM.exercise3?{labels:false}:{});
  if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
  const pv=CM.pending?CM.pending.pts.map(p=>[p[1],p[0]]):(CM.stroke&&CM.stroke.length>1?CM.stroke.map(s=>[s.lat,s.lng]):null);
  if(pv){const T=CM.pending&&CM.pending.type?TYPES[CM.pending.type]:null,col=T?T.c:"#14201a";
-  if(T&&CM.pending.type==="zone"&&pv.length>2)L.polygon(pv,{color:col,weight:4,fillColor:col,fillOpacity:.2,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);
+  if(T&&(CM.pending.type==="zone"||CM.pending.type==="accumulation")&&pv.length>2)L.polygon(pv,{color:col,weight:4,fillColor:col,fillOpacity:.2,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);
   else {L.polyline(pv,{color:col,weight:5,lineCap:"round",lineJoin:"round",dashArray:CM.pending?"6 5":null,interactive:false}).addTo(CM.g.draft);if(CM.pending&&CM.pending.type==="eau_nat"&&pv.length>1)addFlowArrow(CM.g.draft,pv,col)}}
  $("cm").classList.toggle("draw",CM.mode==="draw"&&!CM.readonly&&!CM.pending)}
 function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
- const min=CM.exercise1?3:(CM.exercise2&&CM.ex2Tool==="accumulation"?3:2);
+ const min=CM.diagnostic&&["zone","accumulation"].includes(CM.diagTool)?3:(CM.exercise1?3:(CM.exercise2&&CM.ex2Tool==="accumulation"?3:2));
  if(v.length<min){cmTools();cmTip();cmRender();return}
  const px=v.map(q=>{const c=CM.map.latLngToContainerPoint({lat:q[1],lng:q[0]});return{x:c.x,y:c.y}});
- CM.pending={px,pts:v,type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null))))};cmTools();cmTip();cmSheet();cmRender()}
+ CM.pending={px,pts:v,type:CM.diagnostic?CM.diagTool:(CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null)))))};cmTools();cmTip();cmSheet();cmRender()}
 function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
 function cmTools(){const t=$("toolsC");
  if(CM.pending){t.innerHTML="";t.style.display="none";return}
@@ -1193,8 +1335,16 @@ function cmTools(){const t=$("toolsC");
   if(CM.ex4Step===1){t.style.display="flex";t.innerHTML='<button class="btn on">📏 1er clic = chariot · 2e clic = chambre froide</button>';return}
   t.innerHTML="";t.style.display="none";return
  }
- if(CM.readonly){t.style.display="flex";t.innerHTML=topoBtnHtml();topoWire();return}
+ if(CM.readonly){t.style.display="flex";t.innerHTML=CM.diagnostic?'<button class="btn on">🔒 Analyse avant visite</button>':topoBtnHtml();if(!CM.diagnostic)topoWire();return}
  t.style.display="flex";
+ if(CM.diagnostic){
+  if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Point précédent</button><button class="btn" id="mCancel">✖ Recommencer</button>';$('mDone').onclick=cmVertsDone;$('mUndo').onclick=cmUndo;$('mCancel').onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
+  const th=CM.diagTheme;
+  if(th==="questions"){t.innerHTML='<button class="btn on">❓ Préparation des questions</button><button class="btn" id="mMove">✋ Carte</button>';$('mMove').onclick=()=>cmSetMode('move');return}
+  const defs=th==="org"?[["zone","🟪 Zone / fréquence"]]:th==="eau"?[["source","💧 Source"],["stockage","🛢️ Stockage"],["eau_dist","🔵 Réseau"],["eau_nat","🌧️ Écoulement"],["accumulation","💦 Accumulation"]]:th==="dep"?[["diag_deplacement","🚶 Trajet"]]:[["diag_portage","📦 Portage"],["diag_manutention","💪 Manutention"]];
+  t.innerHTML=defs.map(d=>'<button class="btn'+(CM.diagTool===d[0]?' on':'')+'" data-dtool="'+d[0]+'">'+d[1]+'</button>').join('')+'<button class="btn'+(CM.mode==="move"?' on':'')+'" id="mMove">✋ Déplacer</button><button class="btn" id="mUndo">↩ Effacer le dernier</button>'+(th==="eau"?topoBtnHtml():'');
+  t.querySelectorAll('[data-dtool]').forEach(b=>b.onclick=()=>{if(CM.topoMode)topoClose();CM.diagTool=b.dataset.dtool;cmSetMode(["source","stockage","diag_manutention"].includes(CM.diagTool)?"move":"draw")});$('mMove').onclick=()=>{if(CM.topoMode)topoClose();CM.diagTool=null;cmSetMode('move')};$('mUndo').onclick=diagRemoveLast;if(th==="eau")topoWire();return
+ }
  if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
   $("mDone").onclick=cmVertsDone;$("mUndo").onclick=cmUndo;$("mCancel").onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
  if(CM.exercise3Guide){
@@ -1313,6 +1463,7 @@ async function topoTap(e){
  }
 }
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
+ if(CM.diagnostic){const th=CM.diagTheme;if(th==="questions"){tx.textContent="❓ Choisis les questions qui méritent vraiment d’être posées pendant la visite.";return}if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Lecture de pente affichée.";return}if(!CM.diagTool){tx.textContent="✋ Observe la ferme puis choisis un outil lié au thème.";return}tx.textContent=CM.pending?"Valide ce que tu viens de représenter.":CM.verts.length?"Continue puis termine le tracé.":["source","stockage","diag_manutention"].includes(CM.diagTool)?"Clique sur la carte pour placer ce repère.":CM.diagTool==="zone"?"Dessine une zone puis indique sa fréquence probable.":"Trace seulement ce qui aide ton enquête.";return}
  if(CM.exercise4){tx.textContent=CM.ex4Step===0?"📦 Renseigne les caisses et leur poids, puis observez ensemble ce que la pesée impose.":CM.ex4Step===1?((CM.ex4RampPts||[]).length===0?"📏 Clique là où le chariot s’arrêtait avant la marche.":(CM.ex4RampPts||[]).length===1?"📏 Clique maintenant là où les caisses étaient déposées dans la chambre froide.":"📏 La distance de portage avant la rampe est mesurée."):"✅ Comparez ce que les deux changements ont réellement supprimé.";return}
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
@@ -1325,7 +1476,8 @@ function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
   return
  }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
-async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.exercise4){if(CM.ex4Step===1)ex4MapTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.diagnostic&&!CM.readonly){const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);if(["source","stockage","diag_manutention"].includes(CM.diagTool)){let nom=TYPES[CM.diagTool].n;if(CM.diagTool==="diag_manutention"){const v=await ask("Quel geste ou quelle manutention veux-tu repérer ?","");if(v===null)return;nom=v||nom}CM.items.push({t:"point",k:CM.diagTool,theme:diagToolTheme(CM.diagTool),nom,lat,lng});cmChanged();return}}
+ if(CM.exercise4){if(CM.ex4Step===1)ex4MapTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
  if(CM.exercise3Guide&&CM.guideTool){const def=EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool);if(def){const previous=ex3GuideItem(def.id,CM.guideItems),caseIndex=Math.max(0,ex3Defs(def.caseId).findIndex(x=>x.id===def.baseId)),lp=previous&&Number.isFinite(+previous.labelLat)&&Number.isFinite(+previous.labelLng)?{labelLat:+previous.labelLat,labelLng:+previous.labelLng}:guideDefaultLabel(lat,lng,caseIndex);CM.guideItems=(CM.guideItems||[]).filter(x=>x.guideId!==def.id);CM.guideItems.push({t:"point",k:def.k,guideId:def.id,baseId:def.baseId,caseId:def.caseId,nom:def.label,lat,lng,...lp});CM.logic=null;CM.guideTool=null;CM.guideShow=true;panelEx3Guide(true);cmTools();cmTip();cmRender()}return}
  if(CM.exercise2&&CM.mode==="draw"&&["source","stockage","question"].includes(CM.ex2Tool)){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:CM.ex2Tool,lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
  if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
@@ -1334,7 +1486,7 @@ function dpSimplify(pts,tol){if(pts.length<3)return pts;const a=pts[0],b=pts[pts
  for(let i=1;i<pts.length-1;i++){const p=pts[i],d=len<1e-6?Math.hypot(p.x-a.x,p.y-a.y):Math.abs(dy*p.x-dx*p.y+b.x*a.y-b.y*a.x)/len;if(d>max){max=d;idx=i}}
  if(max>tol){const l=dpSimplify(pts.slice(0,idx+1),tol),r=dpSimplify(pts.slice(idx),tol);return l.slice(0,-1).concat(r)}return[a,b]}
 const ACT=new Set();
-function cmCanDraw(e){if(CM.exercise4)return false;if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
+function cmCanDraw(e){if(CM.diagnostic&&(!CM.diagTool||["source","stockage","diag_manutention"].includes(CM.diagTool)))return false;if(CM.exercise4)return false;if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
 function cmDown(e){if(e.pointerType==="mouse"&&e.button!==0)return;ACT.add(e.pointerId);
  if(ACT.size>1){CM.stroke=null;cmRender();return}
  if(!cmCanDraw(e))return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll);CM.stroke=[{x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng}]}
@@ -1344,10 +1496,11 @@ function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;
  let len=0;for(let i=1;i<s.length;i++)len+=Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y);
  if(len<20){cmRender();return}
  const simp=dpSimplify(s,3.5);
- if((CM.exercise1||CM.exercise2&&CM.ex2Tool==="accumulation")&&simp.length<3){cmRender();return}
- CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null))))};
+ if((CM.diagnostic&&["zone","accumulation"].includes(CM.diagTool)||CM.exercise1||CM.exercise2&&CM.ex2Tool==="accumulation")&&simp.length<3){cmRender();return}
+ CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.diagnostic?CM.diagTool:(CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null)))))};
  cmTools();cmTip();cmSheet();cmRender()}
 function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
+ if(CM.diagnostic){const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre,pts=CM.pending.pts||[];let dist=0;for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);sh.hidden=false;sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4>'+(dist?'<div class="msg ok"><b>'+Math.round(dist)+' m</b></div>':'')+'<p class="muted">Est-ce que cet élément aide réellement ton diagnostic ?</p><div class="row"><button class="btn main" id="shOk">✔ Garder</button><button class="btn" id="shNo">✖ Recommencer</button></div>';$('shNo').onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};$('shOk').onclick=async()=>{let it;if(ty==="zone"){const freq=await askFreq();if(freq===null)return;const nom=await ask("Comment appelles-tu cette zone ?","");if(nom===null)return;it={t:"zone",k:"zone",theme:"org",nom:nom||"Zone",freq,pts:pts.slice()}}else if(ty==="accumulation")it={t:"zone",k:ty,theme:"eau",nom:T.n,pts:pts.slice()};else it={t:"trace",k:ty,theme:diagToolTheme(ty),nom:T.n,distance:dist,pts:pts.slice()};CM.items.push(it);CM.pending=null;cmSheet();cmChanged();cmSetMode("move")};return}
  if(CM.exercise3Demo){
   const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre;sh.hidden=false;
   let dist=0;const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
@@ -1422,7 +1575,7 @@ function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerH
    CM.items.push({t:"zone",nom:nom||"?",freq,pts})}else CM.items.push({t:"trace",k:t,nom,pts});
   CM.pending=null;CM.lastDel=null;cmSheet();cmChanged()};
  $("shName").focus()}
-function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}if(CM.exercise3Demo){const k=CM.ex3DemoMode==="c1"?"trajet_actuel":CM.ex3DemoMode==="c2"?"trajet_ancien":null;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}if(CM.exercise3){const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
+function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}if(CM.diagnostic){diagRemoveLast();return}if(CM.exercise3Demo){const k=CM.ex3DemoMode==="c1"?"trajet_actuel":CM.ex3DemoMode==="c2"?"trajet_ancien":null;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}if(CM.exercise3){const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
 function cmChanged(){cmTools();cmTip();cmRender();if(CM.onChange)CM.onChange()}
 function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const i=+b.dataset.del,it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()});
  if($("bRestore"))$("bRestore").onclick=()=>{if(CM.lastDel){CM.items.splice(CM.lastDel.i,0,CM.lastDel.item);CM.lastDel=null;cmChanged()}};
@@ -1577,6 +1730,7 @@ $("btnHelp").onclick=()=>showTour(0);
 $("btnHome").onclick=()=>{clearInterval(pollT);if(location.hash.startsWith("#formateur"))dash();else studentDash()};
 $("btnLogin").onclick=login;$("btnSignup").onclick=signup;
 $("btnStudentLink").onclick=()=>sendStudentMagicLink(null,false);
+$("diagSearchBtn").onclick=diagSearch;$("diagNewBack").onclick=()=>studentDash();$("diagCommune").addEventListener("keydown",e=>{if(e.key==="Enter")diagSearch()});
 $("btnStudentLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;if($("selExercise"))$("selExercise").onchange=loadRecus;
