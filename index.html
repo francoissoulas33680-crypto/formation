@@ -121,6 +121,8 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   transform-origin:50% 50%;pointer-events:none
 }
 
+.compareCards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:820px){.compareCards{grid-template-columns:1fr}}
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -152,7 +154,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
  <div class="exMini active"><b>1 · Organisation</b><small>Zones et fréquences</small></div>
  <div class="exMini active"><b>2 · Eau</b><small>Source, réseau, relief</small></div>
  <div class="exMini active"><b>3 · Déplacements</b><small>Trajets et spaghetti</small></div>
- <div class="exMini"><b>4 · Charges</b><small>Prochain lot</small></div>
+ <div class="exMini active"><b>4 · Charges</b><small>Portage et manutention</small></div>
  <div class="exMini"><b>5 · Pré-visite</b><small>Prochain lot</small></div>
 </div>
 <h3>Choisis une ferme pour travailler</h3>
@@ -229,7 +231,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </div>
 <div id="tabRecus" hidden>
 <h2>Schémas reçus</h2>
-<div class="row"><label class="f" style="flex:1">Ferme<select id="selFerme"></select></label><label class="f" style="flex:1">Exercice<select id="selExercise"><option value="ex1">1 — Organisation</option><option value="ex2">2 — Eau</option><option value="ex3">3 — Déplacements</option></select></label></div>
+<div class="row"><label class="f" style="flex:1">Ferme<select id="selFerme"></select></label><label class="f" style="flex:1">Exercice<select id="selExercise"><option value="ex1">1 — Organisation</option><option value="ex2">2 — Eau</option><option value="ex3">3 — Déplacements</option><option value="ex4">4 — Charges / manutention</option></select></label></div>
 <div class="row"><button class="btn small" id="btnRefresh">🔄 Actualiser</button><span class="muted" id="nbRecus"></span></div>
 <div class="grid" id="mosaique"></div>
 </div>
@@ -247,7 +249,7 @@ window.addEventListener("error",e=>{try{const el=document.getElementById("studen
 window.addEventListener("unhandledrejection",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String((e.reason&&e.reason.message)||e.reason||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
 const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
-const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"},guide_depart:{n:"Départ / chargement vente",e:"🚩",c:"#455a64"},guide_tomate:{n:"Planche de tomates",e:"🍅",c:"#d84315"},guide_stockage:{n:"Stockage / chambre froide",e:"🧊",c:"#1565c0"},guide_prepa:{n:"Préparation de commande",e:"📦",c:"#6a1b9a"}};
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"},guide_depart:{n:"Départ / chargement vente",e:"🚩",c:"#455a64"},guide_tomate:{n:"Planche de tomates",e:"🍅",c:"#d84315"},guide_stockage:{n:"Stockage / chambre froide",e:"🧊",c:"#1565c0"},guide_prepa:{n:"Préparation de commande",e:"📦",c:"#6a1b9a"},guide_salade:{n:"Récolte salade",e:"🥬",c:"#2e7d32"},guide_caisses:{n:"Stock de caisses",e:"📦",c:"#8d6e63"}};
 const FREQS={
   1:{n:"Plusieurs fois par jour",c:"#c62828"},
   2:{n:"Tous les jours ou presque",c:"#ef6c00"},
@@ -430,12 +432,12 @@ async function studentDash(){
  if(!error)history=data||[];
  const counts={};history.forEach(h=>{const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;counts[k]=(counts[k]||0)+1});
  $("studentFarms").innerHTML=FERMES.map(f=>{
-  const n1=counts[f.id+":ex1"]||0,n2=counts[f.id+":ex2"]||0,n3=counts[f.id+":ex3"]||0;
+  const n1=counts[f.id+":ex1"]||0,n2=counts[f.id+":ex2"]||0,n3=counts[f.id+":ex3"]||0,n4=counts[f.id+":ex4"]||0;
   return '<div class="card" style="cursor:default">'+
    (f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+
    '<div class="t">'+esc(f.nom)+'</div>'+
-   '<div class="s">1 Organisation : '+(n1?'✅ envoyé':'à faire')+'<br>2 Eau : '+(n2?'✅ envoyé':'à faire')+'<br>3 Déplacements : '+(n3?'✅ envoyé':'à faire')+'</div>'+
-   '<div class="farmActions"><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex1">1 · Organisation</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex2" '+(f.mode!=="carte"?'disabled title="L’exercice Eau nécessite une carte vivante"':'')+'>2 · Eau</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex3" '+(f.mode!=="carte"?'disabled title="L’exercice Déplacements nécessite une carte vivante"':'')+'>3 · Déplacements</button></div></div>'
+   '<div class="s">1 Organisation : '+(n1?'✅ envoyé':'à faire')+'<br>2 Eau : '+(n2?'✅ envoyé':'à faire')+'<br>3 Déplacements : '+(n3?'✅ envoyé':'à faire')+'<br>4 Charges : '+(n4?'✅ envoyé':'à faire')+'</div>'+
+   '<div class="farmActions"><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex1">1 · Organisation</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex2" '+(f.mode!=="carte"?'disabled title="L’exercice Eau nécessite une carte vivante"':'')+'>2 · Eau</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex3" '+(f.mode!=="carte"?'disabled title="L’exercice Déplacements nécessite une carte vivante"':'')+'>3 · Déplacements</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex4" '+(f.mode!=="carte"?'disabled title="L’exercice Charges nécessite une carte vivante"':'')+'>4 · Charges</button></div></div>'
  }).join("")||'<p class="muted">Aucune ferme disponible pour le moment.</p>';
  $("studentFarms").querySelectorAll("[data-sfarm]").forEach(b=>b.onclick=()=>{
   const f=FERMES.find(x=>x.id===b.dataset.sfarm),ex=b.dataset.ex;startStudentSession(prenom,f.id);openStudentExercise(f,ex)
@@ -448,7 +450,7 @@ async function studentDash(){
   $("studentHistory").innerHTML='<ul class="items">'+history.slice(0,20).map(h=>{
    const f=FERMES.find(x=>x.id===h.ferme_id);
    const d=new Date(h.created_at);
-   const ex=(h.contenu&&h.contenu.exercise)||"ex1",lab=ex==="ex3"?"Exercice 3 — Déplacements":ex==="ex2"?"Exercice 2 — Eau":"Exercice 1 — Organisation";return '<li><span class="dot" style="background:#315a48"></span><span class="n"><b>'+esc(f?f.nom:"Ferme")+'</b> · '+lab+'<br><small>'+d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</small></span></li>'
+   const ex=(h.contenu&&h.contenu.exercise)||"ex1",lab=ex==="ex4"?"Exercice 4 — Charges / manutention":ex==="ex3"?"Exercice 3 — Déplacements":ex==="ex2"?"Exercice 2 — Eau":"Exercice 1 — Organisation";return '<li><span class="dot" style="background:#315a48"></span><span class="n"><b>'+esc(f?f.nom:"Ferme")+'</b> · '+lab+'<br><small>'+d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</small></span></li>'
   }).join("")+'</ul>'
  }
 }
@@ -480,14 +482,14 @@ const EX2_STEPS=[
  {title:"Questions",tool:"question",tip:"Clique sur la carte pour placer une question ou un point de vigilance.",help:"Note ce que la vue aérienne ne permet pas de trancher : ressource réelle, panne, stockage, réseau, humidité…"},
  {title:"Synthèse",tool:null,tip:"Relis ta carte avant de l’envoyer.",help:"Ta carte doit distinguer ce que tu observes, ce que tu supposes et ce qu’il faudra vérifier sur la ferme."}
 ];
-function openStudentExercise(f,ex){if(ex==="ex3")return eleveCarteEx3(f);if(ex==="ex2")return eleveCarteEx2(f);return openStudent(f)}
+function openStudentExercise(f,ex){if(ex==="ex4")return eleveCarteEx4(f);if(ex==="ex3")return eleveCarteEx3(f);if(ex==="ex2")return eleveCarteEx2(f);return openStudent(f)}
 function ex2Count(k){return CM.items.filter(it=>it.k===k).length}
 function ex2TotalDistance(){return CM.items.filter(it=>it.k==="eau_dist"&&it.distance).reduce((a,it)=>a+it.distance,0)}
 function ex2Stepbar(){return '<div class="stepbar">'+EX2_STEPS.map((_,i)=>'<span class="stepdot '+(i<CM.ex2Step?'done':i===CM.ex2Step?'now':'')+'"></span>').join('')+'</div>'}
 async function eleveCarteEx2(f){
  if(f.mode!=="carte"){alert("L’exercice 2 nécessite une carte vivante IGN.");return studentDash()}
  CUR=f;$('who').textContent='👤 '+studentName()+' · '+f.nom+' · Eau';await cmInit(f);
- CM.exercise1=false;CM.exercise2=true;CM.exercise3=false;CM.exercise3Guide=false;CM.ex2Step=0;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex2"),[]);CM.logic=null;CM.overlays=[];CM.ex2ShowEx1=false;
+ CM.exercise1=false;CM.exercise2=true;CM.exercise3=false;CM.exercise4=false;CM.exercise3Guide=false;CM.ex2Step=0;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex2"),[]);CM.logic=null;CM.overlays=[];CM.ex2ShowEx1=false;
  CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex2"),CM.items);panelEleveEx2()};cmSetMode('move');panelEleveEx2();$('btnHelp').hidden=true
 }
 async function ex2ToggleEx1(){
@@ -526,7 +528,7 @@ async function sendEx2(){
 const EX3_STEPS=[
  {title:"Cas 1 — Récolte de tomates",tool:"trajet_actuel",help:"Le formateur a placé les repères du cas : départ / chargement vente, 3 planches de tomates, stockage / chambre froide et préparation de commande. Trace le trajet que tu ferais : départ → tomates → stockage → préparation de commande → retour au point de chargement / vente."},
  {title:"Cas 2 — Ancienne organisation",tool:"trajet_ancien",help:"Le formateur a placé les repères de l’ancienne organisation. Reprenez la même récolte et retracez le flux : départ → tomates → ancien stockage / chambre froide → ancienne préparation de commande → départ vente. Le trajet du cas 1 est masqué pour garder la carte lisible."},
- {title:"Cas 3 — Salades : il manque des caisses",tool:"trajet_incident",help:"Vous êtes en train de récolter des salades dans une zone éloignée et vous n’avez plus assez de caisses. Trace seulement l’ALLER entre la zone de récolte et l’endroit où vous devez aller chercher les caisses. L’outil ajoutera automatiquement le retour vers la récolte."},
+ {title:"Cas 3 — Salades : il manque des caisses",tool:"trajet_incident",help:"Le formateur a placé la zone de récolte salade et le stock de caisses. Vous êtes en train de récolter et vous n’avez plus assez de caisses. Trace seulement l’ALLER entre ces deux repères. L’outil ajoutera automatiquement le retour vers la récolte."},
  {title:"Mesurer l’effet sur l’année",tool:null,help:"Estimez combien de fois vous récoltez des salades dans l’année et combien de fois ce manque de caisses pourrait réellement arriver. L’outil calcule la distance annuelle supplémentaire."},
  {title:"Trouver une amélioration",tool:null,help:"Cherchez maintenant comment réduire ou supprimer la probabilité de cet aller-retour. L’outil ne donne pas la solution : formulez votre proposition avec vos propres mots."},
  {title:"Synthèse",tool:null,help:"Comparez les situations. Le premier cas sert surtout à apprendre à lire un flux. Les cas suivants montrent comment de petits défauts d’organisation, répétés, peuvent produire beaucoup de déplacements."}
@@ -539,11 +541,16 @@ const EX3_GUIDE_BASE=[
  {id:"stockage",k:"guide_stockage",label:"Stockage / chambre froide"},
  {id:"prepa",k:"guide_prepa",label:"Préparation de commande"}
 ];
+const EX3_GUIDE_CASE3=[
+ {id:"salade",k:"guide_salade",label:"Zone de récolte salade"},
+ {id:"caisses",k:"guide_caisses",label:"Stock de caisses"}
+];
 const EX3_GUIDE_CASES={
- c1:{label:"Cas 1 — Organisation actuelle",short:"Cas 1 · actuel"},
- c2:{label:"Cas 2 — Ancienne organisation",short:"Cas 2 · ancien"}
+ c1:{label:"Cas 1 — Organisation actuelle",short:"1 · Actuel",defs:EX3_GUIDE_BASE},
+ c2:{label:"Cas 2 — Ancienne organisation",short:"2 · Ancien",defs:EX3_GUIDE_BASE},
+ c3:{label:"Cas 3 — Salades / caisses",short:"3 · Salades",defs:EX3_GUIDE_CASE3}
 };
-const EX3_GUIDE_DEF=["c1","c2"].flatMap(caseId=>EX3_GUIDE_BASE.map(d=>({...d,id:caseId+"_"+d.id,baseId:d.id,caseId})));
+const EX3_GUIDE_DEF=Object.entries(EX3_GUIDE_CASES).flatMap(([caseId,c])=>c.defs.map(d=>({...d,id:caseId+"_"+d.id,baseId:d.id,caseId})));
 function normalizeEx3Guides(arr){
  return (Array.isArray(arr)?arr:[]).map(it=>{
   if(it.caseId)return {...it};
@@ -551,10 +558,11 @@ function normalizeEx3Guides(arr){
   return old?{...it,guideId:"c1_"+old.id,baseId:old.id,caseId:"c1"}:{...it,caseId:"c1"}
  })
 }
+function ex3Defs(caseId){return (EX3_GUIDE_CASES[caseId]&&EX3_GUIDE_CASES[caseId].defs)||[]}
 function ex3GuideItems(caseId,arr){return (arr||CM.guideItems||CM.ex3Guide||[]).filter(x=>(x.caseId||"c1")===caseId)}
 function ex3GuideItem(id,arr){return (arr||CM.guideItems||CM.ex3Guide||[]).find(x=>x.guideId===id)}
-function ex3GuideComplete(arr,caseId){return EX3_GUIDE_BASE.every(d=>(arr||[]).some(x=>(x.caseId||"c1")===caseId&&(x.baseId||String(x.guideId||"").replace(/^c[12]_/,""))===d.id))}
-function ex3GuideForStep(step,arr){return step===0?ex3GuideItems("c1",arr):step===1?ex3GuideItems("c2",arr):[]}
+function ex3GuideComplete(arr,caseId){return ex3Defs(caseId).every(d=>(arr||[]).some(x=>(x.caseId||"c1")===caseId&&(x.baseId||String(x.guideId||"").replace(/^c[123]_/ ,""))===d.id))}
+function ex3GuideForStep(step,arr){return step===0?ex3GuideItems("c1",arr):step===1?ex3GuideItems("c2",arr):step===2?ex3GuideItems("c3",arr):[]}
 function ex3VisibleItems(){
  if(!CM.exercise3)return CM.items;
  const s=CM.ex3Step;
@@ -585,7 +593,7 @@ async function eleveCarteEx3(f){
  if(f.mode!=="carte"){alert("L’exercice 3 nécessite une carte vivante IGN.");return studentDash()}
  CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Déplacements";await cmInit(f);
  const d=ex3Load(f.id),{data:gdata}=await sb.from("fermes").select("logique").eq("id",f.id).single();
- CM.exercise1=false;CM.exercise2=false;CM.exercise3=true;CM.exercise3Guide=false;CM.ex3Step=0;CM.readonly=false;CM.items=d.items;CM.ex3Calc=d.calc;CM.ex3Solution=d.solution;CM.ex3Guide=normalizeEx3Guides((gdata&&gdata.logique&&Array.isArray(gdata.logique.ex3Guide))?gdata.logique.ex3Guide:[]);CM.logic=null;CM.overlays=[];
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=true;CM.exercise4=false;CM.exercise3Guide=false;CM.ex3Step=0;CM.readonly=false;CM.items=d.items;CM.ex3Calc=d.calc;CM.ex3Solution=d.solution;CM.ex3Guide=normalizeEx3Guides((gdata&&gdata.logique&&Array.isArray(gdata.logique.ex3Guide))?gdata.logique.ex3Guide:[]);CM.logic=null;CM.overlays=[];
  CM.onChange=()=>{ex3Save();panelEleveEx3()};cmSetMode("move");panelEleveEx3();$("btnHelp").hidden=true
 }
 function ex3SummaryHtml(){
@@ -604,11 +612,12 @@ function ex3StepTraceInfo(){
  return '<div class="msg ok"><b>Distance enregistrée : '+Math.round(+it.distance||0)+' m</b></div>'
 }
 function panelEleveEx3(){
- const p=$("panelC"),st=EX3_STEPS[CM.ex3Step],y=ex3Annual(),guide1Ok=ex3GuideComplete(CM.ex3Guide,"c1"),guide2Ok=ex3GuideComplete(CM.ex3Guide,"c2");
+ const p=$("panelC"),st=EX3_STEPS[CM.ex3Step],y=ex3Annual(),guide1Ok=ex3GuideComplete(CM.ex3Guide,"c1"),guide2Ok=ex3GuideComplete(CM.ex3Guide,"c2"),guide3Ok=ex3GuideComplete(CM.ex3Guide,"c3");
  p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 3</div><h3>🚶 Déplacements / spaghetti</h3>'+ex3Stepbar()+
   '<div class="msg"><b>Étape '+(CM.ex3Step+1)+' / '+EX3_STEPS.length+' — '+st.title+'</b><br>'+st.help+'</div>'+
   (CM.ex3Step===0?('<div class="msg '+(guide1Ok?'ok':'')+'"><b>Repères du cas 1</b><br>'+(guide1Ok?'Les vignettes sont reliées en pointillés à leurs emplacements réels.':'Le formateur n’a pas encore placé tous les repères du cas 1.')+'</div>'):'')+
   (CM.ex3Step===1?('<div class="msg '+(guide2Ok?'ok':'')+'"><b>Repères du cas 2</b><br>'+(guide2Ok?'Voici l’ancienne organisation à utiliser pour ce trajet.':'Le formateur n’a pas encore placé tous les repères du cas 2.')+'</div>'):'')+
+  (CM.ex3Step===2?('<div class="msg '+(guide3Ok?'ok':'')+'"><b>Repères du cas 3</b><br>'+(guide3Ok?'La zone de salade et le stock de caisses sont indiqués sur la carte.':'Le formateur n’a pas encore placé la zone de salade et le stock de caisses.')+'</div>'):'')+
   (CM.ex3Step===5?ex3SummaryHtml():'')+
   (CM.ex3Step<=2?ex3StepTraceInfo():'')+
   (CM.ex3Step===0?'<div class="msg"><b>But de ce premier cas</b><br>Comprendre le chemin suivi par le produit. Ne cherchez pas encore une énorme différence de distance : l’intérêt apparaîtra surtout dans les situations suivantes.</div>':'')+
@@ -667,19 +676,19 @@ async function setupEx3Guide(f){
  await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=true;CM.readonly=false;CM.items=[];CM.guideItems=normalizeEx3Guides(base.ex3Guide);CM.logic=null;CM.overlays=[];CM.onChange=null;CM.guideTool=null;CM.guideCase="c1";CM.guideShow=true;cmSetMode("move");panelEx3Guide(false)
 }
 function panelEx3Guide(dirty){
- const p=$("panelC"),caseId=CM.guideCase||"c1",caseInfo=EX3_GUIDE_CASES[caseId],placed=ex3GuideItems(caseId,CM.guideItems),done=ex3GuideComplete(CM.guideItems,caseId);
- p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 3</div><h3>🎯 Préparer les repères</h3>'+
-  '<div class="guideCaseTabs"><button class="btn'+(caseId==="c1"?' on':'')+'" data-gcase="c1">1 · Actuel</button><button class="btn'+(caseId==="c2"?' on':'')+'" data-gcase="c2">2 · Ancien</button></div>'+
-  '<div class="msg"><b>'+caseInfo.label+'</b><br>Place seulement les points utiles au trajet. Les stagiaires ne verront que les repères du cas en cours.</div>'+
-  '<div class="guideHint"><b>1.</b> Choisis un repère ci-dessous puis clique sur la carte.<br><b>2.</b> Déplace ensuite la <b>vignette blanche</b> où tu veux : son pointillé reste relié au bon emplacement.<br><b>3.</b> Tu peux aussi déplacer directement le point du repère.</div>'+
-  '<div class="guideGrid">'+EX3_GUIDE_BASE.map(d=>{const full=caseId+"_"+d.id,it=ex3GuideItem(full,CM.guideItems),T=TYPES[d.k];return '<button class="btn small'+(CM.guideTool===full?' on':'')+'" data-gid="'+full+'">'+T.e+' '+d.label+' '+(it?'✅':'')+'</button>'}).join('')+'</div>'+
-  '<div class="msg '+(done?'ok':'')+'"><b>'+placed.length+' / '+EX3_GUIDE_BASE.length+' repères placés</b><br>'+(done?'Ce cas est prêt.':'Tu peux enregistrer même si tu veux terminer plus tard.')+'</div>'+
-  '<div class="row"><button class="btn main" id="saveEx3Guide">💾 Enregistrer'+(dirty?' *':'')+'</button><button class="btn" id="toggleEx3Guides">👁️ '+(CM.guideShow===false?'Afficher':'Masquer')+'</button></div>'+
+ const p=$("panelC"),caseId=CM.guideCase||"c1",caseInfo=EX3_GUIDE_CASES[caseId],defs=ex3Defs(caseId),placed=ex3GuideItems(caseId,CM.guideItems),done=ex3GuideComplete(CM.guideItems,caseId);
+ p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 3</div><h3>🎯 Préparer les repères</h3>'+ 
+  '<div class="guideCaseTabs">'+Object.entries(EX3_GUIDE_CASES).map(([cid,ci])=>'<button class="btn'+(caseId===cid?' on':'')+'" data-gcase="'+cid+'">'+ci.short+'</button>').join('')+'</div>'+ 
+  '<div class="msg"><b>'+caseInfo.label+'</b><br>Place seulement les points utiles au trajet. Les stagiaires ne verront que les repères du cas en cours.</div>'+ 
+  '<div class="guideHint"><b>1.</b> Choisis un repère ci-dessous puis clique sur la carte.<br><b>2.</b> Déplace ensuite la <b>vignette blanche</b> où tu veux : son pointillé reste relié au bon emplacement.<br><b>3.</b> Tu peux aussi déplacer directement le point du repère.</div>'+ 
+  '<div class="guideGrid">'+defs.map(d=>{const full=caseId+"_"+d.id,it=ex3GuideItem(full,CM.guideItems),T=TYPES[d.k];return '<button class="btn small'+(CM.guideTool===full?' on':'')+'" data-gid="'+full+'">'+T.e+' '+d.label+' '+(it?'✅':'')+'</button>'}).join('')+'</div>'+ 
+  '<div class="msg '+(done?'ok':'')+'"><b>'+placed.length+' / '+defs.length+' repères placés</b><br>'+(done?'Ce cas est prêt.':'Tu peux enregistrer même si tu veux terminer plus tard.')+'</div>'+ 
+  '<div class="row"><button class="btn main" id="saveEx3Guide">💾 Enregistrer'+(dirty?' *':'')+'</button><button class="btn" id="toggleEx3Guides">👁️ '+(CM.guideShow===false?'Afficher':'Masquer')+'</button></div>'+ 
   '<div id="guideMsg"></div><button class="btn" id="backEx3Guide">⬅ Retour aux fermes</button>'+creditC();
  p.querySelectorAll("[data-gcase]").forEach(b=>b.onclick=()=>{CM.guideCase=b.dataset.gcase;CM.guideTool=null;CM.guideShow=true;panelEx3Guide(dirty)});
  p.querySelectorAll("[data-gid]").forEach(b=>b.onclick=()=>{CM.guideTool=b.dataset.gid;CM.guideShow=true;panelEx3Guide(dirty);cmTip()});
  $("toggleEx3Guides").onclick=()=>{CM.guideShow=CM.guideShow===false?true:false;panelEx3Guide(dirty)};
- $("saveEx3Guide").onclick=async()=>{const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();const base=(data&&data.logique)||{};const{error}=await sb.from("fermes").update({logique:{...base,ex3Guide:CM.guideItems}}).eq("id",CUR.id);msg("guideMsg",error?"Erreur : "+error.message:"✅ Repères des deux cas enregistrés.",error?"err":"ok");if(!error)panelEx3Guide(false)};
+ $("saveEx3Guide").onclick=async()=>{const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();const base=(data&&data.logique)||{};const{error}=await sb.from("fermes").update({logique:{...base,ex3Guide:CM.guideItems}}).eq("id",CUR.id);msg("guideMsg",error?"Erreur : "+error.message:"✅ Repères des trois cas enregistrés.",error?"err":"ok");if(!error)panelEx3Guide(false)};
  $("backEx3Guide").onclick=()=>{CM.exercise3Guide=false;CM.logic=null;dash("fermes")};cmTools();cmTip();cmRender()
 }
 
@@ -701,7 +710,7 @@ async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").
  $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
  $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Stagiaires anonymisés · Formateur · Consensus</div></button>':'')+
  RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
- $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex3"?openRecusEx3(f,[b.dataset.r]):ex==="ex2"?openRecusEx2(f,[b.dataset.r]):openRecusAny(f,[b.dataset.r])});if($("allSup"))$("allSup").onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex3"?openRecusEx3(f,RECUS.map(r=>r.id)):ex==="ex2"?openRecusEx2(f,RECUS.map(r=>r.id)):openRecusAny(f,RECUS.map(r=>r.id))}}
+ $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,[b.dataset.r]):ex==="ex3"?openRecusEx3(f,[b.dataset.r]):ex==="ex2"?openRecusEx2(f,[b.dataset.r]):openRecusAny(f,[b.dataset.r])});if($("allSup"))$("allSup").onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,RECUS.map(r=>r.id)):ex==="ex3"?openRecusEx3(f,RECUS.map(r=>r.id)):ex==="ex2"?openRecusEx2(f,RECUS.map(r=>r.id)):openRecusAny(f,RECUS.map(r=>r.id))}}
 let RECUS_FREQ_FILTER="all";
 let RECUS_VISIBLE_IDS=null;
 function anonLabel(i){return "Profil "+String.fromCharCode(65+i)}
@@ -817,6 +826,65 @@ async function openRecusEx3(f,ids){
  $("ex3RecBack").onclick=()=>{CM.overlays=[];dash("recus")};cmTools();cmTip()
 }
 
+
+/* ---------- MODULE 1 · EXERCICE 4 : CHARGES / MANUTENTION ---------- */
+const EX4_STATES=[
+ {title:"État 1 — Récolte à la main",reveal:"Au départ, pas de brouette de récolte : les caisses pleines étaient déplacées à la main, amenées à la chambre froide, puis reprises pour préparer les commandes.",question:"À partir de cette situation, estime le nombre de manipulations et la distance parcourue avec une charge. Puis cherche ce que tu améliorerais en premier."},
+ {title:"État 2 — Brouette de récolte",reveal:"Amélioration réellement mise en place : cultures davantage espacées pour passer avec une brouette / un chariot. Mais les cagettes de récupération avaient des tares différentes : il fallait sortir les caisses, les peser, les remettre sur le chariot, puis les ressortir devant la marche de la chambre froide.",question:"Qu’a-t-on supprimé ? Quelles manutentions restent encore ?"},
+ {title:"État 3 — Caisses standardisées",reveal:"Amélioration suivante : mêmes caisses, même tare et poids standard lorsque la caisse est pleine. La pesée systématique disparaît.",question:"Estime maintenant ce que cette standardisation supprime en manutention."},
+ {title:"État 4 — Bâtiment central + rampe",reveal:"Dernière évolution : station de lavage, chambre froide et préparation de commandes regroupées, avec une rampe permettant au chariot d’entrer directement dans la chambre froide.",question:"Il reste des soulèvements, mais beaucoup moins de portage. Estime la situation actuelle."},
+ {title:"Synthèse",reveal:"Compare les quatre états successifs.",question:"L’objectif n’est pas de trouver une solution parfaite d’un coup : on observe le travail, on retire une contrainte, puis on regarde ce qui reste."}
+];
+function ex4DraftKey(fid){return "schema:"+fid+":ex4:v1"}
+function ex4BlankState(){return {manips:"",carryMeters:"",proposal:""}}
+function ex4Load(fid){
+ const d=LS.get(ex4DraftKey(fid),null);
+ if(d&&typeof d==="object")return {base:{crates:d.base?.crates||"",weight:d.base?.weight||"",weeks:d.base?.weeks||"",perWeek:d.base?.perWeek||""},states:Array.from({length:4},(_,i)=>({...ex4BlankState(),...((d.states||[])[i]||{})}))};
+ return {base:{crates:"",weight:"",weeks:"",perWeek:""},states:Array.from({length:4},()=>ex4BlankState())}
+}
+function ex4Save(){if(CUR)LS.set(ex4DraftKey(CUR.id),{base:CM.ex4Base,states:CM.ex4States})}
+function ex4Metrics(i){
+ const b=CM.ex4Base||{},s=(CM.ex4States||[])[i]||{},cr=+b.crates||0,w=+b.weight||0,weeks=+b.weeks||0,pw=+b.perWeek||0,m=+s.manips||0,dist=+s.carryMeters||0,harv=weeks*pw;
+ return {crates:cr,weight:w,harvests:harv,manipsPerCrate:m,manipCount:cr*m,kgPerHarvest:cr*w*m,carryPerHarvest:dist,annualKg:cr*w*m*harv,annualCarry:dist*harv}
+}
+function ex4Stepbar(){return '<div class="stepbar">'+EX4_STATES.map((_,i)=>'<span class="stepdot '+(i<CM.ex4Step?'done':i===CM.ex4Step?'now':'')+'"></span>').join('')+'</div>'}
+function ex4MetricBox(i){
+ const x=ex4Metrics(i);
+ return '<div class="kpis"><div class="kpi"><b>'+Math.round(x.manipCount)+'</b><small>manipulations / récolte</small></div><div class="kpi"><b>'+Math.round(x.kgPerHarvest)+' kg</b><small>manipulés / récolte</small></div><div class="kpi"><b>'+Math.round(x.carryPerHarvest)+' m</b><small>avec charge / récolte</small></div><div class="kpi"><b>'+Math.round(x.annualKg/100)/10+' t</b><small>manipulées / an</small></div></div>'+(x.harvests?'<div class="msg"><b>Projection annuelle</b><br>'+Math.round(x.harvests)+' récoltes estimées · '+Math.round(x.annualCarry/100)/10+' km parcourus avec charge.</div>':'')
+}
+function ex4Comparison(){return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m avec charge · '+Math.round(x.annualKg/100)/10+' t/an</div>'}).join('')+'</div>'}
+async function eleveCarteEx4(f){
+ if(f.mode!=="carte"){alert("L’exercice 4 nécessite une carte vivante IGN.");return studentDash()}
+ CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Charges";await cmInit(f);const d=ex4Load(f.id);
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;CM.readonly=true;CM.items=[];CM.logic=null;CM.overlays=[];CM.ex4Step=0;CM.ex4Base=d.base;CM.ex4States=d.states;CM.onChange=null;cmSetMode("move");panelEleveEx4();$("btnHelp").hidden=true
+}
+function panelEleveEx4(){
+ const p=$("panelC"),i=CM.ex4Step,st=EX4_STATES[i];
+ let body='<div class="muted">MODULE 1 · EXERCICE 4</div><h3>📦 Charges / manutention</h3>'+ex4Stepbar()+'<div class="msg"><b>Étape '+(i+1)+' / '+EX4_STATES.length+' — '+st.title+'</b><br>'+st.reveal+'</div>';
+ if(i<4){
+  if(i===0)body+='<div class="calcbox"><h4>Base commune pour les 4 états</h4><label class="f">Combien de caisses pour cette récolte ?<input id="ex4Crates" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.crates)+'" placeholder="Votre estimation"></label><label class="f">Poids moyen d’une caisse pleine (kg) ?<input id="ex4Weight" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.weight)+'" placeholder="Votre estimation"></label><label class="f">Combien de semaines de récolte tomate ?<input id="ex4Weeks" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.weeks)+'" placeholder="Votre estimation"></label><label class="f">Combien de récoltes par semaine ?<input id="ex4PerWeek" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Votre estimation"></label></div>';
+  body+='<div class="calcbox"><h4>'+st.question+'</h4><label class="f">Combien de fois chaque caisse est-elle soulevée / reposée ?<input id="ex4Manips" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].manips)+'" placeholder="Votre estimation"></label><label class="f">Distance totale parcourue avec une charge pendant UNE récolte (m)<input id="ex4Carry" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].carryMeters)+'" placeholder="Votre estimation"></label><label class="f">'+(i<3?'Quelle amélioration proposeriez-vous maintenant ?':'Qu’est-ce qui a été principalement amélioré ?')+'<textarea id="ex4Proposal" rows="3" placeholder="Votre réflexion…">'+esc(CM.ex4States[i].proposal)+'</textarea></label>'+ex4MetricBox(i)+'</div>';
+ }else body+=ex4Comparison()+'<div class="msg ok"><b>Méthode à retenir</b><br>Quand j’observe une tâche : <b>combien de fois je soulève ? combien de mètres je porte ? combien de fois cela se répète ? qu’est-ce que l’organisation peut supprimer ?</b></div><div class="msg"><b>À faire entre deux séances</b><br>Choisis une autre tâche réelle sur une ferme. Repère une situation de portage ou de manutention, mesure-la et propose une amélioration.</div>';
+ body+='<div class="row"><button class="btn small" id="ex4Prev" '+(i===0?'disabled':'')+'>⬅ Étape précédente</button><button class="btn main" id="ex4Next" '+(i===EX4_STATES.length-1?'disabled':'')+'>Étape suivante ➡</button></div><button class="btn main" id="ex4Send">📤 Envoyer l’exercice 4</button><div id="ex4SendMsg"></div><button class="btn" id="ex4Back">⬅ Retour à mon espace</button>'+creditC();
+ p.innerHTML=body;
+ ["ex4Crates","ex4Weight","ex4Weeks","ex4PerWeek"].forEach(id=>{if($(id))$(id).onchange=()=>{CM.ex4Base={crates:$("ex4Crates").value,weight:$("ex4Weight").value,weeks:$("ex4Weeks").value,perWeek:$("ex4PerWeek").value};ex4Save();panelEleveEx4()}});
+ if($("ex4Manips"))$("ex4Manips").onchange=()=>{CM.ex4States[i].manips=$("ex4Manips").value;ex4Save();panelEleveEx4()};
+ if($("ex4Carry"))$("ex4Carry").onchange=()=>{CM.ex4States[i].carryMeters=$("ex4Carry").value;ex4Save();panelEleveEx4()};
+ if($("ex4Proposal"))$("ex4Proposal").oninput=()=>{CM.ex4States[i].proposal=$("ex4Proposal").value;ex4Save()};
+ $("ex4Prev").onclick=()=>{CM.ex4Step--;panelEleveEx4()};$("ex4Next").onclick=()=>{CM.ex4Step++;panelEleveEx4()};$("ex4Send").onclick=sendEx4;$("ex4Back").onclick=()=>{CM.exercise4=false;studentDash()}
+}
+async function sendEx4(){
+ if(!STUDENT_USER){msg("ex4SendMsg","Reconnecte-toi à ton espace pour envoyer.","err");return}
+ const hasData=(CM.ex4States||[]).some(s=>s.manips!==""||s.carryMeters!==""||s.proposal);if(!hasData){msg("ex4SendMsg","Commence par renseigner au moins un état.","err");return}
+ $("ex4Send").disabled=true;const c=CM.map.getCenter(),metrics=[0,1,2,3].map(ex4Metrics);const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||"?").slice(0,60),contenu:{exercise:"ex4",mode:"carte",base:CM.ex4Base,states:CM.ex4States,metrics,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});$("ex4Send").disabled=false;msg("ex4SendMsg",error?"Envoi impossible : "+error.message:"✅ Exercice 4 envoyé. Tes estimations restent modifiables.",error?"err":"ok")
+}
+async function openRecusEx4(f,ids){
+ const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1,sel=multi?collectiveCopy(selected):selected;await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=false;CM.exercise3Guide=false;CM.readonly=true;CM.logic=null;CM.items=[];CM.overlays=[];cmSetMode("move");const p=$("panelC");
+ if(multi){$("who").textContent="🧑‍🌾 "+f.nom+" · CHARGES · DÉBRIEF ANONYME";p.innerHTML='<h3>📦 Exercice 4 — Débrief</h3><div class="msg ok">🔒 Les profils sont anonymisés.</div>'+sel.map((r,i)=>{const c=r.contenu||{},m=c.metrics||[];return '<div class="msg"><b>'+anonLabel(i)+'</b><br>'+m.map((x,j)=>'<span>'+(j+1)+' · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m avec charge</span>').join('<br>')+'</div>'}).join('')+'<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>'}
+ else{const c=sel[0].contenu||{},m=c.metrics||[],states=c.states||[];$("who").textContent="🧑‍🌾 "+f.nom+" · Charges · "+sel[0].auteur;p.innerHTML='<h3>'+esc(sel[0].auteur)+'</h3>'+m.map((x,j)=>'<div class="msg"><b>'+EX4_STATES[j].title+'</b><br>'+Math.round(+x.manipCount||0)+' manipulations/récolte · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m avec charge'+(states[j]&&states[j].proposal?'<br><span class="muted">Réflexion : '+esc(states[j].proposal)+'</span>':'')+'</div>').join('')+'<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>'}
+ $("ex4RecBack").onclick=()=>dash("recus");cmTools();cmTip()
+}
+
 /* ---------- IGN : chercher et cadrer la ferme (photos aériennes, gratuit) ---------- */
 let MB=null,leafReady=null;
 const IGN_TILES="https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg";
@@ -870,7 +938,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise3Guide:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -881,7 +949,7 @@ async function cmInit(f){show("vCarte");await loadLeaflet();
   ["over","logic","items","draft","topo"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
   CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
- CM.f=f;CM.mode="draw";CM.stroke=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
 
 const GUIDE_LABEL_OFFSETS=[[88,-42],[88,14],[-88,-42],[-88,14],[70,58],[-70,58]];
@@ -1158,7 +1226,7 @@ function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.oncli
  root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=CM.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;cmChanged()}})}
 function creditC(){return'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>'}
 async function eleveCarte(f){CUR=f;CM.exercise2=false;CM.exercise3=false;$("who").textContent="👤 "+studentName()+" · "+f.nom;await cmInit(f);
- CM.exercise1=true;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=false;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),CM.items);panelEleveC()};
+ CM.exercise1=true;CM.exercise2=false;CM.exercise3=false;CM.exercise4=false;CM.exercise3Guide=false;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),CM.items);panelEleveC()};
  cmSetMode("move");panelEleveC();$("btnHelp").hidden=false;if(!SS.get("tour_ok",false))showTour(0);
  clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleveC()}},15000)}
 function panelEleveC(){const p=$("panelC");
