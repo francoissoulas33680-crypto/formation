@@ -162,6 +162,29 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .designFields{grid-template-columns:1fr}
 @media(max-width:680px){.modelGrid{grid-template-columns:1fr}}
 
+
+.mapSearchBox{
+ position:absolute;left:12px;top:12px;z-index:1200;
+ width:min(560px,calc(100% - 84px));
+ background:var(--paper);border:2px solid var(--shade);
+ border-radius:14px;padding:10px;
+ box-shadow:0 4px 18px rgba(0,0,0,.16)
+}
+.mapSearchRow{display:flex;gap:8px;align-items:stretch}
+.mapSearchRow input{
+ flex:1;min-width:0;border:2px solid var(--line);border-radius:10px;
+ padding:11px 12px;font-size:16px;background:#fff;color:var(--ink)
+}
+.mapSearchMsg{font-size:13px;margin-top:7px;line-height:1.35}
+.mapSearchActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.errText{color:#9b1c1c;font-weight:700}
+@media(max-width:650px){
+ .mapSearchBox{left:8px;top:8px;width:calc(100% - 70px);padding:8px}
+ .mapSearchRow{flex-direction:column}
+ .mapSearchRow .btn{width:100%}
+ .mapSearchActions .btn{flex:1 1 150px}
+}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -239,7 +262,23 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
 <!-- Carte vivante (IGN) -->
 <section class="view work" id="vCarte">
-<div id="stageC"><div id="cm"></div><div class="tip" id="tipC"><span id="tipCTxt"></span></div><div class="tools" id="toolsC"></div><div id="sheetC" hidden></div></div>
+<div id="stageC">
+  <div id="cm"></div>
+  <div id="mapSearchBox" class="mapSearchBox" hidden>
+    <div class="mapSearchRow">
+      <input id="mapSearchInput" type="search" maxlength="180" placeholder="Nom de ferme, lieu, commune…" autocomplete="off">
+      <button class="btn main" id="mapSearchGo">🔎 Rechercher</button>
+    </div>
+    <div id="mapSearchMsg" class="mapSearchMsg"></div>
+    <div id="mapSearchActions" class="mapSearchActions" hidden>
+      <button class="btn main" id="mapSearchUse">✅ Analyser cette zone</button>
+      <button class="btn" id="mapSearchAgain">↺ Nouvelle recherche</button>
+    </div>
+  </div>
+  <div class="tip" id="tipC"><span id="tipCTxt"></span></div>
+  <div class="tools" id="toolsC"></div>
+  <div id="sheetC" hidden></div>
+</div>
 <aside><div class="in" id="panelC"></div></aside>
 </section>
 
@@ -613,7 +652,7 @@ async function studentDash(){
   '<div class="labUnlock"><div style="flex:1"><div class="labIcon">🔓</div><h3>Mon laboratoire de design</h3><p>Les 4 outils sont acquis. Commence par observer des fermes modèles et comprendre leur logique de design et de standardisation.</p>'+
    studentValidationStatusHtml(validationStatus)+
    '<div id="modelGallery"></div>'+
-   '<div class="freeAnalysis"><b>Ensuite, à toi de choisir.</b><br><span class="muted">Tu peux aussi analyser librement une autre ferme avec les mêmes outils.</span><br><button class="btn" id="newDiagBtn">🔎 Analyse libre</button></div></div></div>':
+   '<div class="freeAnalysis"><b>Ensuite, à toi de choisir.</b><br><span class="muted">Tu peux aussi ouvrir directement la carte et chercher librement une autre ferme avec les mêmes outils.</span><br><button class="btn" id="newDiagBtn">🔎 Analyse libre</button></div></div></div>':
   '<div class="labLocked"><div class="labIcon">🔒</div><div style="flex:1"><h3>Laboratoire de diagnostic</h3><p>Il se débloque lorsque les 4 exercices ont été validés par le formateur.</p>'+
    studentValidationStatusHtml(validationStatus)+
    '<div class="msg"><b>Encore à valider :</b> '+missing.map(x=>({ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"}[x])).join(" · ")+'</div>'+
@@ -1465,7 +1504,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 const MODEL_FARMS=[
  {id:"baba",name:"Ferme de Baba",place:"Bannalec (29)",search:"Castel Coudiec, Bannalec, 29380",lat:47.910834,lng:-3.655517,zoom:19,link:"https://www.bing.com/maps?cp=47.910834~-3.655517&lvl=18.5&style=h"},
  {id:"valette",name:"Les Jardins de la Valette",place:"Sanvensa (12)",search:"520 route de la rivière, 12200 Sanvensa",zoom:19,link:"https://maps.app.goo.gl/Aqx4KfefZnZ7E8X48"},
- {id:"buis",name:"La Ferme des Buis",place:"La Roche-sur-Grane (26)",search:"Les Buis, 26400 La Roche-sur-Grane",zoom:19,link:"https://maps.app.goo.gl/Ph5Datytfte8ksVk9"},
+ {id:"buis",name:"La Ferme des Buis",place:"La Roche-sur-Grane (26)",search:"Lieu-dit Les Buis, 26400 La Roche-sur-Grane",lat:44.66529,lng:4.93881,zoom:19,link:"https://maps.app.goo.gl/Ph5Datytfte8ksVk9"},
  {id:"gogottes",name:"La Ferme des Gogottes",place:"Samois-sur-Seine (77)",search:"5 Rue du Petit Barbeau, 77920 Samois-sur-Seine",zoom:19,link:"https://maps.app.goo.gl/buAJvchDJkCm39fdA"},
  {id:"gobettes",name:"La Ferme des Gobettes",place:"Saint-Sylvestre-de-Cormeilles (27)",search:"39 Rue d'Angerville, 27260 Saint-Sylvestre-de-Cormeilles",zoom:19,link:"https://maps.app.goo.gl/iHDKBFCszXjtaKVp9"}
 ];
@@ -1547,16 +1586,101 @@ function renderDiagnosticCards(diags,unlocked){
   (!diags.length?'<p class="muted">Aucune ferme analysée pour le moment.</p>':'<div class="grid diagGrid">'+diags.map(d=>{const model=d.pre&&d.pre.mode==="model";return '<div class="card diagCard"><div class="t">'+esc(d.nom)+'</div><div class="s">'+esc(d.commune||"")+'<br><b>'+(model?(d.phase==="done"?"✅ Étude de design terminée":"📚 Étude de design"):diagPhaseLabel(d.phase))+'</b></div><button class="btn small" data-open-diag="'+esc(d.id)+'">'+(model?(d.phase==="done"?"Revoir l’étude":"Continuer l’étude"):(d.phase==="pre"?'Continuer l’analyse':d.phase==="visit"?'Ouvrir le mode visite':d.phase==="after"?'Faire la relecture':'Revoir le diagnostic'))+'</button></div>'}).join("")+'</div>');
  root.querySelectorAll("[data-open-diag]").forEach(b=>b.onclick=()=>{const d=diags.find(x=>String(x.id)===b.dataset.openDiag);if(!d)return;if(d.pre&&d.pre.mode==="model")openDiagPre(d,d.phase==="done");else d.phase==="pre"?openDiagPre(d):d.phase==="visit"?openDiagVisit(d):openDiagAfter(d)})
 }
-function newDiagnostic(){DIAG_SEARCH=null;show("vDiagNew");$("who").textContent="👤 "+studentName()+" · Nouvelle analyse";$("diagNom").value="";$("diagCommune").value="";$("diagSearchMsg").innerHTML="";$("diagSearchResult").innerHTML=""}
-async function diagSearch(){
- const nom=$("diagNom").value.trim(),commune=$("diagCommune").value.trim();if(!nom||!commune){msg("diagSearchMsg","Indique le nom de la ferme et une commune / un lieu.","err");return}
- msg("diagSearchMsg","Recherche en cours…");let g=await geocode(nom+" "+commune),approx=false;if(!g){g=await geocode(commune);approx=true}
- if(!g){msg("diagSearchMsg","Je n’ai pas trouvé ce lieu. Essaie avec une commune voisine ou le code postal.","err");return}
- DIAG_SEARCH={nom,commune,lat:g.lat,lng:g.lng,zoom:17,label:g.label,approx};msg("diagSearchMsg",approx?"Commune trouvée. Tu pourras recadrer précisément la ferme sur la carte.":"Lieu trouvé. Vérifie ensuite le cadrage sur la carte.","ok");
- $("diagSearchResult").innerHTML='<div class="diagSearchHit"><b>📍 '+esc(g.label)+'</b><p>'+(approx?'Point de départ approximatif : la recherche exacte de la ferme n’a pas abouti.':'Point de départ trouvé.')+'</p><button class="btn main" id="diagUseSearch">🗺️ Ouvrir cette zone et commencer</button></div>';
- $("diagUseSearch").onclick=diagUseSearch
+async function newDiagnostic(){
+ DIAG_SEARCH=null;
+ $("who").textContent="👤 "+studentName()+" · Analyse libre";
+ const f={id:"free-search",nom:"Recherche libre",mode:"carte",lat:46.65,lng:2.35,zoom:6,fond:"ign"};
+ await cmInit(f);
+ CM.freeSearch=true;
+ CM.diagnostic=false;
+ CM.diag=null;
+ CM.diagModel=false;
+ CM.diagTool=null;
+ CM.readonly=false;
+ CM.items=[];
+ CM.overlays=[];
+ CM.logic=null;
+ cmSetMode("move");
+ $("toolsC").innerHTML="";
+ $("tipC").style.display="none";
+ const p=$("panelC");
+ p.innerHTML='<div class="muted">ANALYSE LIBRE</div><h3>🔎 Cherche directement sur la carte</h3>'+
+  '<div class="msg ok"><b>1.</b> Recherche une ferme ou un lieu.<br><b>2.</b> Vérifie le cadrage satellite.<br><b>3.</b> Déplace ou zoome la carte si nécessaire.<br><b>4.</b> Clique sur <b>Analyser cette zone</b>.</div>'+
+  '<p class="muted">La recherche sert seulement à t’amener au bon endroit. C’est toi qui vérifies ensuite la ferme sur la vue aérienne.</p>'+
+  '<button class="btn" id="freeSearchBack">⬅ Mon laboratoire</button>'+creditC();
+ $("freeSearchBack").onclick=()=>{hideFreeMapSearch();studentDash()};
+ showFreeMapSearch();
 }
-async function diagUseSearch(){if(!DIAG_SEARCH)return;const d=await diagCreateRow({...DIAG_SEARCH,phase:"pre",pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:""},visit:{answers:{},notes:[],photos:[]},post:{themes:{},learning:"",newQuestions:""}});openDiagPre(d)}
+
+function showFreeMapSearch(){
+ const box=$("mapSearchBox");if(!box)return;
+ box.hidden=false;
+ $("mapSearchInput").value="";
+ $("mapSearchMsg").innerHTML='<span class="muted">Ex. Ferme des Buis, La Roche-sur-Grane · ou simplement une commune / un lieu</span>';
+ $("mapSearchActions").hidden=true;
+ $("mapSearchGo").disabled=false;
+ setTimeout(()=>$("mapSearchInput").focus(),100)
+}
+
+function hideFreeMapSearch(){
+ const box=$("mapSearchBox");if(box)box.hidden=true;
+ if($("tipC"))$("tipC").style.display="";
+ CM.freeSearch=false
+}
+
+async function freeMapSearch(){
+ const q=$("mapSearchInput").value.trim();
+ if(!q){$("mapSearchMsg").innerHTML='<span class="errText">Indique un nom de ferme, un lieu ou une commune.</span>';return}
+ $("mapSearchGo").disabled=true;
+ $("mapSearchMsg").innerHTML='Recherche en cours…';
+ $("mapSearchActions").hidden=true;
+
+ const g=await geocode(q);
+ $("mapSearchGo").disabled=false;
+ if(!g){
+  DIAG_SEARCH=null;
+  $("mapSearchMsg").innerHTML='<span class="errText">Lieu non trouvé. Essaie avec le nom de la commune, le code postal ou une adresse proche.</span>';
+  return
+ }
+
+ DIAG_SEARCH={nom:q,commune:g.label||q,lat:g.lat,lng:g.lng,zoom:18,label:g.label||q,approx:false};
+ CM.map.setView([g.lat,g.lng],18,{animate:true});
+ $("mapSearchMsg").innerHTML='<b>📍 '+esc(g.label||q)+'</b><br><span class="muted">Vérifie la ferme sur la photo aérienne. Tu peux déplacer et zoomer la carte avant de continuer.</span>';
+ $("mapSearchActions").hidden=false
+}
+
+async function freeMapUseArea(){
+ if(!DIAG_SEARCH)return;
+ const c=CM.map.getCenter();
+ const d=await diagCreateRow({
+  nom:DIAG_SEARCH.nom,
+  commune:DIAG_SEARCH.label||DIAG_SEARCH.commune,
+  lat:+c.lat.toFixed(6),
+  lng:+c.lng.toFixed(6),
+  zoom:CM.map.getZoom(),
+  phase:"pre",
+  pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:""},
+  visit:{answers:{},notes:[],photos:[]},
+  post:{themes:{},learning:"",newQuestions:""}
+ });
+ hideFreeMapSearch();
+ openDiagPre(d)
+}
+
+// Anciennes fonctions conservées pour compatibilité avec d'anciens liens / écrans.
+async function diagSearch(){
+ const nom=$("diagNom")?$("diagNom").value.trim():"",commune=$("diagCommune")?$("diagCommune").value.trim():"";
+ if(!nom&&!commune){newDiagnostic();return}
+ const q=[nom,commune].filter(Boolean).join(" ");
+ const g=await geocode(q);
+ if(!g)return;
+ DIAG_SEARCH={nom:nom||q,commune:commune||g.label,lat:g.lat,lng:g.lng,zoom:18,label:g.label,approx:false}
+}
+async function diagUseSearch(){
+ if(!DIAG_SEARCH)return;
+ const d=await diagCreateRow({...DIAG_SEARCH,phase:"pre",pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:""},visit:{answers:{},notes:[],photos:[]},post:{themes:{},learning:"",newQuestions:""}});
+ openDiagPre(d)
+}
 
 function geoPolygonArea(pts){
  if(!Array.isArray(pts)||pts.length<3)return 0;
@@ -1676,11 +1800,14 @@ function renderDiagAfter(){
 }
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,diagnostic:false,diag:null,diagModel:false,diagTheme:"org",diagTool:null,diagShowAll:true,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,ex4RampPts:[],ex4Note:"",ex4RevealStd:false,ex4RevealRamp:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,diagnostic:false,diag:null,diagModel:false,freeSearch:false,diagTheme:"org",diagTool:null,diagShowAll:true,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,ex4RampPts:[],ex4Note:"",ex4RevealStd:false,ex4RevealRamp:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
 async function cmInit(f){show("vCarte");await loadLeaflet();
+ if($("mapSearchBox"))$("mapSearchBox").hidden=true;
+ if($("tipC"))$("tipC").style.display="";
+ CM.freeSearch=false;
  if(!CM.map){CM.map=L.map("cm",{zoomControl:false,zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:19,doubleClickZoom:false});
   L.control.zoom({position:"topright"}).addTo(CM.map);
   L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:19}).addTo(CM.map);
@@ -2193,6 +2320,10 @@ $("btnHome").onclick=()=>{clearInterval(pollT);if(location.hash.startsWith("#for
 $("btnLogin").onclick=login;$("btnSignup").onclick=signup;
 $("btnStudentLink").onclick=()=>sendStudentMagicLink(null,false);
 $("diagSearchBtn").onclick=diagSearch;$("diagNewBack").onclick=()=>studentDash();$("diagCommune").addEventListener("keydown",e=>{if(e.key==="Enter")diagSearch()});
+$("mapSearchGo").onclick=freeMapSearch;
+$("mapSearchUse").onclick=freeMapUseArea;
+$("mapSearchAgain").onclick=()=>{DIAG_SEARCH=null;$("mapSearchInput").value="";$("mapSearchActions").hidden=true;$("mapSearchMsg").innerHTML='<span class="muted">Nouvelle recherche…</span>';$("mapSearchInput").focus()};
+$("mapSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter")freeMapSearch()});
 $("btnStudentLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;if($("selExercise"))$("selExercise").onchange=loadRecus;wireBulkValidation();
