@@ -134,6 +134,13 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .phaseRail{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}.phaseRail span{padding:7px 11px;border-radius:999px;background:#eef1ee;color:var(--muted);font-size:13px;font-weight:700}.phaseRail span.on{background:#173d2d;color:#fff}.phaseRail span.done{background:#dcecdf;color:#173d2d}.phaseRail.compact{margin-bottom:10px}.labUnlock,.labLocked{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px;border-radius:14px;margin:8px 0 18px}.labUnlock{background:#eaf4ec;border:2px solid #87b493}.labLocked{background:#f2f3f1;border:1px solid #d9ddd9}.labUnlock h3,.labLocked h3{margin:0 0 5px}.labUnlock p,.labLocked p{margin:0}.labIcon{font-size:32px}.diagGrid{margin-bottom:22px}.diagCard{padding-bottom:14px}.diagSearchHit{margin-top:14px;padding:14px;border:1px solid #cdd8d1;border-radius:12px;background:#f7faf7}.diagTabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}.diag4{display:grid;grid-template-columns:1fr;gap:8px}.diagField{display:block;padding:9px;border:1px solid #e0e5e1;border-radius:10px;background:#fafcfa}.diagField b{display:block;margin-bottom:5px}.diagField textarea{width:100%;box-sizing:border-box}.priorityList{display:grid;gap:7px;margin:10px 0}.priorityList label{display:flex;gap:9px;align-items:flex-start;padding:9px;border:1px solid #dde3df;border-radius:9px;background:#fff}.priorityList input{margin-top:3px}.visitQuestions{display:grid;gap:10px}.visitQ{padding:12px;border:1px solid #dce2de;border-radius:12px;background:#fff}.statusRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.photoInput{display:inline-flex}.photoGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:10px 0}.photoCard{border:1px solid #dce2de;border-radius:10px;overflow:hidden;background:#fff}.photoCard img{width:100%;height:130px;object-fit:cover;display:block}.photoCard>div{padding:8px}.afterTheme{padding:12px 0;border-bottom:1px solid #e2e6e3}.beforeBox{padding:10px;border-radius:10px;background:#f1f4f2;margin-bottom:10px}.beforeBox small{font-weight:800;color:#607168}.beforeBox p{margin:5px 0 0;white-space:pre-wrap}@media(min-width:900px){.diag4{grid-template-columns:1fr 1fr}}@media(max-width:650px){.labUnlock,.labLocked{align-items:flex-start;flex-direction:column}.labUnlock .btn{width:100%}}
 
 .receivedWrap{min-width:0}.receivedWrap>.card{width:100%;height:auto}.receivedWrap>[data-validate-r]{width:100%;margin-top:6px}
+
+.validationBar{margin:10px 0 14px;padding:10px;border:1px solid #d9dfda;border-radius:12px;background:#f7f9f7}
+.receivedSelect{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-top:6px;border:1px solid #d9dfda;border-radius:9px;background:#fff;cursor:pointer;font-weight:700}
+.receivedSelect input{width:20px;height:20px;accent-color:#245b44}
+.receivedSelect.validated{background:#eef8f1;color:#245b44;cursor:default}
+.receivedWrap.selected{outline:3px solid rgba(36,91,68,.25);outline-offset:3px;border-radius:12px}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -269,6 +276,15 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <h2>Schémas reçus</h2>
 <div class="row"><label class="f" style="flex:1">Ferme<select id="selFerme"></select></label><label class="f" style="flex:1">Exercice<select id="selExercise"><option value="ex1">1 — Organisation</option><option value="ex2">2 — Eau</option><option value="ex3">3 — Déplacements</option><option value="ex4">4 — Charges / manutention</option></select></label></div>
 <div class="row"><button class="btn small" id="btnRefresh">🔄 Actualiser</button><span class="muted" id="nbRecus"></span></div>
+<div id="validationBar" class="validationBar" hidden>
+  <div class="row">
+    <button class="btn small" id="selAllRecus">☑ Tout sélectionner</button>
+    <button class="btn small" id="selNoneRecus">☐ Aucun</button>
+    <span class="muted" id="selRecusCount">0 sélectionné</span>
+  </div>
+  <button class="btn main" id="validateSelectedRecus" disabled>✅ Valider la sélection</button>
+  <div id="validationRecusMsg"></div>
+</div>
 <div class="grid" id="mosaique"></div>
 </div>
 </div></section>
@@ -824,14 +840,130 @@ function panelLogic(dirty){const p=$("panel");p.innerHTML='<h3>Ma logique</h3><p
  wireList(p);$("bSaveL").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:ED.items,w:IMG.w,h:IMG.h}}).eq("id",CUR.id);msg("saveMsg",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBack").onclick=()=>dash("fermes")}
 function fillSel(){const s=$("selFerme"),v=s.value;s.innerHTML=FERMES.map(f=>'<option value="'+f.id+'">'+esc(f.nom)+'</option>').join("");if(v)s.value=v}
 let RECUS=[];
-async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").innerHTML="";return}const f=FERMES.find(x=>x.id===fid),ex=$("selExercise")?$("selExercise").value:"ex1";
- const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:(data||[]).filter(r=>((r.contenu&&r.contenu.exercise)||"ex1")===ex);
- $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
- $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Stagiaires anonymisés · Formateur · Consensus</div></button>':'')+
- RECUS.map(r=>{const c=r.contenu||{};return'<div class="receivedWrap"><button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+' · '+(c.validated?'✅ validé':'⏳ à valider')+'</div></button><button class="btn small'+(c.validated?' on':'')+'" data-validate-r="'+r.id+'">'+(c.validated?'✅ Validé':'✅ Valider cet exercice')+'</button></div>'}).join("");
- $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,[b.dataset.r]):ex==="ex3"?openRecusEx3(f,[b.dataset.r]):ex==="ex2"?openRecusEx2(f,[b.dataset.r]):openRecusAny(f,[b.dataset.r])});
- $("mosaique").querySelectorAll("[data-validate-r]").forEach(b=>b.onclick=async()=>{const r=RECUS.find(x=>x.id===b.dataset.validateR);if(!r)return;const c={...(r.contenu||{})},nv=!c.validated;c.validated=nv;c.validated_at=nv?new Date().toISOString():null;const{error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id);if(error){alert("Validation impossible : "+error.message);return}r.contenu=c;loadRecus()});
- if($("allSup"))$("allSup").onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex4"?openRecusEx4(f,RECUS.map(r=>r.id)):ex==="ex3"?openRecusEx3(f,RECUS.map(r=>r.id)):ex==="ex2"?openRecusEx2(f,RECUS.map(r=>r.id)):openRecusAny(f,RECUS.map(r=>r.id))}}
+let RECUS_SELECTED=new Set();
+
+function refreshValidationToolbar(){
+ const bar=$("validationBar"),count=$("selRecusCount"),btn=$("validateSelectedRecus");
+ if(!bar)return;
+ const pending=RECUS.filter(r=>!(r.contenu&&r.contenu.validated));
+ bar.hidden=!RECUS.length;
+ // On garde uniquement des IDs encore visibles et non validés
+ RECUS_SELECTED=new Set([...RECUS_SELECTED].filter(id=>pending.some(r=>r.id===id)));
+ if(count)count.textContent=RECUS_SELECTED.size+" sélectionné"+(RECUS_SELECTED.size>1?"s":"");
+ if(btn){btn.disabled=!RECUS_SELECTED.size;btn.textContent=RECUS_SELECTED.size?"✅ Valider la sélection ("+RECUS_SELECTED.size+")":"✅ Valider la sélection"}
+ document.querySelectorAll(".receivedWrap").forEach(w=>w.classList.toggle("selected",RECUS_SELECTED.has(w.dataset.wrapId)))
+}
+
+async function validateSchemaRows(ids){
+ const rows=RECUS.filter(r=>ids.includes(r.id));
+ if(!rows.length)return {ok:0,errors:[]};
+ let ok=0,errors=[];
+ for(const r of rows){
+  const c={...(r.contenu||{}),validated:true,validated_at:new Date().toISOString()};
+  const {error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id);
+  if(error)errors.push({id:r.id,auteur:r.auteur,error});
+  else {r.contenu=c;ok++}
+ }
+ return {ok,errors}
+}
+
+function validationErrorText(err){
+ const raw=String((err&&err.message)||err||"Erreur inconnue");
+ const rls=/row.level|policy|permission|not authorized|42501/i.test(raw);
+ return rls
+  ? "Supabase refuse la modification de la table schemas. Cela ressemble à une règle RLS manquante pour le compte formateur. Message : "+raw
+  : "Validation impossible : "+raw
+}
+
+async function loadRecus(){
+ const fid=$("selFerme").value;
+ if(!fid){$("mosaique").innerHTML="";if($("validationBar"))$("validationBar").hidden=true;return}
+ const f=FERMES.find(x=>x.id===fid),ex=$("selExercise")?$("selExercise").value:"ex1";
+ const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");
+ RECUS=error?[]:(data||[]).filter(r=>((r.contenu&&r.contenu.exercise)||"ex1")===ex);
+ RECUS_SELECTED=new Set();
+
+ $("nbRecus").textContent=RECUS.length+" présentation"+(RECUS.length>1?"s":"")+" reçue"+(RECUS.length>1?"s":"")+(RECUS.length?" · clique sur une présentation pour l'ouvrir":"");
+
+ $("mosaique").innerHTML=(RECUS.length?
+  '<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Stagiaires anonymisés · Formateur · Consensus</div></button>':'')+
+ RECUS.map(r=>{
+  const c=r.contenu||{},validated=!!c.validated;
+  return '<div class="receivedWrap" data-wrap-id="'+r.id+'">'+
+   '<button class="card" data-r="'+r.id+'">'+
+    (f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+
+    '<div class="t">'+esc(r.auteur)+'</div>'+
+    '<div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+' · '+(validated?'✅ validé':'⏳ à valider')+'</div>'+
+   '</button>'+
+   (validated
+    ?'<div class="receivedSelect validated">✅ Exercice validé</div>'
+    :'<label class="receivedSelect"><input type="checkbox" data-select-r="'+r.id+'"> Sélectionner pour validation</label>')+
+   '<button class="btn small'+(validated?' on':'')+'" data-validate-r="'+r.id+'">'+(validated?'↩ Annuler la validation':'✅ Valider seulement celui-ci')+'</button>'+
+  '</div>'
+ }).join("");
+
+ $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{
+  const ex=$("selExercise")?$("selExercise").value:"ex1";
+  ex==="ex4"?openRecusEx4(f,[b.dataset.r]):ex==="ex3"?openRecusEx3(f,[b.dataset.r]):ex==="ex2"?openRecusEx2(f,[b.dataset.r]):openRecusAny(f,[b.dataset.r])
+ });
+
+ $("mosaique").querySelectorAll("[data-select-r]").forEach(c=>c.onchange=()=>{
+  if(c.checked)RECUS_SELECTED.add(c.dataset.selectR);else RECUS_SELECTED.delete(c.dataset.selectR);
+  refreshValidationToolbar()
+ });
+
+ $("mosaique").querySelectorAll("[data-validate-r]").forEach(b=>b.onclick=async()=>{
+  const r=RECUS.find(x=>x.id===b.dataset.validateR);if(!r)return;
+  const c={...(r.contenu||{})},nv=!c.validated;
+  c.validated=nv;c.validated_at=nv?new Date().toISOString():null;
+  b.disabled=true;
+  const{error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id);
+  b.disabled=false;
+  if(error){
+   msg("validationRecusMsg",validationErrorText(error),"err");
+   return
+  }
+  r.contenu=c;
+  msg("validationRecusMsg",nv?"✅ Présentation validée.":"↩ Validation annulée.","ok");
+  await loadRecus()
+ });
+
+ if($("allSup"))$("allSup").onclick=()=>{
+  const ex=$("selExercise")?$("selExercise").value:"ex1";
+  ex==="ex4"?openRecusEx4(f,RECUS.map(r=>r.id)):ex==="ex3"?openRecusEx3(f,RECUS.map(r=>r.id)):ex==="ex2"?openRecusEx2(f,RECUS.map(r=>r.id)):openRecusAny(f,RECUS.map(r=>r.id))
+ };
+
+ refreshValidationToolbar()
+}
+
+function wireBulkValidation(){
+ if($("selAllRecus"))$("selAllRecus").onclick=()=>{
+  RECUS_SELECTED=new Set(RECUS.filter(r=>!(r.contenu&&r.contenu.validated)).map(r=>r.id));
+  $("mosaique").querySelectorAll("[data-select-r]").forEach(c=>c.checked=true);
+  refreshValidationToolbar()
+ };
+ if($("selNoneRecus"))$("selNoneRecus").onclick=()=>{
+  RECUS_SELECTED.clear();
+  $("mosaique").querySelectorAll("[data-select-r]").forEach(c=>c.checked=false);
+  refreshValidationToolbar()
+ };
+ if($("validateSelectedRecus"))$("validateSelectedRecus").onclick=async()=>{
+  const ids=[...RECUS_SELECTED];if(!ids.length)return;
+  const btn=$("validateSelectedRecus");btn.disabled=true;btn.textContent="Validation en cours…";
+  msg("validationRecusMsg","Validation de "+ids.length+" présentation"+(ids.length>1?"s":"")+"…");
+  const res=await validateSchemaRows(ids);
+  if(res.errors.length){
+   const first=res.errors[0].error;
+   msg("validationRecusMsg",
+     (res.ok?"✅ "+res.ok+" validée(s). ":"")+
+     "❌ "+res.errors.length+" échec(s). "+validationErrorText(first),
+     "err");
+   btn.disabled=false;refreshValidationToolbar();return
+  }
+  msg("validationRecusMsg","✅ "+res.ok+" présentation"+(res.ok>1?"s":"")+" validée"+(res.ok>1?"s":"")+" en une fois.","ok");
+  await loadRecus()
+ }
+}
 let RECUS_FREQ_FILTER="all";
 let RECUS_VISIBLE_IDS=null;
 function anonLabel(i){return "Profil "+String.fromCharCode(65+i)}
@@ -1733,7 +1865,7 @@ $("btnStudentLink").onclick=()=>sendStudentMagicLink(null,false);
 $("diagSearchBtn").onclick=diagSearch;$("diagNewBack").onclick=()=>studentDash();$("diagCommune").addEventListener("keydown",e=>{if(e.key==="Enter")diagSearch()});
 $("btnStudentLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
-$("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;if($("selExercise"))$("selExercise").onchange=loadRecus;
+$("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;if($("selExercise"))$("selExercise").onchange=loadRecus;wireBulkValidation();
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
 async function finishStudentAuthIfNeeded(){
