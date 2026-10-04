@@ -362,12 +362,15 @@ let RECUS=[];
 async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").innerHTML="";return}const f=FERMES.find(x=>x.id===fid);
  const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:data;
  $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
- $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Tous superposés</div><div class="s">Chaque prénom a sa couleur</div></button>':'')+
+ $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Profils anonymisés</div></button>':'')+
  RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
  $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>openRecusAny(f,[b.dataset.r]));if($("allSup"))$("allSup").onclick=()=>openRecusAny(f,RECUS.map(r=>r.id))}
 let RECUS_FREQ_FILTER="all";
 let RECUS_VISIBLE_IDS=null;
 function anonLabel(i){return "Profil "+String.fromCharCode(65+i)}
+function collectiveCopy(list){
+ return list.map((r,i)=>({...r,auteur:anonLabel(i),_realAuteur:r.auteur,_collectiveIndex:i}))
+}
 function ensureVisibleIds(list){
  if(!RECUS_VISIBLE_IDS)RECUS_VISIBLE_IDS=new Set(list.map(r=>r.id));
 }
@@ -401,26 +404,51 @@ function filteredItems(items){
 function wireFreqFilter(root,redraw){
  root.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{RECUS_FREQ_FILTER=b.dataset.ff;redraw()})
 }
-async function openRecus(f,ids){CUR=f;show("vTravail");const sel=RECUS.filter(r=>ids.includes(r.id)),multi=sel.length>1;let idx=0,withLogic=false,logic=[];
+async function openRecus(f,ids){
+ CUR=f;show("vTravail");
+ const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1;
+ const sel=multi?collectiveCopy(selected):selected.slice();
+ let idx=0,withLogic=false,logic=[];
  const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();logic=(data&&data.logique&&data.logique.items)||[];
  ED.readonly=true;ED.tool=null;ED.draft=[];await loadImage(f);buildTools();tip();
  if(multi)RECUS_VISIBLE_IDS=new Set(sel.map(r=>r.id));
  const draw=()=>{
   const shown=multi?visibleRecus(sel):sel;
-  ED.overlay=()=>multi?shown.map(r=>{const i=sel.findIndex(x=>x.id===r.id);return renderItems(filteredItems((r.contenu||{}).items),{color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null,fillOp:.12,labels:true})}).join(""):renderItems(filteredItems((sel[idx].contenu||{}).items));
-  $("lLogic").innerHTML=withLogic?renderLogic(logic):"";drawAll();$("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"vue collective anonymisée":sel[idx].auteur);
+  ED.overlay=()=>multi?shown.map(r=>{
+    const i=sel.findIndex(x=>x.id===r.id);
+    return renderItems(filteredItems((r.contenu||{}).items),{
+      color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null,
+      fillOp:.12,labels:true
+    })
+  }).join(""):renderItems(filteredItems((sel[idx].contenu||{}).items));
+  $("lLogic").innerHTML=withLogic?renderLogic(logic):"";
+  drawAll();
+  $("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"DÉBRIEF COLLECTIF — ANONYME":sel[idx].auteur);
   const p=$("panel");
-  p.innerHTML=(multi?'<h3>Tous superposés</h3><p class="muted">Les profils sont anonymisés pour le débrief collectif.</p>'+peopleFilterBar(sel)
-   :'<h3>'+esc(sel[idx].auteur)+'</h3><div class="row"><button class="btn small" id="bPrev">⬅</button><span class="muted">'+(idx+1)+' / '+sel.length+'</span><button class="btn small" id="bNext">➡</button></div>'+itemList(filteredItems((sel[idx].contenu||{}).items),false))+
-   freqFilterBar()+'<button class="btn'+(withLogic?" on":"")+'" id="bWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button><button class="btn" id="bBk">⬅ Retour aux schémas</button>'+(multi?'':'<button class="btn small" id="bDelR">🗑️ Supprimer ce schéma</button>');
-  if(multi)wirePeopleFilter(p,sel,draw);wireFreqFilter(p,draw);
-  $("bWL").onclick=()=>{withLogic=!withLogic;draw()};$("bBk").onclick=()=>{ED.overlay=null;dash("recus")};
-  if(!multi){$("bPrev").disabled=idx===0;$("bNext").disabled=idx===sel.length-1;$("bPrev").onclick=()=>{idx--;draw()};$("bNext").onclick=()=>{idx++;draw()};
-   $("bDelR").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",sel[idx].id);ED.overlay=null;dash("recus")}}
+  p.innerHTML=(multi?
+    '<h3>Débrief collectif</h3><div class="msg ok">🔒 Mode anonyme : aucun prénom n’est affiché.</div>'+peopleFilterBar(sel)
+    :
+    '<h3>'+esc(sel[idx].auteur)+'</h3><div class="row"><button class="btn small" id="bPrev">⬅</button><span class="muted">'+(idx+1)+' / '+sel.length+'</span><button class="btn small" id="bNext">➡</button></div>'+itemList(filteredItems((sel[idx].contenu||{}).items),false)
+  )+
+  freqFilterBar()+
+  '<button class="btn'+(withLogic?" on":"")+'" id="bWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button>'+
+  '<button class="btn" id="bBk">⬅ Retour aux schémas</button>'+
+  (multi?'':'<button class="btn small" id="bDelR">🗑️ Supprimer ce schéma</button>');
+  if(multi)wirePeopleFilter(p,sel,draw);
+  wireFreqFilter(p,draw);
+  $("bWL").onclick=()=>{withLogic=!withLogic;draw()};
+  $("bBk").onclick=()=>{ED.overlay=null;RECUS_VISIBLE_IDS=null;dash("recus")};
+  if(!multi){
+   $("bPrev").disabled=idx===0;$("bNext").disabled=idx===sel.length-1;
+   $("bPrev").onclick=()=>{idx--;draw()};$("bNext").onclick=()=>{idx++;draw()};
+   $("bDelR").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",sel[idx].id);ED.overlay=null;dash("recus")}
+  }
  };
- if(!multi){idx=0;const all=RECUS;sel.length=0;all.forEach(r=>sel.push(r));idx=all.findIndex(r=>r.id===ids[0])}
- draw()}
-
+ if(!multi){
+  idx=0;const all=RECUS;sel.length=0;all.forEach(r=>sel.push(r));idx=all.findIndex(r=>r.id===ids[0])
+ }
+ draw()
+}
 
 
 /* ---------- IGN : chercher et cadrer la ferme (photos aériennes, gratuit) ---------- */
@@ -600,25 +628,46 @@ async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma logi
  CM.exercise1=false;CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("draw");panelLogicC(false)}
 function panelLogicC(dirty){const p=$("panelC");p.innerHTML='<h3>Ma logique</h3><p class="muted">Dessine ta lecture de la ferme, avec les bons termes.</p>'+itemList(CM.items,true)+'<button class="btn main" id="bSaveLC">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsgC"></div><button class="btn" id="bBackC">⬅ Retour</button><h3>Légende</h3>'+LEGEND+creditC();
  cmWireList(p);$("bSaveLC").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:CM.items}}).eq("id",CUR.id);msg("saveMsgC",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBackC").onclick=()=>dash("fermes")}
-async function openRecusCarte(f,ids){CUR=f;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single(),logic=(data&&data.logique&&data.logique.items)||[];await cmInit(f);
- CM.exercise1=false;const multi=ids.length>1,all=RECUS.slice();let idx=Math.max(0,all.findIndex(r=>r.id===ids[0])),withLogic=false;CM.readonly=true;CM.onChange=null;cmSetMode("move");
+async function openRecusCarte(f,ids){
+ CUR=f;
+ const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single(),logic=(data&&data.logique&&data.logique.items)||[];
+ await cmInit(f);CM.exercise1=false;
+ const multi=ids.length>1;
+ const raw=RECUS.slice(),all=multi?collectiveCopy(raw):raw;
+ let idx=Math.max(0,raw.findIndex(r=>r.id===ids[0])),withLogic=false;
+ CM.readonly=true;CM.onChange=null;cmSetMode("move");
  if(multi)RECUS_VISIBLE_IDS=new Set(all.map(r=>r.id));
  const draw=()=>{
   const cur=all[idx],shown=multi?visibleRecus(all):all;
   CM.items=multi?[]:filteredItems((cur.contenu||{}).items||[]);
-  CM.overlays=multi?shown.map(r=>{const i=all.findIndex(x=>x.id===r.id);return{items:filteredItems((r.contenu||{}).items),color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null}}):[];
+  CM.overlays=multi?shown.map(r=>{
+    const i=all.findIndex(x=>x.id===r.id);
+    return {items:filteredItems((r.contenu||{}).items),color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null}
+  }):[];
   CM.logic=withLogic?logic:null;cmTools();cmTip();cmRender();
-  $("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"vue collective anonymisée":cur.auteur);
+  $("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"DÉBRIEF COLLECTIF — ANONYME":cur.auteur);
   const p=$("panelC");
-  p.innerHTML=(multi?'<h3>Tous superposés</h3><p class="muted">Les profils sont anonymisés pour le débrief collectif.</p>'+peopleFilterBar(all)
-   :'<h3>'+esc(cur.auteur)+'</h3><div class="row"><button class="btn small" id="cPrev">⬅</button><span class="muted">'+(idx+1)+' / '+all.length+'</span><button class="btn small" id="cNext">➡</button></div>'+itemList(filteredItems((cur.contenu||{}).items||[]),false))+
-   freqFilterBar()+'<button class="btn'+(withLogic?" on":"")+'" id="cWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button><button class="btn" id="cBk">⬅ Retour aux schémas</button>'+(multi?'':'<button class="btn small" id="cDel">🗑️ Supprimer ce schéma</button>');
-  if(multi)wirePeopleFilter(p,all,draw);wireFreqFilter(p,draw);
-  $("cWL").onclick=()=>{withLogic=!withLogic;draw()};$("cBk").onclick=()=>{CM.overlays=[];CM.logic=null;dash("recus")};
-  if(!multi){$("cPrev").disabled=idx===0;$("cNext").disabled=idx===all.length-1;$("cPrev").onclick=()=>{idx--;draw()};$("cNext").onclick=()=>{idx++;draw()};$("cDel").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",cur.id);dash("recus")}}
+  p.innerHTML=(multi?
+    '<h3>Débrief collectif</h3><div class="msg ok">🔒 Mode anonyme : aucun prénom n’est affiché.</div>'+peopleFilterBar(all)
+    :
+    '<h3>'+esc(cur.auteur)+'</h3><div class="row"><button class="btn small" id="cPrev">⬅</button><span class="muted">'+(idx+1)+' / '+all.length+'</span><button class="btn small" id="cNext">➡</button></div>'+itemList(filteredItems((cur.contenu||{}).items||[]),false)
+  )+
+  freqFilterBar()+
+  '<button class="btn'+(withLogic?" on":"")+'" id="cWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button>'+
+  '<button class="btn" id="cBk">⬅ Retour aux schémas</button>'+
+  (multi?'':'<button class="btn small" id="cDel">🗑️ Supprimer ce schéma</button>');
+  if(multi)wirePeopleFilter(p,all,draw);
+  wireFreqFilter(p,draw);
+  $("cWL").onclick=()=>{withLogic=!withLogic;draw()};
+  $("cBk").onclick=()=>{CM.overlays=[];CM.logic=null;RECUS_VISIBLE_IDS=null;dash("recus")};
+  if(!multi){
+   $("cPrev").disabled=idx===0;$("cNext").disabled=idx===all.length-1;
+   $("cPrev").onclick=()=>{idx--;draw()};$("cNext").onclick=()=>{idx++;draw()};
+   $("cDel").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",cur.id);dash("recus")}
+  }
  };
- draw()}
-
+ draw()
+}
 function itemsThumb(items){const pts=[];(items||[]).forEach(it=>{if(it.pts)it.pts.forEach(p=>pts.push(p));if(it.t==="note")pts.push([it.lng,it.lat])});
  if(!pts.length)return'<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#e9ece6"/></svg>';
  const lats=pts.map(p=>p[1]),lngs=pts.map(p=>p[0]),la0=Math.min(...lats),la1=Math.max(...lats),ln0=Math.min(...lngs),ln1=Math.max(...lngs),k=Math.cos(((la0+la1)/2)*Math.PI/180),w=Math.max((ln1-ln0)*k,1e-6),hh=Math.max(la1-la0,1e-6),s=Math.min(260/w,160/hh),ox=(300-w*s)/2,oy=(200-hh*s)/2;
