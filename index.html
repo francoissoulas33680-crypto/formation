@@ -123,6 +123,9 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
 .compareCards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:820px){.compareCards{grid-template-columns:1fr}}
+
+.portageHelp{border:2px dashed #c43d20;border-radius:10px;padding:9px 10px;background:#fff8f5}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -672,10 +675,13 @@ function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class=
  $("dashFermes").querySelectorAll("[data-delf]").forEach(b=>b.onclick=async()=>{if(!confirm("Supprimer cette ferme et tous ses schémas reçus ?"))return;await sb.from("fermes").delete().eq("id",b.dataset.delf);dash("fermes")})}
 async function setupEx3Guide(f){
  if(!f||f.mode!=="carte"){alert("Les repères de l’exercice 3 nécessitent une carte vivante IGN.");return}
+ history.replaceState({}, "", location.pathname+"#formateur");
  CUR=f;$("who").textContent="🧑‍🌾 Exercice 3 · repères · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();const base=(data&&data.logique)||{};
  await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=true;CM.readonly=false;CM.items=[];CM.guideItems=normalizeEx3Guides(base.ex3Guide);CM.logic=null;CM.overlays=[];CM.onChange=null;CM.guideTool=null;CM.guideCase="c1";CM.guideShow=true;cmSetMode("move");panelEx3Guide(false)
 }
 function panelEx3Guide(dirty){
+ show("vCarte");
+ $("who").textContent="🧑‍🌾 Exercice 3 · repères · "+(CUR?CUR.nom:"");
  const p=$("panelC"),caseId=CM.guideCase||"c1",caseInfo=EX3_GUIDE_CASES[caseId],defs=ex3Defs(caseId),placed=ex3GuideItems(caseId,CM.guideItems),done=ex3GuideComplete(CM.guideItems,caseId);
  p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 3</div><h3>🎯 Préparer les repères</h3>'+ 
   '<div class="guideCaseTabs">'+Object.entries(EX3_GUIDE_CASES).map(([cid,ci])=>'<button class="btn'+(caseId===cid?' on':'')+'" data-gcase="'+cid+'">'+ci.short+'</button>').join('')+'</div>'+ 
@@ -827,61 +833,193 @@ async function openRecusEx3(f,ids){
 }
 
 
+
 /* ---------- MODULE 1 · EXERCICE 4 : CHARGES / MANUTENTION ---------- */
 const EX4_STATES=[
- {title:"État 1 — Récolte à la main",reveal:"Au départ, pas de brouette de récolte : les caisses pleines étaient déplacées à la main, amenées à la chambre froide, puis reprises pour préparer les commandes.",question:"À partir de cette situation, estime le nombre de manipulations et la distance parcourue avec une charge. Puis cherche ce que tu améliorerais en premier."},
- {title:"État 2 — Brouette de récolte",reveal:"Amélioration réellement mise en place : cultures davantage espacées pour passer avec une brouette / un chariot. Mais les cagettes de récupération avaient des tares différentes : il fallait sortir les caisses, les peser, les remettre sur le chariot, puis les ressortir devant la marche de la chambre froide.",question:"Qu’a-t-on supprimé ? Quelles manutentions restent encore ?"},
- {title:"État 3 — Caisses standardisées",reveal:"Amélioration suivante : mêmes caisses, même tare et poids standard lorsque la caisse est pleine. La pesée systématique disparaît.",question:"Estime maintenant ce que cette standardisation supprime en manutention."},
- {title:"État 4 — Bâtiment central + rampe",reveal:"Dernière évolution : station de lavage, chambre froide et préparation de commandes regroupées, avec une rampe permettant au chariot d’entrer directement dans la chambre froide.",question:"Il reste des soulèvements, mais beaucoup moins de portage. Estime la situation actuelle."},
- {title:"Synthèse",reveal:"Compare les quatre états successifs.",question:"L’objectif n’est pas de trouver une solution parfaite d’un coup : on observe le travail, on retire une contrainte, puis on regarde ce qui reste."}
+ {title:"État 1 — Récolte à la main",source:"trajet_ancien",reveal:"Au départ, pas de brouette de récolte : les caisses pleines étaient déplacées à la main, amenées à la chambre froide, puis reprises pour préparer les commandes.",question:"Sur le trajet de l’ancienne organisation, sélectionne uniquement les portions où tu portes réellement une caisse."},
+ {title:"État 2 — Brouette de récolte",source:"trajet_ancien",reveal:"Amélioration réellement mise en place : cultures davantage espacées pour passer avec une brouette / un chariot. Mais les cagettes de récupération avaient des tares différentes : il fallait sortir les caisses, les peser, les remettre sur le chariot, puis les ressortir devant la marche de la chambre froide.",question:"Même trajet, mais le chariot change le travail. Sélectionne seulement les portions où il reste du portage."},
+ {title:"État 3 — Caisses standardisées",source:"trajet_ancien",reveal:"Amélioration suivante : mêmes caisses, même tare et poids standard lorsque la caisse est pleine. La pesée systématique disparaît.",question:"Sélectionne à nouveau uniquement les portions où une caisse est encore portée."},
+ {title:"État 4 — Bâtiment central + rampe",source:"trajet_actuel",reveal:"Dernière évolution : station de lavage, chambre froide et préparation de commandes regroupées, avec une rampe permettant au chariot d’entrer directement dans la chambre froide.",question:"Le trajet actuel est affiché. Sélectionne les dernières portions où il reste réellement du portage."},
+ {title:"Synthèse",source:null,reveal:"Compare les quatre états successifs.",question:"L’objectif n’est pas de trouver une solution parfaite d’un coup : on observe le travail, on retire une contrainte, puis on regarde ce qui reste."}
 ];
-function ex4DraftKey(fid){return "schema:"+fid+":ex4:v1"}
-function ex4BlankState(){return {manips:"",carryMeters:"",proposal:""}}
+
+function ex4DraftKey(fid){return "schema:"+fid+":ex4:v2"}
+function ex4BlankState(){return {manips:"",carrySegments:[],proposal:""}}
 function ex4Load(fid){
  const d=LS.get(ex4DraftKey(fid),null);
- if(d&&typeof d==="object")return {base:{crates:d.base?.crates||"",weight:d.base?.weight||"",weeks:d.base?.weeks||"",perWeek:d.base?.perWeek||""},states:Array.from({length:4},(_,i)=>({...ex4BlankState(),...((d.states||[])[i]||{})}))};
+ if(d&&typeof d==="object")return {
+  base:{crates:d.base?.crates||"",weight:d.base?.weight||"",weeks:d.base?.weeks||"",perWeek:d.base?.perWeek||""},
+  states:Array.from({length:4},(_,i)=>{
+   const old=((d.states||[])[i]||{});
+   return {...ex4BlankState(),...old,carrySegments:Array.isArray(old.carrySegments)?old.carrySegments:[]}
+  })
+ };
  return {base:{crates:"",weight:"",weeks:"",perWeek:""},states:Array.from({length:4},()=>ex4BlankState())}
 }
 function ex4Save(){if(CUR)LS.set(ex4DraftKey(CUR.id),{base:CM.ex4Base,states:CM.ex4States})}
-function ex4Metrics(i){
- const b=CM.ex4Base||{},s=(CM.ex4States||[])[i]||{},cr=+b.crates||0,w=+b.weight||0,weeks=+b.weeks||0,pw=+b.perWeek||0,m=+s.manips||0,dist=+s.carryMeters||0,harv=weeks*pw;
- return {crates:cr,weight:w,harvests:harv,manipsPerCrate:m,manipCount:cr*m,kgPerHarvest:cr*w*m,carryPerHarvest:dist,annualKg:cr*w*m*harv,annualCarry:dist*harv}
+
+async function ex4LoadEx3Items(f){
+ const local=ex3Load(f.id).items||[];
+ if(local.some(x=>x.k==="trajet_actuel"||x.k==="trajet_ancien"))return local;
+ if(STUDENT_USER){
+  const {data}=await sb.from("schemas").select("contenu,created_at")
+   .eq("ferme_id",f.id).eq("user_id",STUDENT_USER.id).order("created_at",{ascending:false}).limit(30);
+  const row=(data||[]).find(r=>r.contenu&&r.contenu.exercise==="ex3"&&Array.isArray(r.contenu.items));
+  if(row)return row.contenu.items
+ }
+ return local
 }
-function ex4Stepbar(){return '<div class="stepbar">'+EX4_STATES.map((_,i)=>'<span class="stepdot '+(i<CM.ex4Step?'done':i===CM.ex4Step?'now':'')+'"></span>').join('')+'</div>'}
+function ex4SourceTrace(i){
+ const st=EX4_STATES[i];if(!st||!st.source)return null;
+ return (CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k===st.source)||null
+}
+function ex4TraceLabel(i){
+ const st=EX4_STATES[i];return st&&st.source==="trajet_actuel"?"trajet actuel (cas 1)":"trajet ancien (cas 2)"
+}
+function ex4Segments(i){
+ const tr=ex4SourceTrace(i),out=[];if(!tr||!CM.map||!Array.isArray(tr.pts)||tr.pts.length<2)return out;
+ for(let n=1;n<tr.pts.length;n++){
+  const a=tr.pts[n-1],b=tr.pts[n];
+  const d=CM.map.distance([a[1],a[0]],[b[1],b[0]]);
+  const parts=Math.max(1,Math.ceil(d/12));
+  for(let j=0;j<parts;j++){
+   const t1=j/parts,t2=(j+1)/parts;
+   const p1=[a[1]+(b[1]-a[1])*t1,a[0]+(b[0]-a[0])*t1];
+   const p2=[a[1]+(b[1]-a[1])*t2,a[0]+(b[0]-a[0])*t2];
+   out.push({key:n+"-"+j+"-"+parts,a:p1,b:p2,d:CM.map.distance(p1,p2)})
+  }
+ }
+ return out
+}
+function ex4SelectedDistance(i){
+ const selected=new Set(((CM.ex4States||[])[i]?.carrySegments)||[]);
+ return ex4Segments(i).reduce((s,g)=>s+(selected.has(g.key)?g.d:0),0)
+}
+function ex4ToggleSegment(i,key){
+ const s=CM.ex4States[i]||ex4BlankState(),set=new Set(s.carrySegments||[]);
+ if(set.has(key))set.delete(key);else set.add(key);
+ s.carrySegments=[...set];CM.ex4States[i]=s;ex4Save();cmRender();panelEleveEx4()
+}
+function ex4ClearSegments(i){
+ if(!CM.ex4States[i])return;CM.ex4States[i].carrySegments=[];ex4Save();cmRender();panelEleveEx4()
+}
+function drawEx4Portage(){
+ const i=CM.ex4Step;if(i<0||i>3)return;
+ const tr=ex4SourceTrace(i);if(!tr)return;
+ const pts=(tr.pts||[]).map(p=>[p[1],p[0]]);
+ if(pts.length<2)return;
+ L.polyline(pts,{color:"#66736d",weight:5,opacity:.65,lineCap:"round",lineJoin:"round",interactive:false}).addTo(CM.g.items);
+ const selected=new Set((CM.ex4States[i]&&CM.ex4States[i].carrySegments)||[]);
+ ex4Segments(i).forEach(seg=>{
+  const on=selected.has(seg.key);
+  L.polyline([seg.a,seg.b],{
+   color:on?"#c43d20":"#66736d",weight:on?9:6,opacity:on?1:.72,
+   lineCap:"round",interactive:false
+  }).addTo(CM.g.items);
+  const hit=L.polyline([seg.a,seg.b],{color:"#000",weight:24,opacity:.01,interactive:true}).addTo(CM.g.items);
+  hit.on("click",e=>{L.DomEvent.stopPropagation(e);ex4ToggleSegment(i,seg.key)})
+ });
+}
+function ex4Metrics(i){
+ const b=CM.ex4Base||{},s=(CM.ex4States||[])[i]||{},cr=+b.crates||0,w=+b.weight||0,weeks=+b.weeks||0,pw=+b.perWeek||0,m=+s.manips||0,dist=ex4SelectedDistance(i),harv=weeks*pw;
+ return {
+  crates:cr,weight:w,harvests:harv,manipsPerCrate:m,
+  manipCount:cr*m,kgPerHarvest:cr*w*m,
+  carryPerHarvest:dist,
+  annualKg:cr*w*m*harv,
+  annualCarry:dist*harv
+ }
+}
+function ex4Stepbar(){return '<div class="stepbar">'+EX4_STATES.map((_,i)=>'<span class="stepdot '+(i<CM.ex4Step?'done':i===CM.ex4Step?'now':'')+'"></span>').join("")+'</div>'}
 function ex4MetricBox(i){
  const x=ex4Metrics(i);
- return '<div class="kpis"><div class="kpi"><b>'+Math.round(x.manipCount)+'</b><small>manipulations / récolte</small></div><div class="kpi"><b>'+Math.round(x.kgPerHarvest)+' kg</b><small>manipulés / récolte</small></div><div class="kpi"><b>'+Math.round(x.carryPerHarvest)+' m</b><small>avec charge / récolte</small></div><div class="kpi"><b>'+Math.round(x.annualKg/100)/10+' t</b><small>manipulées / an</small></div></div>'+(x.harvests?'<div class="msg"><b>Projection annuelle</b><br>'+Math.round(x.harvests)+' récoltes estimées · '+Math.round(x.annualCarry/100)/10+' km parcourus avec charge.</div>':'')
+ return '<div class="kpis">'+
+  '<div class="kpi"><b>'+Math.round(x.manipCount)+'</b><small>manipulations / récolte</small></div>'+
+  '<div class="kpi"><b>'+Math.round(x.kgPerHarvest)+' kg</b><small>manipulés / récolte</small></div>'+
+  '<div class="kpi"><b>'+Math.round(x.carryPerHarvest)+' m</b><small>portage sélectionné</small></div>'+
+  '<div class="kpi"><b>'+Math.round(x.annualKg/100)/10+' t</b><small>manipulées / an</small></div>'+
+ '</div>'+
+ (x.harvests?'<div class="msg"><b>Projection annuelle</b><br>'+Math.round(x.harvests)+' récoltes estimées · '+Math.round(x.annualCarry/100)/10+' km de portions de trajet avec portage.</div>':'')
 }
-function ex4Comparison(){return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m avec charge · '+Math.round(x.annualKg/100)/10+' t/an</div>'}).join('')+'</div>'}
+function ex4Comparison(){
+ return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m de portage · '+Math.round(x.annualKg/100)/10+' t manipulées/an</div>'}).join("")+'</div>'
+}
 async function eleveCarteEx4(f){
  if(f.mode!=="carte"){alert("L’exercice 4 nécessite une carte vivante IGN.");return studentDash()}
- CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Charges";await cmInit(f);const d=ex4Load(f.id);
- CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;CM.readonly=true;CM.items=[];CM.logic=null;CM.overlays=[];CM.ex4Step=0;CM.ex4Base=d.base;CM.ex4States=d.states;CM.onChange=null;cmSetMode("move");panelEleveEx4();$("btnHelp").hidden=true
+ CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Charges";await cmInit(f);
+ const d=ex4Load(f.id),ex3items=await ex4LoadEx3Items(f);
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;
+ CM.readonly=true;CM.items=[];CM.logic=null;CM.overlays=[];CM.ex4Step=0;CM.ex4Base=d.base;CM.ex4States=d.states;CM.ex4Ex3Items=ex3items;CM.onChange=null;
+ cmSetMode("move");panelEleveEx4();cmRender();$("btnHelp").hidden=true
 }
 function panelEleveEx4(){
  const p=$("panelC"),i=CM.ex4Step,st=EX4_STATES[i];
- let body='<div class="muted">MODULE 1 · EXERCICE 4</div><h3>📦 Charges / manutention</h3>'+ex4Stepbar()+'<div class="msg"><b>Étape '+(i+1)+' / '+EX4_STATES.length+' — '+st.title+'</b><br>'+st.reveal+'</div>';
+ let body='<div class="muted">MODULE 1 · EXERCICE 4</div><h3>📦 Charges / manutention</h3>'+ex4Stepbar()+
+  '<div class="msg"><b>Étape '+(i+1)+' / '+EX4_STATES.length+' — '+st.title+'</b><br>'+st.reveal+'</div>';
  if(i<4){
-  if(i===0)body+='<div class="calcbox"><h4>Base commune pour les 4 états</h4><label class="f">Combien de caisses pour cette récolte ?<input id="ex4Crates" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.crates)+'" placeholder="Votre estimation"></label><label class="f">Poids moyen d’une caisse pleine (kg) ?<input id="ex4Weight" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.weight)+'" placeholder="Votre estimation"></label><label class="f">Combien de semaines de récolte tomate ?<input id="ex4Weeks" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.weeks)+'" placeholder="Votre estimation"></label><label class="f">Combien de récoltes par semaine ?<input id="ex4PerWeek" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Votre estimation"></label></div>';
-  body+='<div class="calcbox"><h4>'+st.question+'</h4><label class="f">Combien de fois chaque caisse est-elle soulevée / reposée ?<input id="ex4Manips" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].manips)+'" placeholder="Votre estimation"></label><label class="f">Distance totale parcourue avec une charge pendant UNE récolte (m)<input id="ex4Carry" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].carryMeters)+'" placeholder="Votre estimation"></label><label class="f">'+(i<3?'Quelle amélioration proposeriez-vous maintenant ?':'Qu’est-ce qui a été principalement amélioré ?')+'<textarea id="ex4Proposal" rows="3" placeholder="Votre réflexion…">'+esc(CM.ex4States[i].proposal)+'</textarea></label>'+ex4MetricBox(i)+'</div>';
- }else body+=ex4Comparison()+'<div class="msg ok"><b>Méthode à retenir</b><br>Quand j’observe une tâche : <b>combien de fois je soulève ? combien de mètres je porte ? combien de fois cela se répète ? qu’est-ce que l’organisation peut supprimer ?</b></div><div class="msg"><b>À faire entre deux séances</b><br>Choisis une autre tâche réelle sur une ferme. Repère une situation de portage ou de manutention, mesure-la et propose une amélioration.</div>';
- body+='<div class="row"><button class="btn small" id="ex4Prev" '+(i===0?'disabled':'')+'>⬅ Étape précédente</button><button class="btn main" id="ex4Next" '+(i===EX4_STATES.length-1?'disabled':'')+'>Étape suivante ➡</button></div><button class="btn main" id="ex4Send">📤 Envoyer l’exercice 4</button><div id="ex4SendMsg"></div><button class="btn" id="ex4Back">⬅ Retour à mon espace</button>'+creditC();
+  const trace=ex4SourceTrace(i),dist=ex4SelectedDistance(i);
+  body+=(trace?
+   '<div class="msg ok"><b>Trajet repris automatiquement : '+ex4TraceLabel(i)+'</b><br>Clique directement sur la carte sur les portions où tu <b>portes une caisse</b>. Elles deviennent rouges. Reclique pour les retirer.</div>':
+   '<div class="msg err"><b>Trajet introuvable.</b><br>Il faut d’abord tracer le '+ex4TraceLabel(i)+' dans l’exercice 3.</div>');
+  if(i===0)body+='<div class="calcbox"><h4>Base commune pour les 4 états</h4>'+
+   '<label class="f">Combien de caisses pour cette récolte ?<input id="ex4Crates" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.crates)+'" placeholder="Votre estimation"></label>'+
+   '<label class="f">Poids moyen d’une caisse pleine (kg) ?<input id="ex4Weight" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.weight)+'" placeholder="Votre estimation"></label>'+
+   '<label class="f">Combien de semaines de récolte tomate ?<input id="ex4Weeks" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.weeks)+'" placeholder="Votre estimation"></label>'+
+   '<label class="f">Combien de récoltes par semaine ?<input id="ex4PerWeek" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Votre estimation"></label></div>';
+  body+='<div class="calcbox"><h4>'+st.question+'</h4>'+
+   '<div class="msg"><b>'+Math.round(dist)+' m sélectionnés comme portage</b><br><span class="muted">On ne redessine rien : on qualifie le trajet déjà construit.</span></div>'+
+   '<button class="btn small" id="ex4ClearCarry" '+(!dist?'disabled':'')+'>🧹 Effacer ma sélection de portage</button>'+
+   '<label class="f">Combien de fois chaque caisse est-elle soulevée / reposée ?<input id="ex4Manips" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].manips)+'" placeholder="Votre estimation"></label>'+
+   '<label class="f">'+(i<3?'Quelle amélioration proposeriez-vous maintenant ?':'Qu’est-ce qui a été principalement amélioré ?')+'<textarea id="ex4Proposal" rows="3" placeholder="Votre réflexion…">'+esc(CM.ex4States[i].proposal)+'</textarea></label>'+
+   ex4MetricBox(i)+'</div>';
+ }else{
+  body+=ex4Comparison()+
+   '<div class="msg ok"><b>Deux choses différentes</b><br><b>Portage</b> = je marche avec une charge.<br><b>Manutention</b> = je soulève, déplace ou repose une charge, même si je ne marche pas.</div>'+
+   '<div class="msg ok"><b>Méthode à retenir</b><br>Quand j’observe une tâche : <b>combien de fois je soulève ? quelles portions du trajet se font avec une charge ? combien de fois cela se répète ? qu’est-ce que l’organisation peut supprimer ?</b></div>'+
+   '<div class="msg"><b>À faire entre deux séances</b><br>Choisis une autre tâche réelle sur une ferme. Repère une situation de portage ou de manutention, mesure-la et propose une amélioration.</div>';
+ }
+ body+='<div class="row"><button class="btn small" id="ex4Prev" '+(i===0?'disabled':'')+'>⬅ Étape précédente</button><button class="btn main" id="ex4Next" '+(i===EX4_STATES.length-1?'disabled':'')+'>Étape suivante ➡</button></div>'+
+  '<button class="btn main" id="ex4Send">📤 Envoyer l’exercice 4</button><div id="ex4SendMsg"></div>'+
+  '<button class="btn" id="ex4Back">⬅ Retour à mon espace</button>'+creditC();
  p.innerHTML=body;
- ["ex4Crates","ex4Weight","ex4Weeks","ex4PerWeek"].forEach(id=>{if($(id))$(id).onchange=()=>{CM.ex4Base={crates:$("ex4Crates").value,weight:$("ex4Weight").value,weeks:$("ex4Weeks").value,perWeek:$("ex4PerWeek").value};ex4Save();panelEleveEx4()}});
+
+ ["ex4Crates","ex4Weight","ex4Weeks","ex4PerWeek"].forEach(id=>{if($(id))$(id).onchange=()=>{
+  CM.ex4Base={crates:$("ex4Crates").value,weight:$("ex4Weight").value,weeks:$("ex4Weeks").value,perWeek:$("ex4PerWeek").value};ex4Save();panelEleveEx4()
+ }});
  if($("ex4Manips"))$("ex4Manips").onchange=()=>{CM.ex4States[i].manips=$("ex4Manips").value;ex4Save();panelEleveEx4()};
- if($("ex4Carry"))$("ex4Carry").onchange=()=>{CM.ex4States[i].carryMeters=$("ex4Carry").value;ex4Save();panelEleveEx4()};
  if($("ex4Proposal"))$("ex4Proposal").oninput=()=>{CM.ex4States[i].proposal=$("ex4Proposal").value;ex4Save()};
- $("ex4Prev").onclick=()=>{CM.ex4Step--;panelEleveEx4()};$("ex4Next").onclick=()=>{CM.ex4Step++;panelEleveEx4()};$("ex4Send").onclick=sendEx4;$("ex4Back").onclick=()=>{CM.exercise4=false;studentDash()}
+ if($("ex4ClearCarry"))$("ex4ClearCarry").onclick=()=>ex4ClearSegments(i);
+ $("ex4Prev").onclick=()=>{CM.ex4Step--;cmRender();panelEleveEx4()};
+ $("ex4Next").onclick=()=>{CM.ex4Step++;cmRender();panelEleveEx4()};
+ $("ex4Send").onclick=sendEx4;
+ $("ex4Back").onclick=()=>{CM.exercise4=false;studentDash()}
+ cmTools();cmTip()
 }
 async function sendEx4(){
  if(!STUDENT_USER){msg("ex4SendMsg","Reconnecte-toi à ton espace pour envoyer.","err");return}
- const hasData=(CM.ex4States||[]).some(s=>s.manips!==""||s.carryMeters!==""||s.proposal);if(!hasData){msg("ex4SendMsg","Commence par renseigner au moins un état.","err");return}
- $("ex4Send").disabled=true;const c=CM.map.getCenter(),metrics=[0,1,2,3].map(ex4Metrics);const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||"?").slice(0,60),contenu:{exercise:"ex4",mode:"carte",base:CM.ex4Base,states:CM.ex4States,metrics,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});$("ex4Send").disabled=false;msg("ex4SendMsg",error?"Envoi impossible : "+error.message:"✅ Exercice 4 envoyé. Tes estimations restent modifiables.",error?"err":"ok")
+ const hasData=(CM.ex4States||[]).some(s=>s.manips!==""||(s.carrySegments||[]).length||s.proposal);
+ if(!hasData){msg("ex4SendMsg","Commence par renseigner au moins un état.","err");return}
+ $("ex4Send").disabled=true;const c=CM.map.getCenter();
+ const metrics=[0,1,2,3].map(ex4Metrics);
+ const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||"?").slice(0,60),contenu:{exercise:"ex4",mode:"carte",base:CM.ex4Base,states:CM.ex4States,metrics,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
+ $("ex4Send").disabled=false;msg("ex4SendMsg",error?"Envoi impossible : "+error.message:"✅ Exercice 4 envoyé. Tes estimations restent modifiables.",error?"err":"ok")
 }
 async function openRecusEx4(f,ids){
- const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1,sel=multi?collectiveCopy(selected):selected;await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=false;CM.exercise3Guide=false;CM.readonly=true;CM.logic=null;CM.items=[];CM.overlays=[];cmSetMode("move");const p=$("panelC");
- if(multi){$("who").textContent="🧑‍🌾 "+f.nom+" · CHARGES · DÉBRIEF ANONYME";p.innerHTML='<h3>📦 Exercice 4 — Débrief</h3><div class="msg ok">🔒 Les profils sont anonymisés.</div>'+sel.map((r,i)=>{const c=r.contenu||{},m=c.metrics||[];return '<div class="msg"><b>'+anonLabel(i)+'</b><br>'+m.map((x,j)=>'<span>'+(j+1)+' · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m avec charge</span>').join('<br>')+'</div>'}).join('')+'<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>'}
- else{const c=sel[0].contenu||{},m=c.metrics||[],states=c.states||[];$("who").textContent="🧑‍🌾 "+f.nom+" · Charges · "+sel[0].auteur;p.innerHTML='<h3>'+esc(sel[0].auteur)+'</h3>'+m.map((x,j)=>'<div class="msg"><b>'+EX4_STATES[j].title+'</b><br>'+Math.round(+x.manipCount||0)+' manipulations/récolte · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m avec charge'+(states[j]&&states[j].proposal?'<br><span class="muted">Réflexion : '+esc(states[j].proposal)+'</span>':'')+'</div>').join('')+'<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>'}
+ const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1,sel=multi?collectiveCopy(selected):selected;
+ await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=false;CM.exercise4=false;CM.readonly=true;CM.logic=null;CM.items=[];CM.overlays=[];cmSetMode("move");
+ const p=$("panelC");
+ if(multi){
+  $("who").textContent="🧑‍🌾 "+f.nom+" · CHARGES · DÉBRIEF ANONYME";
+  p.innerHTML='<h3>📦 Exercice 4 — Débrief</h3><div class="msg ok">🔒 Les profils sont anonymisés.</div>'+
+   sel.map((r,i)=>{const c=r.contenu||{},m=c.metrics||[];return '<div class="msg"><b>'+anonLabel(i)+'</b><br>'+m.map((x,j)=>'<span>'+ (j+1)+' · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m de portage</span>').join('<br>')+'</div>'}).join("")+
+   '<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>';
+ }else{
+  const c=sel[0].contenu||{},m=c.metrics||[],states=c.states||[];
+  $("who").textContent="🧑‍🌾 "+f.nom+" · Charges · "+sel[0].auteur;
+  p.innerHTML='<h3>'+esc(sel[0].auteur)+'</h3>'+
+   m.map((x,j)=>'<div class="msg"><b>'+EX4_STATES[j].title+'</b><br>'+Math.round(+x.manipCount||0)+' manipulations/récolte · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m de portage'+(states[j]&&states[j].proposal?'<br><span class="muted">Réflexion : '+esc(states[j].proposal)+'</span>':'')+'</div>').join("")+
+   '<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>';
+ }
  $("ex4RecBack").onclick=()=>dash("recus");cmTools();cmTip()
 }
 
@@ -938,7 +1076,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],ex4Ex3Items:[],collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -996,7 +1134,8 @@ function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLay
  if(CM.exercise3Guide){if(CM.guideShow!==false)drawGuideItems(CM.g.logic,ex3GuideItems(CM.guideCase||"c1",CM.guideItems),true)}
  else if(CM.exercise3){drawGuideItems(CM.g.logic,ex3GuideForStep(CM.ex3Step,CM.ex3Guide),false)}
  else if(CM.logic)drawGeo(CM.g.logic,CM.logic,{dash:"8 6",fill:.06,weight:5});
- drawGeo(CM.g.items,CM.exercise3?ex3VisibleItems():CM.items,CM.exercise3?{labels:false}:{});
+ if(CM.exercise4)drawEx4Portage();
+ else drawGeo(CM.g.items,CM.exercise3?ex3VisibleItems():CM.items,CM.exercise3?{labels:false}:{});
  if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
  const pv=CM.pending?CM.pending.pts.map(p=>[p[1],p[0]]):(CM.stroke&&CM.stroke.length>1?CM.stroke.map(s=>[s.lat,s.lng]):null);
  if(pv){const T=CM.pending&&CM.pending.type?TYPES[CM.pending.type]:null,col=T?T.c:"#14201a";
@@ -1011,6 +1150,7 @@ function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
 function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
 function cmTools(){const t=$("toolsC");
  if(CM.pending){t.innerHTML="";t.style.display="none";return}
+ if(CM.exercise4){t.style.display="flex";t.innerHTML='<button class="btn on">📦 Cliquer sur les portions portées</button>';return}
  if(CM.readonly){t.style.display="flex";t.innerHTML=topoBtnHtml();topoWire();return}
  t.style.display="flex";
  if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
@@ -1124,6 +1264,7 @@ async function topoTap(e){
  }
 }
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
+ if(CM.exercise4){tx.textContent=CM.ex4Step<4?"📦 Clique sur le trajet uniquement là où une caisse est portée. Rouge = portage sélectionné.":"📦 Compare les quatre états.";return}
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
  if(CM.exercise3Guide){tx.textContent=CM.guideTool?"🎯 Clique sur la carte pour placer : "+(EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool)?.label||"ce repère")+".":"🎯 Choisis un repère à droite. Tu peux ensuite déplacer son point et sa vignette.";return}
