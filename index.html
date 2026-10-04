@@ -127,12 +127,8 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .portageHelp{border:2px dashed #c43d20;border-radius:10px;padding:9px 10px;background:#fff8f5}
 
 
-.carryList{margin:10px 0;padding:10px;border:1px solid #d8ddd9;border-radius:10px;background:#fff}
-.carryRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #ecefed}
-.carryRow:last-of-type{border-bottom:0}
-.carryRow label{display:flex;align-items:center;gap:5px;font-weight:800}
-.carryCount{width:64px!important;min-width:64px!important;padding:7px!important;text-align:center}
-@media(max-width:600px){.carryRow{grid-template-columns:1fr auto}.carryRow>b{grid-column:1/-1;text-align:right}}
+.simpleCompare{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+@media(max-width:760px){.simpleCompare{grid-template-columns:1fr}}
 
 </style></head><body>
 <header>
@@ -915,400 +911,149 @@ async function openRecusEx3(f,ids){
 
 
 
-/* ---------- MODULE 1 · EXERCICE 4 : CHARGES / MANUTENTION ---------- */
-const EX4_STATES=[
- {title:"État 1 — Récolte à la main",source:"trajet_ancien",reveal:"Au départ, pas de brouette de récolte : les caisses pleines étaient déplacées à la main, amenées à la chambre froide, puis reprises pour préparer les commandes.",question:"Sur le trajet de l’ancienne organisation, indique seulement les portions où tu portes réellement une caisse."},
- {title:"État 2 — Brouette de récolte",source:"trajet_ancien",reveal:"Amélioration réellement mise en place : cultures davantage espacées pour passer avec une brouette / un chariot. Mais les cagettes de récupération avaient des tares différentes : il fallait sortir les caisses, les peser, les remettre sur le chariot, puis les ressortir devant la marche de la chambre froide.",question:"Même trajet, mais le chariot change le travail. Indique seulement les portions où il reste du portage."},
- {title:"État 3 — Caisses standardisées",source:"trajet_ancien",reveal:"Amélioration suivante : mêmes caisses, même tare et poids standard lorsque la caisse est pleine. La pesée systématique disparaît.",question:"Indique à nouveau uniquement les portions où une caisse est encore portée."},
- {title:"État 4 — Bâtiment central + rampe",source:"trajet_actuel",reveal:"Dernière évolution : station de lavage, chambre froide et préparation de commandes regroupées, avec une rampe permettant au chariot d’entrer directement dans la chambre froide.",question:"Le trajet actuel est affiché. Indique les dernières portions où il reste réellement du portage."},
- {title:"Synthèse",source:null,reveal:"Compare les quatre états successifs.",question:"L’objectif n’est pas de trouver une solution parfaite d’un coup : on observe le travail, on retire une contrainte, puis on regarde ce qui reste."}
+/* ---------- MODULE 1 · EXERCICE 4 : CHARGES / MANUTENTION — VERSION SIMPLE ---------- */
+const EX4_STEPS=[
+ {title:"1 — Standardiser les caisses",short:"Caisses",intro:"Avant : les cagettes n’avaient pas toutes la même tare. Chaque caisse pleine devait être sortie du chariot, pesée puis remise sur le chariot."},
+ {title:"2 — Supprimer le portage avec la rampe",short:"Rampe",intro:"Avant la rampe : le chariot s’arrêtait devant la marche. Les mêmes caisses devaient alors être prises à la main et portées jusqu’à la chambre froide."},
+ {title:"3 — Comparer",short:"Synthèse",intro:"Deux changements d’organisation très simples peuvent supprimer beaucoup de travail physique sans changer la quantité récoltée."}
 ];
-
-function ex4DraftKey(fid){return "schema:"+fid+":ex4:v3"}
-function ex4BlankState(){return {manips:"",carryRanges:[],proposal:""}}
+function ex4DraftKey(fid){return "schema:"+fid+":ex4:simple:v1"}
 function ex4Load(fid){
- const d=LS.get(ex4DraftKey(fid),null);
- if(d&&typeof d==="object")return {
-  base:{crates:d.base?.crates||"",weight:d.base?.weight||"",weeks:d.base?.weeks||"",perWeek:d.base?.perWeek||""},
-  states:Array.from({length:4},(_,i)=>{
-   const old=((d.states||[])[i]||{});
-   return {...ex4BlankState(),...old,carryRanges:Array.isArray(old.carryRanges)?old.carryRanges:[]}
-  })
- };
- return {base:{crates:"",weight:"",weeks:"",perWeek:""},states:Array.from({length:4},()=>ex4BlankState())}
+ const d=LS.get(ex4DraftKey(fid),null)||{};
+ return {base:{crates:d.base?.crates||"",weight:d.base?.weight||""},rampPts:Array.isArray(d.rampPts)?d.rampPts.slice(0,2):[],note:d.note||""}
 }
 function ex4Save(){
  if(CM.ex4TrainerDemo){CM.ex4DemoDirty=true;return}
- if(CUR)LS.set(ex4DraftKey(CUR.id),{base:CM.ex4Base,states:CM.ex4States})
+ if(CUR)LS.set(ex4DraftKey(CUR.id),{base:CM.ex4Base,rampPts:CM.ex4RampPts,note:CM.ex4Note||""})
 }
-function ex4Refresh(){
- cmRender();
- if(CM.ex4TrainerDemo)panelEx4Demo(true);
- else panelEleveEx4()
+function ex4N(){return Math.max(0,+CM.ex4Base?.crates||0)}
+function ex4W(){return Math.max(0,+CM.ex4Base?.weight||0)}
+function ex4TotalLoad(){return ex4N()*ex4W()}
+function ex4StandardMetrics(){
+ const n=ex4N(),w=ex4W(),load=n*w;
+ return {crates:n,weight:w,totalLoad:load,movesAvoided:n*2,kgHandledAvoided:load*2}
 }
-
-async function ex4LoadEx3Items(f){
- const local=ex3Load(f.id).items||[];
- if(local.some(x=>x.k==="trajet_actuel"||x.k==="trajet_ancien"))return local;
- if(STUDENT_USER){
-  const {data}=await sb.from("schemas").select("contenu,created_at")
-   .eq("ferme_id",f.id).eq("user_id",STUDENT_USER.id).order("created_at",{ascending:false}).limit(30);
-  const row=(data||[]).find(r=>r.contenu&&r.contenu.exercise==="ex3"&&Array.isArray(r.contenu.items));
-  if(row)return row.contenu.items
- }
- return local
+function ex4RampDistance(){
+ if(!CM.map||!Array.isArray(CM.ex4RampPts)||CM.ex4RampPts.length<2)return 0;
+ const a=CM.ex4RampPts[0],b=CM.ex4RampPts[1];
+ return CM.map.distance([a[1],a[0]],[b[1],b[0]])
 }
-function ex4SourceTrace(i){
- const st=EX4_STATES[i];if(!st||!st.source)return null;
- return (CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k===st.source)||null
+function ex4Metrics(){
+ const s=ex4StandardMetrics();
+ return {...s,rampDistance:ex4RampDistance()}
 }
-function ex4TraceLabel(i){
- const st=EX4_STATES[i];return st&&st.source==="trajet_actuel"?"trajet actuel (cas 1)":"trajet ancien (cas 2)"
+function ex4Stepbar(){return '<div class="stepbar">'+EX4_STEPS.map((_,i)=>'<span class="stepdot '+(i<CM.ex4Step?'done':i===CM.ex4Step?'now':'')+'"></span>').join("")+'</div>'}
+function ex4StdKpis(){
+ const m=ex4StandardMetrics();
+ if(!m.crates||!m.weight)return '<div class="msg">Renseigne le nombre de caisses et leur poids pour voir l’effet de la standardisation.</div>';
+ return '<div class="kpis"><div class="kpi"><b>'+Math.round(m.movesAvoided)+'</b><small>mouvements évitables</small></div><div class="kpi"><b>'+Math.round(m.kgHandledAvoided)+' kg</b><small>soulevés / manipulés évitables</small></div><div class="kpi"><b>'+Math.round(m.totalLoad)+' kg</b><small>récolte réellement déplacée</small></div></div>'
 }
-function ex4Route(i){
- const tr=ex4SourceTrace(i),out=[];if(!tr||!CM.map||!Array.isArray(tr.pts)||tr.pts.length<2)return {pts:[],segs:[],total:0};
- let cum=0;
- const pts=tr.pts.map(p=>[p[1],p[0]]);
- for(let n=1;n<pts.length;n++){
-  const a=pts[n-1],b=pts[n],d=CM.map.distance(a,b);
-  out.push({a,b,start:cum,end:cum+d,d});
-  cum+=d
- }
- return {pts,segs:out,total:cum}
+function ex4RampKpis(){
+ const m=ex4Metrics(),d=m.rampDistance;
+ if(!m.totalLoad)return '<div class="msg">Renseigne d’abord les caisses et leur poids à l’étape 1.</div>';
+ return '<div class="kpis"><div class="kpi"><b>'+Math.round(m.totalLoad)+' kg</b><small>même charge déplacée</small></div><div class="kpi"><b>'+Math.round(d)+' m</b><small>portage à la main AVANT</small></div><div class="kpi"><b>0 m</b><small>portage à la main APRÈS</small></div></div>'
 }
-function ex4PointAt(i,m){
- const r=ex4Route(i);if(!r.segs.length)return null;
- m=Math.max(0,Math.min(r.total,m));
- let s=r.segs.find(x=>m<=x.end)||r.segs[r.segs.length-1];
- const t=s.d?Math.max(0,Math.min(1,(m-s.start)/s.d)):0;
- return [s.a[0]+(s.b[0]-s.a[0])*t,s.a[1]+(s.b[1]-s.a[1])*t]
-}
-function ex4NearestOnTrace(i,latlng){
- const r=ex4Route(i);if(!r.segs.length)return null;
- const q=CM.map.latLngToContainerPoint(latlng);let best=null;
- r.segs.forEach(s=>{
-  const A=CM.map.latLngToContainerPoint(s.a),B=CM.map.latLngToContainerPoint(s.b);
-  const vx=B.x-A.x,vy=B.y-A.y,wx=q.x-A.x,wy=q.y-A.y,den=vx*vx+vy*vy;
-  const t=den?Math.max(0,Math.min(1,(wx*vx+wy*vy)/den)):0;
-  const x=A.x+vx*t,y=A.y+vy*t,px=Math.hypot(q.x-x,q.y-y);
-  if(!best||px<best.px)best={px,m:s.start+s.d*t,latlng:[s.a[0]+(s.b[0]-s.a[0])*t,s.a[1]+(s.b[1]-s.a[1])*t]}
- });
- return best
-}
-function ex4Ranges(i){
- const s=(CM.ex4States||[])[i]||{};
- return (Array.isArray(s.carryRanges)?s.carryRanges:[]).map(r=>{
-  if(Array.isArray(r))return {a:Math.min(+r[0]||0,+r[1]||0),b:Math.max(+r[0]||0,+r[1]||0),count:1};
-  const a=+r.a||0,b=+r.b||0,count=Math.max(1,Math.round(+r.count||1));
-  return {a:Math.min(a,b),b:Math.max(a,b),count}
- })
-}
-function ex4SelectedDistance(i){return ex4Ranges(i).reduce((sum,r)=>sum+Math.max(0,r.b-r.a)*r.count,0)}
-function ex4AddRange(i,a,b){
- if(!CM.ex4States[i])CM.ex4States[i]=ex4BlankState();
- const lo=Math.min(a,b),hi=Math.max(a,b);
- if(hi-lo<1)return;
- CM.ex4States[i].carryRanges=[...(CM.ex4States[i].carryRanges||[]),{a:lo,b:hi,count:1}];
- ex4Save()
-}
-function ex4SetRangeCount(i,idx,val){
- if(!CM.ex4States[i])return;
- const ranges=ex4Ranges(i);if(!ranges[idx])return;
- ranges[idx].count=Math.max(1,Math.min(999,Math.round(+val||1)));
- CM.ex4States[i].carryRanges=ranges;
- ex4Save();ex4Refresh()
-}
-function ex4RangesHtml(i){
- const ranges=ex4Ranges(i);if(!ranges.length)return "";
- return '<div class="carryList"><b>Portions de portage</b>'+
-  ranges.map((r,idx)=>{
-   const d=Math.max(0,r.b-r.a),tot=d*r.count;
-   return '<div class="carryRow"><span><b>Portion '+(idx+1)+'</b><br><small>'+Math.round(d)+' m par passage</small></span>'+
-    '<label>× <input class="carryCount" data-carry-count="'+idx+'" type="number" min="1" max="999" step="1" value="'+r.count+'" aria-label="Nombre de passages avec charge"></label>'+
-    '<b>'+Math.round(tot)+' m</b></div>'
-  }).join("")+
-  '<div class="muted">× = nombre de passages réellement effectués avec une charge sur cette portion.</div></div>'
-}
-function ex4UndoRange(i){
- if(!CM.ex4States[i])return;
- CM.ex4States[i].carryRanges=(CM.ex4States[i].carryRanges||[]).slice(0,-1);
- CM.ex4PickStart=null;ex4Save();ex4Refresh()
-}
-function ex4ClearRanges(i){
- if(!CM.ex4States[i])return;
- CM.ex4States[i].carryRanges=[];CM.ex4PickStart=null;ex4Save();ex4Refresh()
+function ex4Summary(){
+ const m=ex4Metrics();
+ return '<div class="simpleCompare"><div class="msg ok"><b>① Standardiser les caisses</b><br>'+Math.round(m.movesAvoided)+' mouvements supprimés pour cette récolte.<br><b>'+Math.round(m.kgHandledAvoided)+' kg</b> de charge soulevée / manipulée en moins.</div>'+ 
+ '<div class="msg ok"><b>② Ajouter la rampe</b><br>La récolte reste la même : <b>'+Math.round(m.totalLoad)+' kg</b> à déplacer.<br>Mais sur la portion mesurée : <b>'+Math.round(m.rampDistance)+' m de portage à la main → 0 m</b>.<br><span class="muted">La charge se déplace sur le chariot : moins de rupture de charge, moins d’effort et généralement moins de temps.</span></div></div>'
 }
 function ex4MapTap(e){
- const i=CM.ex4Step;if(i<0||i>3)return;
- const hit=ex4NearestOnTrace(i,e.latlng);
- if(!hit||hit.px>24){
-  msg("ex4MapMsg","Clique directement sur le trajet gris.","err");return
- }
- if(CM.ex4PickStart===null||CM.ex4PickStart===undefined){
-  CM.ex4PickStart=hit.m;
-  ex4Refresh();
- }else{
-  ex4AddRange(i,CM.ex4PickStart,hit.m);
-  CM.ex4PickStart=null;
-  ex4Refresh()
- }
+ if(CM.ex4Step!==1)return;
+ const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+ if(!Array.isArray(CM.ex4RampPts)||CM.ex4RampPts.length>=2)CM.ex4RampPts=[];
+ CM.ex4RampPts.push([lng,lat]);ex4Save();cmRender();
+ if(CM.ex4TrainerDemo)panelEx4Demo(true);else panelEleveEx4()
 }
-function ex4Pieces(i){
- const r=ex4Route(i),out=[];
- r.segs.forEach(s=>{
-  const parts=Math.max(1,Math.ceil(s.d/6));
-  for(let j=0;j<parts;j++){
-   const t1=j/parts,t2=(j+1)/parts,m1=s.start+s.d*t1,m2=s.start+s.d*t2;
-   out.push({
-    a:[s.a[0]+(s.b[0]-s.a[0])*t1,s.a[1]+(s.b[1]-s.a[1])*t1],
-    b:[s.a[0]+(s.b[0]-s.a[0])*t2,s.a[1]+(s.b[1]-s.a[1])*t2],
-    m1,m2,mid:(m1+m2)/2
-   })
-  }
- });
- return out
-}
+function ex4ClearRamp(){CM.ex4RampPts=[];ex4Save();cmRender();if(CM.ex4TrainerDemo)panelEx4Demo(true);else panelEleveEx4()}
 function drawEx4Portage(){
- const i=CM.ex4Step;if(i<0||i>3)return;
- const r=ex4Route(i);if(!r.pts.length)return;
- L.polyline(r.pts,{color:"#66736d",weight:7,opacity:.82,lineCap:"round",lineJoin:"round",interactive:false}).addTo(CM.g.items);
- const ranges=ex4Ranges(i);
- ex4Pieces(i).forEach(p=>{
-  if(ranges.some(rr=>p.mid>=rr.a&&p.mid<=rr.b)){
-   L.polyline([p.a,p.b],{color:"#c43d20",weight:10,opacity:1,lineCap:"round",interactive:false}).addTo(CM.g.items)
-  }
- });
- if(CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined){
-  const q=ex4PointAt(i,CM.ex4PickStart);
-  if(q){
-   L.circleMarker(q,{radius:6,color:"#c43d20",weight:3,fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(CM.g.items)
-  }
- }
+ if(!CM.map||CM.ex4Step===0)return;
+ const pts=(CM.ex4RampPts||[]).map(p=>[p[1],p[0]]);
+ if(pts[0])L.circleMarker(pts[0],{radius:7,color:"#c43d20",weight:3,fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(CM.g.items);
+ if(pts[1])L.circleMarker(pts[1],{radius:7,color:"#c43d20",weight:3,fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(CM.g.items);
+ if(pts.length===2)L.polyline(pts,{color:"#c43d20",weight:9,opacity:1,lineCap:"round",interactive:false}).addTo(CM.g.items)
 }
-function ex4Metrics(i){
- const b=CM.ex4Base||{},s=(CM.ex4States||[])[i]||{},cr=+b.crates||0,w=+b.weight||0,weeks=+b.weeks||0,pw=+b.perWeek||0,m=+s.manips||0,dist=ex4SelectedDistance(i),harv=weeks*pw;
- return {
-  crates:cr,weight:w,harvests:harv,manipsPerCrate:m,
-  manipCount:cr*m,kgPerHarvest:cr*w*m,
-  carryPerHarvest:dist,
-  annualKg:cr*w*m*harv,
-  annualCarry:dist*harv
- }
-}
-function ex4Stepbar(){return '<div class="stepbar">'+EX4_STATES.map((_,i)=>'<span class="stepdot '+(i<CM.ex4Step?'done':i===CM.ex4Step?'now':'')+'"></span>').join("")+'</div>'}
-function ex4MetricBox(i){
- const x=ex4Metrics(i);
- return '<div class="kpis">'+
-  '<div class="kpi"><b>'+Math.round(x.manipCount)+'</b><small>manipulations / récolte</small></div>'+
-  '<div class="kpi"><b>'+Math.round(x.kgPerHarvest)+' kg</b><small>manipulés / récolte</small></div>'+
-  '<div class="kpi"><b>'+Math.round(x.carryPerHarvest)+' m</b><small>portage cumulé / récolte</small></div>'+
-  '<div class="kpi"><b>'+Math.round(x.annualKg/100)/10+' t</b><small>manipulées / an</small></div>'+
- '</div>'+
- (x.harvests?'<div class="msg"><b>Projection annuelle</b><br>'+Math.round(x.harvests)+' récoltes estimées · '+Math.round(x.annualCarry/100)/10+' km de portage cumulé.</div>':'')
-}
-function ex4Comparison(){
- return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m de portage cumulé · '+Math.round(x.annualKg/100)/10+' t manipulées/an</div>'}).join("")+'</div>'
-}
-
-function ex4DemoRouteDistance(k){
- const tr=(CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k===k);
- return tr?+(tr.distance||0):0
-}
-function ex4DemoRelevantCase(){
- return CM.ex4Step===3?"c1":"c2"
-}
-function ex4DemoRelevantTool(){
- return CM.ex4Step===3?"trajet_actuel":"trajet_ancien"
-}
-function ex4DemoGuideItems(){
- return ex3GuideItems(ex4DemoRelevantCase(),CM.ex3Guide||[])
-}
-function drawEx4DemoCompare(){
- const old=(CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k==="trajet_ancien");
- const cur=(CM.ex4Ex3Items||[]).find(x=>x.t==="trace"&&x.k==="trajet_actuel");
- if(old)drawGeo(CM.g.items,[old],{labels:false,weight:7});
- if(cur)drawGeo(CM.g.items,[cur],{labels:false,weight:7});
-}
-function ex4DemoCompareHtml(){
- const old=ex4DemoRouteDistance("trajet_ancien"),cur=ex4DemoRouteDistance("trajet_actuel");
- return '<div class="kpis">'+
-   '<div class="kpi"><b>'+Math.round(old)+' m</b><small>trajet ancien</small></div>'+
-   '<div class="kpi"><b>'+Math.round(cur)+' m</b><small>trajet actuel</small></div>'+
-   '<div class="kpi"><b>'+(old&&cur?((old-cur)>=0?"+":"")+Math.round(old-cur)+" m":"—")+'</b><small>ancien − actuel</small></div>'+
-  '</div>'+ex4Comparison()
-}
+function ex4DemoGuideItems(){return CM.ex4Step===1?ex3GuideItems("c1",CM.ex3Guide||[]):[]}
 async function setupEx4Demo(f){
  if(!f||f.mode!=="carte"){alert("La démonstration de l’exercice 4 nécessite une carte vivante IGN.");return}
- history.replaceState({}, "", location.pathname+"#formateur");
- CUR=f;$("who").textContent="🧑‍🌾 Exercice 4 · démonstration · "+f.nom;
- const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
- const base=(data&&data.logique)||{},saved=base.ex4Demo||{};
+ history.replaceState({},"",location.pathname+"#formateur");CUR=f;
+ const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single(),base=(data&&data.logique)||{},saved=base.ex4DemoSimple||{};
  await cmInit(f);
  CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;CM.exercise3Demo=false;CM.ex4TrainerDemo=true;
- CM.readonly=false;CM.logic=null;CM.overlays=[];CM.items=[];
- CM.ex3Guide=normalizeEx3Guides(base.ex3Guide);
- CM.ex4Ex3Items=Array.isArray(saved.routes)?saved.routes:[];
- CM.ex4Base={crates:saved.base?.crates||"",weight:saved.base?.weight||"",weeks:saved.base?.weeks||"",perWeek:saved.base?.perWeek||""};
- CM.ex4States=Array.from({length:4},(_,i)=>({...ex4BlankState(),...((saved.states||[])[i]||{}),carryRanges:Array.isArray((saved.states||[])[i]?.carryRanges)?(saved.states||[])[i].carryRanges:[]}));
- CM.ex4Step=0;CM.ex4PickStart=null;CM.ex4DemoAction=ex4SourceTrace(0)?"select":"draw";CM.ex4DemoTool="trajet_ancien";CM.ex4DemoDirty=false;CM.onChange=null;
- cmSetMode(CM.ex4DemoAction==="draw"?"draw":"move");panelEx4Demo(false);$("btnHelp").hidden=true
+ CM.readonly=true;CM.logic=null;CM.overlays=[];CM.items=[];CM.ex3Guide=normalizeEx3Guides(base.ex3Guide);
+ CM.ex4Base={crates:saved.base?.crates||"",weight:saved.base?.weight||""};CM.ex4RampPts=Array.isArray(saved.rampPts)?saved.rampPts.slice(0,2):[];CM.ex4Note=saved.note||"";
+ CM.ex4Step=0;CM.ex4RevealStd=false;CM.ex4RevealRamp=false;CM.ex4DemoDirty=false;CM.onChange=null;cmSetMode("move");panelEx4Demo(false);$("btnHelp").hidden=true
 }
 function panelEx4Demo(dirty){
- show("vCarte");
- const p=$("panelC"),i=CM.ex4Step,st=EX4_STATES[i];
- $("who").textContent="🧑‍🌾 Exercice 4 · démonstration · "+(CUR?CUR.nom:"");
- if(i>=4){
-  p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 4 · FORMATEUR</div><h3>🎬 Comparaison avec le groupe</h3>'+
-   '<div class="msg"><b>Affiche les deux organisations et les quatre états.</b><br>L’objectif est de faire verbaliser ce qui a réellement été supprimé : déplacement, portage ou manutention.</div>'+
-   ex4DemoCompareHtml()+
-   '<div class="msg ok"><b>À faire verbaliser</b><br>Un trajet peut rester presque identique alors que le travail physique change fortement. La question est donc : <b>où est-ce que je porte ? combien de fois je soulève ? et qu’est-ce que l’organisation permet d’éviter ?</b></div>'+
-   '<div class="row"><button class="btn small" id="demo4Prev">⬅ État 4</button><button class="btn main" id="demo4Save">💾 Enregistrer'+(dirty||CM.ex4DemoDirty?' *':'')+'</button></div>'+
-   '<div id="demo4Msg"></div><button class="btn" id="demo4Back">⬅ Retour aux fermes</button>'+creditC();
-  $("demo4Prev").onclick=()=>{CM.ex4Step=3;CM.ex4PickStart=null;CM.ex4DemoAction="select";cmSetMode("move");panelEx4Demo(true)};
-  $("demo4Save").onclick=saveEx4Demo;
-  $("demo4Back").onclick=()=>{CM.exercise4=false;CM.ex4TrainerDemo=false;dash("fermes")};
-  cmTools();cmTip();cmRender();return
+ show("vCarte");const p=$("panelC"),i=CM.ex4Step,st=EX4_STEPS[i],m=ex4Metrics();$("who").textContent="🧑‍🌾 Exercice 4 · démonstration · "+(CUR?CUR.nom:"");
+ let body='<div class="muted">MODULE 1 · EXERCICE 4 · FORMATEUR</div><h3>🎬 Démonstration en direct</h3>'+ex4Stepbar()+'<div class="msg"><b>'+st.title+'</b><br>'+st.intro+'</div>';
+ if(i===0){
+  body+='<div class="calcbox"><label class="f">Nombre de caisses dans la récolte<input id="d4Crates" type="number" min="0" step="1" value="'+esc(CM.ex4Base.crates)+'" placeholder="Ex. 20"></label><label class="f">Poids moyen d’une caisse pleine (kg)<input id="d4Weight" type="number" min="0" step="0.1" value="'+esc(CM.ex4Base.weight)+'" placeholder="Ex. 10"></label>'+ex4StdKpis()+'</div>'+ 
+  '<div class="msg"><b>Question au groupe</b><br>Qu’est-ce qu’on pourrait supprimer sans acheter une nouvelle machine ?</div>'+ 
+  (!CM.ex4RevealStd?'<button class="btn main" id="d4RevealStd">💡 Révéler l’amélioration</button>':'<div class="msg ok"><b>Amélioration : standardiser les caisses</b><br>Même caisse + même tare + poids cible connu = plus besoin de sortir chaque caisse du chariot pour la peser puis la remettre.<br><b>'+Math.round(m.movesAvoided)+' mouvements</b> et <b>'+Math.round(m.kgHandledAvoided)+' kg manipulés</b> sont évités sur cette récolte.</div>')
+ }else if(i===1){
+  body+='<div class="msg"><b>Montre-le directement sur la carte.</b><br>1er clic : endroit où le chariot s’arrêtait avant la marche.<br>2e clic : endroit où les caisses devaient être amenées dans la chambre froide.</div>'+ 
+  ex4RampKpis()+
+  '<div class="row"><button class="btn small" id="d4ClearRamp" '+(!(CM.ex4RampPts||[]).length?'disabled':'')+'>🧹 Recommencer les 2 points</button></div>'+ 
+  '<div class="msg"><b>Question au groupe</b><br>La quantité de tomates change-t-elle ? Ou seulement la façon de déplacer cette charge ?</div>'+ 
+  (!CM.ex4RevealRamp?'<button class="btn main" id="d4RevealRamp">💡 Révéler l’amélioration</button>':'<div class="msg ok"><b>Amélioration : la rampe</b><br>La récolte reste à <b>'+Math.round(m.totalLoad)+' kg</b>. Mais le chariot peut entrer : sur cette portion, <b>'+Math.round(m.rampDistance)+' m de portage à la main deviennent 0 m</b>.<br><b>Temps ↓ &nbsp; Effort physique ↓</b></div>')
+ }else{
+  body+=ex4Summary()+'<div class="msg ok"><b>Idée à retenir</b><br>Une amélioration d’organisation peut supprimer du travail sans réduire la quantité déplacée : <b>standardiser supprime des manipulations ; la rampe transforme du portage en déplacement sur roues.</b></div>'
  }
-
- const tool=ex4DemoRelevantTool(),trace=ex4SourceTrace(i),routeDist=trace?(+trace.distance||ex4Route(i).total):0,portDist=ex4SelectedDistance(i),ranges=ex4Ranges(i);
- const guideOk=ex4DemoGuideItems().length>0;
- let body='<div class="muted">MODULE 1 · EXERCICE 4 · FORMATEUR</div><h3>🎬 Démonstration en direct</h3>'+ex4Stepbar()+
-  '<div class="msg"><b>'+st.title+'</b><br>'+st.reveal+'</div>'+
-  '<div class="msg '+(guideOk?'ok':'')+'"><b>Repères affichés : '+(i===3?'organisation actuelle':'ancienne organisation')+'</b><br>'+
-   (guideOk?'Utilise-les pour raconter le trajet devant les élèves.':'Aucun repère enregistré pour ce cas dans Ex.3 · repères.')+'</div>'+
-  '<div class="row"><button class="btn'+(CM.ex4DemoAction==="draw"?' on':'')+'" id="demo4Draw">✏️ '+(trace?'Retracer':'Tracer')+' ce trajet</button>'+
-  '<button class="btn'+(CM.ex4DemoAction==="select"?' on':'')+'" id="demo4Carry" '+(!trace?'disabled':'')+'>📦 Montrer le portage</button>'+
-  '<button class="btn" id="demo4Move">✋ Déplacer</button></div>'+
-  (trace?'<div class="kpis"><div class="kpi"><b>'+Math.round(routeDist)+' m</b><small>trajet total</small></div><div class="kpi"><b>'+Math.round(portDist)+' m</b><small>portage cumulé</small></div><div class="kpi"><b>'+ranges.length+'</b><small>portion(s) portée(s)</small></div></div>'+
-   (ranges.length?ex4RangesHtml(i):''):
-   '<div class="msg err"><b>Commence par tracer ce trajet devant le groupe.</b><br>Tu pourras ensuite montrer uniquement les portions où les caisses étaient portées.</div>')+
-  (CM.ex4DemoAction==="select"&&trace?'<div id="ex4MapMsg" class="msg '+(CM.ex4PickStart!==null?'ok':'')+'">'+
-    (CM.ex4PickStart!==null?'<b>Début du portage choisi ✅</b><br>Clique sur la fin de cette portion.':'<b>1er clic = début · 2e clic = fin</b><br>La portion devient rouge. Indique ensuite combien de passages avec charge ont réellement eu lieu.')+'</div>':'')+
-  '<div class="calcbox"><h4>Données de la démonstration</h4>'+
-   (i===0?'<label class="f">Nombre de caisses<input id="d4Crates" type="number" min="0" step="1" value="'+esc(CM.ex4Base.crates)+'" placeholder="Valeur ou estimation"></label>'+
-   '<label class="f">Poids moyen d’une caisse (kg)<input id="d4Weight" type="number" min="0" step="0.1" value="'+esc(CM.ex4Base.weight)+'" placeholder="Valeur ou estimation"></label>'+
-   '<label class="f">Semaines de récolte<input id="d4Weeks" type="number" min="0" step="1" value="'+esc(CM.ex4Base.weeks)+'" placeholder="Valeur ou estimation"></label>'+
-   '<label class="f">Récoltes / semaine<input id="d4PerWeek" type="number" min="0" step="0.1" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Valeur ou estimation"></label>':'')+
-   '<label class="f">Nombre de manipulations par caisse<input id="d4Manips" type="number" min="0" step="1" value="'+esc(CM.ex4States[i].manips)+'" placeholder="À estimer avec le groupe"></label>'+
-   ex4MetricBox(i)+
-  '</div>'+
-  '<div class="row">'+
-   (CM.ex4DemoAction==="select"&&trace?'<button class="btn small" id="d4Undo" '+(!ranges.length?'disabled':'')+'>↩ Retirer la dernière portion</button><button class="btn small" id="d4Clear" '+(!ranges.length&&CM.ex4PickStart===null?'disabled':'')+'>🧹 Effacer le portage</button>':'')+
-  '</div>'+
-  '<div class="row"><button class="btn small" id="demo4Prev" '+(i===0?'disabled':'')+'>⬅ État précédent</button><button class="btn main" id="demo4Next">'+(i===3?'Comparer ➡':'État suivant ➡')+'</button></div>'+
-  '<button class="btn main" id="demo4Save">💾 Enregistrer la démonstration'+(dirty||CM.ex4DemoDirty?' *':'')+'</button><div id="demo4Msg"></div>'+
-  '<button class="btn" id="demo4Back">⬅ Retour aux fermes</button>'+creditC();
-
+ body+='<div class="row"><button class="btn small" id="d4Prev" '+(i===0?'disabled':'')+'>⬅ Précédent</button><button class="btn main" id="d4Next" '+(i===2?'disabled':'')+'>Suivant ➡</button></div><button class="btn main" id="demo4Save">💾 Enregistrer la démonstration'+(dirty||CM.ex4DemoDirty?' *':'')+'</button><div id="demo4Msg"></div><button class="btn" id="demo4Back">⬅ Retour aux fermes</button>'+creditC();
  p.innerHTML=body;
-
- $("demo4Draw").onclick=()=>{CM.ex4DemoAction="draw";CM.ex4DemoTool=tool;CM.ex4PickStart=null;cmSetMode("draw");panelEx4Demo(true)};
- $("demo4Carry").onclick=()=>{CM.ex4DemoAction="select";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
- $("demo4Move").onclick=()=>{CM.ex4DemoAction="move";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
- if($("d4Undo"))$("d4Undo").onclick=()=>ex4UndoRange(i);
- if($("d4Clear"))$("d4Clear").onclick=()=>ex4ClearRanges(i);
- p.querySelectorAll("[data-carry-count]").forEach(inp=>inp.onchange=()=>ex4SetRangeCount(i,+inp.dataset.carryCount,inp.value));
-
- ["d4Crates","d4Weight","d4Weeks","d4PerWeek"].forEach(id=>{if($(id))$(id).onchange=()=>{
-  CM.ex4Base={crates:$("d4Crates").value,weight:$("d4Weight").value,weeks:$("d4Weeks").value,perWeek:$("d4PerWeek").value};CM.ex4DemoDirty=true;panelEx4Demo(true)
- }});
- if($("d4Manips"))$("d4Manips").onchange=()=>{CM.ex4States[i].manips=$("d4Manips").value;CM.ex4DemoDirty=true;panelEx4Demo(true)};
-
- $("demo4Prev").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step--;CM.ex4DemoTool=ex4DemoRelevantTool();CM.ex4DemoAction=ex4SourceTrace(CM.ex4Step)?"select":"draw";cmSetMode(CM.ex4DemoAction==="draw"?"draw":"move");panelEx4Demo(true)};
- $("demo4Next").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step++;if(CM.ex4Step<4){CM.ex4DemoTool=ex4DemoRelevantTool();CM.ex4DemoAction=ex4SourceTrace(CM.ex4Step)?"select":"draw";cmSetMode(CM.ex4DemoAction==="draw"?"draw":"move")}else cmSetMode("move");panelEx4Demo(true)};
- $("demo4Save").onclick=saveEx4Demo;
- $("demo4Back").onclick=()=>{CM.exercise4=false;CM.ex4TrainerDemo=false;CM.ex4PickStart=null;dash("fermes")};
- cmTools();cmTip();cmRender()
+ if($("d4Crates"))$("d4Crates").oninput=()=>{CM.ex4Base.crates=$("d4Crates").value;CM.ex4DemoDirty=true;panelEx4Demo(true)};
+ if($("d4Weight"))$("d4Weight").oninput=()=>{CM.ex4Base.weight=$("d4Weight").value;CM.ex4DemoDirty=true;panelEx4Demo(true)};
+ if($("d4RevealStd"))$("d4RevealStd").onclick=()=>{CM.ex4RevealStd=true;panelEx4Demo(true)};
+ if($("d4RevealRamp"))$("d4RevealRamp").onclick=()=>{CM.ex4RevealRamp=true;panelEx4Demo(true)};
+ if($("d4ClearRamp"))$("d4ClearRamp").onclick=ex4ClearRamp;
+ $("d4Prev").onclick=()=>{CM.ex4Step--;cmRender();panelEx4Demo(true)};
+ $("d4Next").onclick=()=>{CM.ex4Step++;cmRender();panelEx4Demo(true)};
+ $("demo4Save").onclick=saveEx4Demo;$("demo4Back").onclick=()=>{CM.exercise4=false;CM.ex4TrainerDemo=false;dash("fermes")};cmTools();cmTip();cmRender()
 }
 async function saveEx4Demo(){
- const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();
- const base=(data&&data.logique)||{};
- const payload={routes:CM.ex4Ex3Items||[],base:CM.ex4Base,states:CM.ex4States};
- const{error}=await sb.from("fermes").update({logique:{...base,ex4Demo:payload}}).eq("id",CUR.id);
- if(error){msg("demo4Msg","Erreur : "+error.message,"err");return}
- CM.ex4DemoDirty=false;msg("demo4Msg","✅ Démonstration Exercice 4 enregistrée.","ok")
+ const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single(),base=(data&&data.logique)||{};
+ const payload={base:CM.ex4Base,rampPts:CM.ex4RampPts||[],note:CM.ex4Note||"",metrics:ex4Metrics()};
+ const{error}=await sb.from("fermes").update({logique:{...base,ex4DemoSimple:payload}}).eq("id",CUR.id);
+ if(error){msg("demo4Msg","Erreur : "+error.message,"err");return}CM.ex4DemoDirty=false;msg("demo4Msg","✅ Démonstration Exercice 4 enregistrée.","ok")
 }
 async function eleveCarteEx4(f){
  if(f.mode!=="carte"){alert("L’exercice 4 nécessite une carte vivante IGN.");return studentDash()}
- CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Charges";await cmInit(f);
- const d=ex4Load(f.id),ex3items=await ex4LoadEx3Items(f);
- CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;CM.exercise3Demo=false;
- CM.readonly=true;CM.items=[];CM.logic=null;CM.overlays=[];CM.ex4Step=0;CM.ex4Base=d.base;CM.ex4States=d.states;CM.ex4Ex3Items=ex3items;CM.ex4PickStart=null;CM.onChange=null;
- cmSetMode("move");panelEleveEx4();cmRender();$("btnHelp").hidden=true
+ CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Charges";await cmInit(f);const d=ex4Load(f.id);
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=true;CM.exercise3Guide=false;CM.exercise3Demo=false;CM.ex4TrainerDemo=false;CM.readonly=true;CM.logic=null;CM.overlays=[];CM.items=[];
+ CM.ex4Base=d.base;CM.ex4RampPts=d.rampPts;CM.ex4Note=d.note;CM.ex4Step=0;CM.ex4RevealStd=false;CM.ex4RevealRamp=false;CM.onChange=null;cmSetMode("move");panelEleveEx4();cmRender();$("btnHelp").hidden=true
 }
 function panelEleveEx4(){
- const p=$("panelC"),i=CM.ex4Step,st=EX4_STATES[i];
- let body='<div class="muted">MODULE 1 · EXERCICE 4</div><h3>📦 Charges / manutention</h3>'+ex4Stepbar()+
-  '<div class="msg"><b>Étape '+(i+1)+' / '+EX4_STATES.length+' — '+st.title+'</b><br>'+st.reveal+'</div>';
- if(i<4){
-  const trace=ex4SourceTrace(i),dist=ex4SelectedDistance(i),ranges=ex4Ranges(i);
-  body+=(trace?
-   '<div class="msg ok"><b>Trajet repris automatiquement : '+ex4TraceLabel(i)+'</b><br><b>1er clic sur le trajet = début du portage.<br>2e clic = fin du portage.</b><br>La portion devient rouge. Indique ensuite combien de fois cette portion est parcourue avec une charge : les mètres de portage se cumulent automatiquement.</div>':
-   '<div class="msg err"><b>Trajet introuvable.</b><br>Il faut d’abord tracer le '+ex4TraceLabel(i)+' dans l’exercice 3.</div>');
-  if(i===0)body+='<div class="calcbox"><h4>Base commune pour les 4 états</h4>'+
-   '<label class="f">Combien de caisses pour cette récolte ?<input id="ex4Crates" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.crates)+'" placeholder="Votre estimation"></label>'+
-   '<label class="f">Poids moyen d’une caisse pleine (kg) ?<input id="ex4Weight" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.weight)+'" placeholder="Votre estimation"></label>'+
-   '<label class="f">Combien de semaines de récolte tomate ?<input id="ex4Weeks" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.weeks)+'" placeholder="Votre estimation"></label>'+
-   '<label class="f">Combien de récoltes par semaine ?<input id="ex4PerWeek" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Votre estimation"></label></div>';
-  body+='<div class="calcbox"><h4>'+st.question+'</h4>'+
-   '<div id="ex4MapMsg" class="msg '+(CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined?'ok':'')+'">'+
-    (CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined?'<b>Début choisi ✅</b><br>Clique maintenant sur la fin de cette portion de portage.':'<b>'+Math.round(dist)+' m de portage cumulé</b><br>'+ranges.length+' portion(s) enregistrée(s). Indique combien de fois chacune est parcourue avec une charge.')+
-   '</div>'+
-   (ranges.length?ex4RangesHtml(i):'')+
-   '<div class="row"><button class="btn small" id="ex4UndoCarry" '+(!ranges.length?'disabled':'')+'>↩ Retirer la dernière portion</button><button class="btn small" id="ex4ClearCarry" '+(!ranges.length&&CM.ex4PickStart===null?'disabled':'')+'>🧹 Tout effacer</button></div>'+
-   '<label class="f">Combien de fois chaque caisse est-elle soulevée / reposée ?<input id="ex4Manips" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].manips)+'" placeholder="Votre estimation"></label>'+
-   '<label class="f">'+(i<3?'Quelle amélioration proposeriez-vous maintenant ?':'Qu’est-ce qui a été principalement amélioré ?')+'<textarea id="ex4Proposal" rows="3" placeholder="Votre réflexion…">'+esc(CM.ex4States[i].proposal)+'</textarea></label>'+
-   ex4MetricBox(i)+'</div>';
+ const p=$("panelC"),i=CM.ex4Step,st=EX4_STEPS[i],m=ex4Metrics();let body='<div class="muted">MODULE 1 · EXERCICE 4</div><h3>📦 Charges / manutention</h3>'+ex4Stepbar()+'<div class="msg"><b>'+st.title+'</b><br>'+st.intro+'</div>';
+ if(i===0){
+  body+='<div class="calcbox"><label class="f">Combien de caisses pour cette récolte ?<input id="ex4Crates" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.crates)+'" placeholder="Votre estimation"></label><label class="f">Poids moyen d’une caisse pleine (kg) ?<input id="ex4Weight" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.weight)+'" placeholder="Votre estimation"></label>'+ex4StdKpis()+'</div>'+ 
+  '<div class="msg"><b>Avant de regarder la réponse :</b><br>Quelle modification d’organisation permettrait d’éviter ces mouvements ?</div>'+ 
+  (!CM.ex4RevealStd?'<button class="btn main" id="ex4RevealStd">💡 Voir l’amélioration mise en place</button>':'<div class="msg ok"><b>Caisses standardisées</b><br>Même caisse + même tare + poids cible connu : la pesée systématique disparaît.<br><b>'+Math.round(m.movesAvoided)+' mouvements évités</b> · <b>'+Math.round(m.kgHandledAvoided)+' kg manipulés en moins</b> pour cette récolte.</div>')
+ }else if(i===1){
+  body+='<div class="msg"><b>Mesure seulement le portage créé par la marche.</b><br>1er clic = là où le chariot s’arrête.<br>2e clic = là où les caisses doivent être déposées dans la chambre froide.</div>'+ex4RampKpis()+
+  '<div class="row"><button class="btn small" id="ex4ClearRamp" '+(!(CM.ex4RampPts||[]).length?'disabled':'')+'>🧹 Recommencer les 2 points</button></div>'+ 
+  (!CM.ex4RevealRamp?'<button class="btn main" id="ex4RevealRamp">💡 Voir l’amélioration mise en place</button>':'<div class="msg ok"><b>La rampe</b><br>La même récolte — <b>'+Math.round(m.totalLoad)+' kg</b> — continue de se déplacer. Mais elle reste sur le chariot : <b>'+Math.round(m.rampDistance)+' m de portage manuel deviennent 0 m</b>.<br><b>Temps ↓ &nbsp; Effort physique ↓</b></div>')
  }else{
-  body+=ex4Comparison()+
-   '<div class="msg ok"><b>Deux choses différentes</b><br><b>Portage</b> = je marche avec une charge.<br><b>Manutention</b> = je soulève, déplace ou repose une charge, même si je ne marche pas.</div>'+
-   '<div class="msg ok"><b>Méthode à retenir</b><br>Quand j’observe une tâche : <b>combien de fois je soulève ? quelles portions du trajet se font avec une charge ? combien de fois cela se répète ? qu’est-ce que l’organisation peut supprimer ?</b></div>'+
-   '<div class="msg"><b>À faire entre deux séances</b><br>Choisis une autre tâche réelle sur une ferme. Repère une situation de portage ou de manutention, mesure-la et propose une amélioration.</div>';
+  body+=ex4Summary()+'<label class="f">Ce que je retiens<textarea id="ex4Note" rows="3" placeholder="Une phrase suffit…">'+esc(CM.ex4Note||"")+'</textarea></label><div class="msg ok"><b>Méthode</b><br>Pour améliorer une tâche, je peux chercher à <b>supprimer une manipulation</b> ou à <b>transformer un portage en déplacement assisté</b>.</div>'
  }
- body+='<div class="row"><button class="btn small" id="ex4Prev" '+(i===0?'disabled':'')+'>⬅ Étape précédente</button><button class="btn main" id="ex4Next" '+(i===EX4_STATES.length-1?'disabled':'')+'>Étape suivante ➡</button></div>'+
-  '<button class="btn main" id="ex4Send">📤 Envoyer l’exercice 4</button><div id="ex4SendMsg"></div>'+
-  '<button class="btn" id="ex4Back">⬅ Retour à mon espace</button>'+creditC();
- p.innerHTML=body;
-
- ["ex4Crates","ex4Weight","ex4Weeks","ex4PerWeek"].forEach(id=>{if($(id))$(id).onchange=()=>{
-  CM.ex4Base={crates:$("ex4Crates").value,weight:$("ex4Weight").value,weeks:$("ex4Weeks").value,perWeek:$("ex4PerWeek").value};ex4Save();panelEleveEx4()
- }});
- if($("ex4Manips"))$("ex4Manips").onchange=()=>{CM.ex4States[i].manips=$("ex4Manips").value;ex4Save();panelEleveEx4()};
- if($("ex4Proposal"))$("ex4Proposal").oninput=()=>{CM.ex4States[i].proposal=$("ex4Proposal").value;ex4Save()};
- if($("ex4UndoCarry"))$("ex4UndoCarry").onclick=()=>ex4UndoRange(i);
- if($("ex4ClearCarry"))$("ex4ClearCarry").onclick=()=>ex4ClearRanges(i);
- p.querySelectorAll("[data-carry-count]").forEach(inp=>inp.onchange=()=>ex4SetRangeCount(i,+inp.dataset.carryCount,inp.value));
- $("ex4Prev").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step--;cmRender();panelEleveEx4()};
- $("ex4Next").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step++;cmRender();panelEleveEx4()};
- $("ex4Send").onclick=sendEx4;
- $("ex4Back").onclick=()=>{CM.exercise4=false;CM.ex4PickStart=null;studentDash()}
- cmTools();cmTip()
+ body+='<div class="row"><button class="btn small" id="ex4Prev" '+(i===0?'disabled':'')+'>⬅ Précédent</button><button class="btn main" id="ex4Next" '+(i===2?'disabled':'')+'>Suivant ➡</button></div><button class="btn main" id="ex4Send">📤 Envoyer l’exercice 4</button><div id="ex4SendMsg"></div><button class="btn" id="ex4Back">⬅ Retour à mon espace</button>'+creditC();p.innerHTML=body;
+ if($("ex4Crates"))$("ex4Crates").oninput=()=>{CM.ex4Base.crates=$("ex4Crates").value;ex4Save();panelEleveEx4()};
+ if($("ex4Weight"))$("ex4Weight").oninput=()=>{CM.ex4Base.weight=$("ex4Weight").value;ex4Save();panelEleveEx4()};
+ if($("ex4RevealStd"))$("ex4RevealStd").onclick=()=>{CM.ex4RevealStd=true;panelEleveEx4()};
+ if($("ex4RevealRamp"))$("ex4RevealRamp").onclick=()=>{CM.ex4RevealRamp=true;panelEleveEx4()};
+ if($("ex4ClearRamp"))$("ex4ClearRamp").onclick=ex4ClearRamp;
+ if($("ex4Note"))$("ex4Note").oninput=()=>{CM.ex4Note=$("ex4Note").value;ex4Save()};
+ $("ex4Prev").onclick=()=>{CM.ex4Step--;cmRender();panelEleveEx4()};$("ex4Next").onclick=()=>{CM.ex4Step++;cmRender();panelEleveEx4()};$("ex4Send").onclick=sendEx4;$("ex4Back").onclick=()=>{CM.exercise4=false;studentDash()};cmTools();cmTip()
 }
 async function sendEx4(){
  if(!STUDENT_USER){msg("ex4SendMsg","Reconnecte-toi à ton espace pour envoyer.","err");return}
- const hasData=(CM.ex4States||[]).some(s=>s.manips!==""||(s.carryRanges||[]).length||s.proposal);
- if(!hasData){msg("ex4SendMsg","Commence par renseigner au moins un état.","err");return}
- $("ex4Send").disabled=true;const c=CM.map.getCenter();
- const metrics=[0,1,2,3].map(ex4Metrics);
- const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||"?").slice(0,60),contenu:{exercise:"ex4",mode:"carte",base:CM.ex4Base,states:CM.ex4States,metrics,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
- $("ex4Send").disabled=false;msg("ex4SendMsg",error?"Envoi impossible : "+error.message:"✅ Exercice 4 envoyé. Tes estimations restent modifiables.",error?"err":"ok")
+ const m=ex4Metrics();if(!m.crates||!m.weight){msg("ex4SendMsg","Renseigne au moins le nombre de caisses et leur poids.","err");return}
+ $("ex4Send").disabled=true;const c=CM.map.getCenter();const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||"?").slice(0,60),contenu:{exercise:"ex4",version:"simple",base:CM.ex4Base,rampPts:CM.ex4RampPts||[],note:CM.ex4Note||"",metrics:m,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});$("ex4Send").disabled=false;msg("ex4SendMsg",error?"Envoi impossible : "+error.message:"✅ Exercice 4 envoyé.",error?"err":"ok")
 }
 async function openRecusEx4(f,ids){
- const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1,sel=multi?collectiveCopy(selected):selected;
- await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=false;CM.exercise4=false;CM.readonly=true;CM.logic=null;CM.items=[];CM.overlays=[];cmSetMode("move");
- const p=$("panelC");
- if(multi){
-  $("who").textContent="🧑‍🌾 "+f.nom+" · CHARGES · DÉBRIEF ANONYME";
-  p.innerHTML='<h3>📦 Exercice 4 — Débrief</h3><div class="msg ok">🔒 Les profils sont anonymisés.</div>'+
-   sel.map((r,i)=>{const c=r.contenu||{},m=c.metrics||[];return '<div class="msg"><b>'+anonLabel(i)+'</b><br>'+m.map((x,j)=>'<span>'+ (j+1)+' · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m de portage</span>').join('<br>')+'</div>'}).join("")+
-   '<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>';
- }else{
-  const c=sel[0].contenu||{},m=c.metrics||[],states=c.states||[];
-  $("who").textContent="🧑‍🌾 "+f.nom+" · Charges · "+sel[0].auteur;
-  p.innerHTML='<h3>'+esc(sel[0].auteur)+'</h3>'+
-   m.map((x,j)=>'<div class="msg"><b>'+EX4_STATES[j].title+'</b><br>'+Math.round(+x.manipCount||0)+' manipulations/récolte · '+Math.round(+x.kgPerHarvest||0)+' kg manipulés/récolte · '+Math.round(+x.carryPerHarvest||0)+' m de portage'+(states[j]&&states[j].proposal?'<br><span class="muted">Réflexion : '+esc(states[j].proposal)+'</span>':'')+'</div>').join("")+
-   '<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>';
- }
- $("ex4RecBack").onclick=()=>dash("recus");cmTools();cmTip()
+ const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1,sel=multi?collectiveCopy(selected):selected;await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=false;CM.exercise3Demo=false;CM.exercise4=false;CM.readonly=true;CM.logic=null;CM.items=[];CM.overlays=[];cmSetMode("move");const p=$("panelC");
+ const card=(r,label)=>{const c=r.contenu||{},m=c.metrics||{};if(Array.isArray(m))return '<div class="msg"><b>'+label+'</b><br>Ancienne version de l’exercice 4.</div>';return '<div class="msg"><b>'+label+'</b><br>Standardisation : <b>'+Math.round(+m.movesAvoided||0)+' mouvements</b> et <b>'+Math.round(+m.kgHandledAvoided||0)+' kg manipulés</b> évités.<br>Rampe : <b>'+Math.round(+m.totalLoad||0)+' kg</b> déplacés, <b>'+Math.round(+m.rampDistance||0)+' m → 0 m</b> de portage manuel.'+(c.note?'<br><span class="muted">Retient : '+esc(c.note)+'</span>':'')+'</div>'};
+ if(multi){$("who").textContent="🧑‍🌾 "+f.nom+" · CHARGES · DÉBRIEF ANONYME";p.innerHTML='<h3>📦 Exercice 4 — Débrief</h3><div class="msg ok">🔒 Les profils sont anonymisés.</div>'+sel.map((r,i)=>card(r,anonLabel(i))).join("")+'<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>'}else{$("who").textContent="🧑‍🌾 "+f.nom+" · Charges · "+sel[0].auteur;p.innerHTML='<h3>'+esc(sel[0].auteur)+'</h3>'+card(sel[0],"Résultat")+'<button class="btn" id="ex4RecBack">⬅ Retour aux schémas</button>'}$("ex4RecBack").onclick=()=>dash("recus");cmTools();cmTip()
 }
 
 /* ---------- IGN : chercher et cadrer la ferme (photos aériennes, gratuit) ---------- */
@@ -1364,7 +1109,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:"",weeks:"",perWeek:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,ex4RampPts:[],ex4Note:"",ex4RevealStd:false,ex4RevealRamp:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -1421,16 +1166,13 @@ const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"
 function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLayers());
  CM.overlays.forEach(o=>drawGeo(CM.g.over,o.items,{color:o.color,fill:.12,labels:!CM.exercise3}));
  if(CM.exercise3Guide){if(CM.guideShow!==false)drawGuideItems(CM.g.logic,ex3GuideItems(CM.guideCase||"c1",CM.guideItems),true)}
- else if(CM.exercise4&&CM.ex4TrainerDemo&&CM.ex4Step<4){drawGuideItems(CM.g.logic,ex4DemoGuideItems(),false)}
+ else if(CM.exercise4&&CM.ex4TrainerDemo&&CM.ex4Step===1){drawGuideItems(CM.g.logic,ex4DemoGuideItems(),false)}
  else if(CM.exercise3Demo){
   if(CM.ex3DemoShowGuides!==false&&CM.ex3DemoMode!=="compare")drawGuideItems(CM.g.logic,ex3GuideItems(CM.ex3DemoMode,CM.guideItems),false)
  }
  else if(CM.exercise3){drawGuideItems(CM.g.logic,ex3GuideForStep(CM.ex3Step,CM.ex3Guide),false)}
  else if(CM.logic)drawGeo(CM.g.logic,CM.logic,{dash:"8 6",fill:.06,weight:5});
- if(CM.exercise4){
-  if(CM.ex4TrainerDemo&&CM.ex4Step>=4)drawEx4DemoCompare();
-  else drawEx4Portage()
- }
+ if(CM.exercise4){drawEx4Portage()}
  else if(CM.exercise3Demo)drawGeo(CM.g.items,ex3DemoVisibleItems(),{labels:false,weight:7});
  else drawGeo(CM.g.items,CM.exercise3?ex3VisibleItems():CM.items,CM.exercise3?{labels:false}:{});
  if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
@@ -1447,17 +1189,10 @@ function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
 function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
 function cmTools(){const t=$("toolsC");
  if(CM.pending){t.innerHTML="";t.style.display="none";return}
- if(CM.exercise4&&CM.ex4TrainerDemo){
-  t.style.display="flex";
-  if(CM.ex4Step>=4){t.innerHTML='<button class="btn on">⇄ Comparaison finale</button>';return}
-  const tool=ex4DemoRelevantTool();
-  t.innerHTML='<button class="btn'+(CM.ex4DemoAction==="draw"?" on":"")+'" id="mD4Draw">✏️ Tracer</button><button class="btn'+(CM.ex4DemoAction==="select"?" on":"")+'" id="mD4Carry" '+(!ex4SourceTrace(CM.ex4Step)?'disabled':'')+'>📦 Portage</button><button class="btn'+(CM.ex4DemoAction==="move"?" on":"")+'" id="mD4Move">✋ Déplacer</button>';
-  $("mD4Draw").onclick=()=>{CM.ex4DemoAction="draw";CM.ex4DemoTool=tool;CM.ex4PickStart=null;cmSetMode("draw");panelEx4Demo(true)};
-  if($("mD4Carry"))$("mD4Carry").onclick=()=>{CM.ex4DemoAction="select";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
-  $("mD4Move").onclick=()=>{CM.ex4DemoAction="move";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
-  return
+ if(CM.exercise4){
+  if(CM.ex4Step===1){t.style.display="flex";t.innerHTML='<button class="btn on">📏 1er clic = chariot · 2e clic = chambre froide</button>';return}
+  t.innerHTML="";t.style.display="none";return
  }
- if(CM.exercise4){t.style.display="flex";t.innerHTML='<button class="btn on">📦 Début puis fin du portage</button>';return}
  if(CM.readonly){t.style.display="flex";t.innerHTML=topoBtnHtml();topoWire();return}
  t.style.display="flex";
  if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
@@ -1578,11 +1313,7 @@ async function topoTap(e){
  }
 }
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
- if(CM.exercise4&&CM.ex4TrainerDemo){
-  tx.textContent=CM.ex4Step>=4?"⇄ Comparez ensemble l’ancien et l’actuel.":CM.ex4DemoAction==="draw"?"✏️ Trace le trajet devant les élèves en expliquant vos anciennes habitudes.":CM.ex4DemoAction==="select"?"📦 1er clic = début du portage · 2e clic = fin. Rouge = caisse portée.":"✋ Déplace et zoome sur la carte.";
-  return
- }
- if(CM.exercise4){tx.textContent=CM.ex4Step<4?"📦 1er clic = début du portage · 2e clic = fin. La portion sélectionnée devient rouge.":"📦 Compare les quatre états.";return}
+ if(CM.exercise4){tx.textContent=CM.ex4Step===0?"📦 Renseigne les caisses et leur poids, puis observez ensemble ce que la pesée impose.":CM.ex4Step===1?((CM.ex4RampPts||[]).length===0?"📏 Clique là où le chariot s’arrêtait avant la marche.":(CM.ex4RampPts||[]).length===1?"📏 Clique maintenant là où les caisses étaient déposées dans la chambre froide.":"📏 La distance de portage avant la rampe est mesurée."):"✅ Comparez ce que les deux changements ont réellement supprimé.";return}
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
  if(CM.exercise3Guide){tx.textContent=CM.guideTool?"🎯 Clique sur la carte pour placer : "+(EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool)?.label||"ce repère")+".":"🎯 Choisis un repère à droite. Tu peux ensuite déplacer son point et sa vignette.";return}
@@ -1594,7 +1325,7 @@ function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
   return
  }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
-async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.exercise4&&(!CM.ex4TrainerDemo||CM.ex4DemoAction==="select")){ex4MapTap(e);return}if(CM.exercise4&&CM.ex4TrainerDemo&&CM.ex4DemoAction==="move")return;if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.exercise4){if(CM.ex4Step===1)ex4MapTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
  if(CM.exercise3Guide&&CM.guideTool){const def=EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool);if(def){const previous=ex3GuideItem(def.id,CM.guideItems),caseIndex=Math.max(0,ex3Defs(def.caseId).findIndex(x=>x.id===def.baseId)),lp=previous&&Number.isFinite(+previous.labelLat)&&Number.isFinite(+previous.labelLng)?{labelLat:+previous.labelLat,labelLng:+previous.labelLng}:guideDefaultLabel(lat,lng,caseIndex);CM.guideItems=(CM.guideItems||[]).filter(x=>x.guideId!==def.id);CM.guideItems.push({t:"point",k:def.k,guideId:def.id,baseId:def.baseId,caseId:def.caseId,nom:def.label,lat,lng,...lp});CM.logic=null;CM.guideTool=null;CM.guideShow=true;panelEx3Guide(true);cmTools();cmTip();cmRender()}return}
  if(CM.exercise2&&CM.mode==="draw"&&["source","stockage","question"].includes(CM.ex2Tool)){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:CM.ex2Tool,lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
  if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
@@ -1603,7 +1334,7 @@ function dpSimplify(pts,tol){if(pts.length<3)return pts;const a=pts[0],b=pts[pts
  for(let i=1;i<pts.length-1;i++){const p=pts[i],d=len<1e-6?Math.hypot(p.x-a.x,p.y-a.y):Math.abs(dy*p.x-dx*p.y+b.x*a.y-b.y*a.x)/len;if(d>max){max=d;idx=i}}
  if(max>tol){const l=dpSimplify(pts.slice(0,idx+1),tol),r=dpSimplify(pts.slice(idx),tol);return l.slice(0,-1).concat(r)}return[a,b]}
 const ACT=new Set();
-function cmCanDraw(e){if(CM.exercise4&&CM.ex4TrainerDemo&&CM.ex4DemoAction!=="draw")return false;if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
+function cmCanDraw(e){if(CM.exercise4)return false;if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
 function cmDown(e){if(e.pointerType==="mouse"&&e.button!==0)return;ACT.add(e.pointerId);
  if(ACT.size>1){CM.stroke=null;cmRender();return}
  if(!cmCanDraw(e))return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll);CM.stroke=[{x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng}]}
@@ -1617,18 +1348,6 @@ function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;
  CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null))))};
  cmTools();cmTip();cmSheet();cmRender()}
 function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
- if(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"){
-  const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre;sh.hidden=false;
-  let dist=0;const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
-  sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4><div class="msg ok"><b>Distance du trajet : '+Math.round(dist)+' m</b></div><p class="muted">Valide pour l’utiliser ensuite comme support du portage.</p><div class="row"><button class="btn main" id="shOk">✔ Valider</button><button class="btn" id="shNo">✖ Recommencer</button></div>';
-  $("shNo").onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};
-  $("shOk").onclick=()=>{
-   CM.ex4Ex3Items=(CM.ex4Ex3Items||[]).filter(x=>x.k!==ty);
-   CM.ex4Ex3Items.push({t:"trace",k:ty,nom:T.n,distance:dist,pts:CM.pending.pts.slice()});
-   CM.pending=null;CM.ex4PickStart=null;CM.ex4DemoAction="select";CM.ex4DemoDirty=true;cmSheet();cmSetMode("move");panelEx4Demo(true)
-  };
-  return
- }
  if(CM.exercise3Demo){
   const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre;sh.hidden=false;
   let dist=0;const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
@@ -1703,7 +1422,7 @@ function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerH
    CM.items.push({t:"zone",nom:nom||"?",freq,pts})}else CM.items.push({t:"trace",k:t,nom,pts});
   CM.pending=null;CM.lastDel=null;cmSheet();cmChanged()};
  $("shName").focus()}
-function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}if(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"){const k=ex4DemoRelevantTool();CM.ex4Ex3Items=(CM.ex4Ex3Items||[]).filter(x=>x.k!==k);CM.ex4DemoDirty=true;panelEx4Demo(true);return}if(CM.exercise3Demo){const k=CM.ex3DemoMode==="c1"?"trajet_actuel":CM.ex3DemoMode==="c2"?"trajet_ancien":null;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}if(CM.exercise3){const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
+function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}if(CM.exercise3Demo){const k=CM.ex3DemoMode==="c1"?"trajet_actuel":CM.ex3DemoMode==="c2"?"trajet_ancien":null;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}if(CM.exercise3){const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
 function cmChanged(){cmTools();cmTip();cmRender();if(CM.onChange)CM.onChange()}
 function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const i=+b.dataset.del,it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()});
  if($("bRestore"))$("bRestore").onclick=()=>{if(CM.lastDel){CM.items.splice(CM.lastDel.i,0,CM.lastDel.item);CM.lastDel=null;cmChanged()}};
