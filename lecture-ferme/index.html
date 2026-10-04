@@ -324,7 +324,7 @@ async function mbSearch(){const q=$("inAdr").value.trim();if(!q){msg("mbMsg","É
  msg("mbMsg","Recherche en cours…");
  try{await loadLeaflet();const g=await geocode(q);if(!g){msg("mbMsg","Aucun résultat. Essaie avec la commune, ou un autre mot.","err");return}
   $("mbWrap").hidden=false;$("rotRow").hidden=false;$("rotHelp").hidden=false;$("btnUseView").hidden=false;
-  if(!MB){MB=L.map("mb",{zoomSnap:.5,maxZoom:21}).setView([g.lat,g.lng],17);L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(MB)}
+  if(!MB){MB=L.map("mb",{zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:21}).setView([g.lat,g.lng],17);L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(MB)}
   else{MB.setView([g.lat,g.lng],17)}
   setTimeout(()=>{MB.invalidateSize();drawFrame()},60);
   msg("mbMsg","✅ Trouvé : "+g.label+". Déplace et zoome, tourne le cadre si besoin, puis clique sur « Utiliser cette vue ».","ok")
