@@ -5,6 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f6f7f4;--paper:#fff;--ink:#14201a;--muted:#55635b;--line:#d3dbd5;--shade:#14201a;--accent:#2e7d4f}
@@ -96,7 +97,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </header>
 
 <!-- ÉLÈVE : connexion simple -->
-<section class="view center" id="vAccueil"><div class="box">
+<section class="view center show" id="vAccueil"><div class="box">
 <h2>👋 Mon espace stagiaire</h2>
 <p class="muted">Première connexion ou nouvel appareil : entre ton prénom et ton e-mail. Tu recevras un lien d’accès. Ensuite, tu resteras connecté sur cet appareil tant que tu ne te déconnectes pas.</p>
 <label class="f">Ton prénom<input id="inPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
@@ -113,7 +114,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <div><h2 style="margin-bottom:4px">🎓 Mon espace de formation</h2><p class="muted" id="studentIdentity"></p></div>
 <button class="btn small" id="btnStudentLogout">Se déconnecter</button>
 </div>
-<div class="msg ok"><b>Ta progression est enregistrée.</b><br>Tu peux fermer le navigateur et revenir plus tard : ton accès reste ouvert sur cet appareil tant que tu ne choisis pas « Se déconnecter ».</div>
+<div class="msg ok"><b>Ta progression est enregistrée.</b><br>Sur cet appareil, ton accès reste ouvert tant que tu ne choisis pas « Se déconnecter ». Sur un nouvel appareil, il suffit de refaire la connexion par e-mail.</div>
 <h3>Mon parcours</h3>
 <div class="grid" id="studentFarms"></div>
 <h3>Mon historique</h3>
@@ -139,7 +140,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <!-- Lien direct vers une ferme -->
 <section class="view center" id="vLien"><div class="box">
 <h2 id="lienNom">Ferme</h2>
-<p class="muted">Première connexion ou nouvel appareil : utilise ton e-mail. Ensuite, ton accès restera ouvert sur cet appareil jusqu’à déconnexion.</p>
+<p class="muted">Connecte-toi une seule fois : ton travail et ton historique seront ensuite rattachés à ton espace personnel.</p>
 <label class="f">Ton prénom<input id="lienPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
 <label class="f">Ton e-mail<input id="lienMail" type="email" autocomplete="email" placeholder="ex. camille@email.fr"></label>
 <button class="btn main" id="lienGo">📩 Recevoir mon lien et commencer</button>
@@ -202,6 +203,8 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
 <script>
 /* ====== RÉGLAGES ====== */
+window.addEventListener("error",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String(e.message||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
+window.addEventListener("unhandledrejection",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String((e.reason&&e.reason.message)||e.reason||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
 const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
 const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"}};
@@ -230,7 +233,8 @@ async function askFreq(){
 
 const PEOPLE=["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#9a6324","#469990","#800000"];
 /* ====================== */
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const sb=window.supabase?window.supabase.createClient(SUPA_URL,SUPA_KEY):null;
+if(!sb){const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Supabase ne s’est pas chargé.</b> Recharge la page. Si le message reste affiché, envoie-moi une capture.</div>'; }
 let STUDENT_USER=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -335,6 +339,7 @@ const LEGEND='<div class="legend">'+["zone","eau","vehicule","recolte","libre","
 let FERMES=[],CUR=null,pollT=null;
 async function loadFermes(){const{data,error}=await sb.from("fermes").select("id,nom,image_url,revele,ordre,created_at,bearing,crop_w,crop_h,mode,lat,lng,zoom,fond").order("ordre").order("created_at");FERMES=error?[]:data;return FERMES}
 async function getCurrentUser(){
+ if(!sb)return null;
  const{data}=await sb.auth.getUser();
  return data&&data.user?data.user:null
 }
@@ -357,6 +362,7 @@ async function accueil(){
  $("inStudentMail").value=LS.get("last_student_email","");
 }
 async function sendStudentMagicLink(farmId=null,fromDirect=false){
+ if(!sb){const target=fromDirect?"lienMsg":"studentLoginMsg";msg(target,"Connexion technique indisponible. Recharge la page.","err");return}
  const prenom=(fromDirect?$("lienPrenom"):$("inPrenom")).value.trim();
  const email=(fromDirect?$("lienMail"):$("inStudentMail")).value.trim().toLowerCase();
  const msgId=fromDirect?"lienMsg":"studentLoginMsg";
@@ -367,7 +373,7 @@ async function sendStudentMagicLink(farmId=null,fromDirect=false){
  let redirect=location.origin+location.pathname+"?student=1";
  if(farmId)redirect+="&farm="+encodeURIComponent(farmId);
  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:redirect,data:{role:"student",prenom}}});
- msg(msgId,error?("Impossible d'envoyer le lien : "+error.message):"✅ Lien envoyé. Ouvre ton e-mail et clique dessus. Ensuite, tu resteras connecté sur cet appareil jusqu’à ce que tu choisisses « Se déconnecter ».",error?"err":"ok")
+ msg(msgId,error?("Impossible d'envoyer le lien : "+error.message):"✅ Lien envoyé ! Ouvre ton e-mail et clique dessus. Tu reviendras directement ici.",error?"err":"ok")
 }
 async function studentDash(){
  const u=STUDENT_USER||await getCurrentUser();if(!u){return accueil()}
@@ -965,14 +971,12 @@ async function route(){
  if(m)return lienPage(m[1]);
  return accueil()
 }
-// Sécurité d'affichage : on montre immédiatement l'accueil pendant la vérification de session.
-if(!location.hash.startsWith("#formateur")&&!location.hash.startsWith("#ferme="))show("vAccueil");
-window.addEventListener("hashchange",()=>route().catch(e=>{console.error(e);show("vAccueil")}));
-sb.auth.onAuthStateChange((event,session)=>{
+window.addEventListener("hashchange",()=>route());
+if(sb)sb.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_IN" && session && !location.hash.startsWith("#formateur") && !new URLSearchParams(location.search).get("student")){
   const role=session.user&&session.user.user_metadata&&session.user.user_metadata.role;
   if(role==="student"){STUDENT_USER=session.user;studentDash()}
  }
 });
-route().catch(e=>{console.error("Erreur démarrage :",e);show("vAccueil");msg("studentLoginMsg","Une erreur de démarrage est survenue. Recharge la page ou utilise l’espace formateur.","err")});
+route().catch(e=>{console.error(e);show("vAccueil");msg("studentLoginMsg","Erreur au démarrage : "+(e.message||e),"err")});
 </script></body></html>
