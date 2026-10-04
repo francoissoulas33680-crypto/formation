@@ -150,6 +150,18 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .validationDiagRow small{color:#59645f}
 @media(max-width:620px){.validationDiag{grid-template-columns:1fr}}
 
+
+.modelIntro{margin:14px 0 10px}
+.modelGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 16px}
+.modelCard{display:flex;gap:10px;border:1px solid #dce2dd;border-radius:13px;background:#fff;padding:11px}
+.modelNum{flex:0 0 34px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eef2ef;font-weight:900}
+.modelBody{min-width:0;flex:1}.modelBody>b{font-size:16px;display:block}.modelBody>small{display:block;margin-top:2px;color:#647069}.modelBody p{font-size:13px;margin:8px 0}
+.freeAnalysis{border-top:1px solid #dce2dd;padding-top:12px;margin-top:10px}
+.measureSummary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.measureSummary span{border:1px solid #dce2dd;border-radius:999px;padding:6px 9px;background:#fff;font-size:12px;font-weight:800}
+.modelToolHelp{padding:10px;border-left:4px solid #65746c;background:#f6f8f6;border-radius:8px;margin:10px 0}
+.designFields{grid-template-columns:1fr}
+@media(max-width:680px){.modelGrid{grid-template-columns:1fr}}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -195,8 +207,8 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <!-- STAGIAIRE : créer un diagnostic autonome -->
 <section class="view center" id="vDiagNew"><div class="box" style="max-width:820px">
 <div class="phaseRail"><span class="on">1 · Avant visite</span><span>2 · Pendant</span><span>3 · Après</span></div>
-<h2>🔎 Nouvelle analyse de ferme</h2>
-<p class="muted">Cherche une ferme que tu ne connais pas encore. La carte sert à préparer une enquête, pas à donner directement les réponses.</p>
+<h2>🔎 Analyse libre d’une ferme</h2>
+<p class="muted">Choisis une ferme hors de la galerie. Tu retrouveras les outils du module pour mener ta propre enquête.</p>
 <label class="f">Nom de la ferme<input id="diagNom" maxlength="120" placeholder="ex. Ferme des ..."></label>
 <label class="f">Commune / lieu<input id="diagCommune" maxlength="160" placeholder="ex. Chauvigny (86)"></label>
 <div class="row"><button class="btn main" id="diagSearchBtn">🔎 Rechercher</button><button class="btn" id="diagNewBack">⬅ Mon espace</button></div>
@@ -310,7 +322,7 @@ window.addEventListener("error",e=>{try{const el=document.getElementById("studen
 window.addEventListener("unhandledrejection",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String((e.reason&&e.reason.message)||e.reason||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
 const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
-const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"},guide_depart:{n:"Départ / chargement vente",e:"🚩",c:"#455a64"},guide_tomate:{n:"Planche de tomates",e:"🍅",c:"#d84315"},guide_stockage:{n:"Stockage / chambre froide",e:"🧊",c:"#1565c0"},guide_prepa:{n:"Préparation de commande",e:"📦",c:"#6a1b9a"},guide_salade:{n:"Récolte salade",e:"🥬",c:"#2e7d32"},guide_caisses:{n:"Stock de caisses",e:"📦",c:"#8d6e63"},diag_deplacement:{n:"Déplacement",e:"🚶",c:"#ef6c00"},diag_portage:{n:"Portage",e:"📦",c:"#c62828"},diag_manutention:{n:"Manutention",e:"💪",c:"#8e24aa"}};
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"},guide_depart:{n:"Départ / chargement vente",e:"🚩",c:"#455a64"},guide_tomate:{n:"Planche de tomates",e:"🍅",c:"#d84315"},guide_stockage:{n:"Stockage / chambre froide",e:"🧊",c:"#1565c0"},guide_prepa:{n:"Préparation de commande",e:"📦",c:"#6a1b9a"},guide_salade:{n:"Récolte salade",e:"🥬",c:"#2e7d32"},guide_caisses:{n:"Stock de caisses",e:"📦",c:"#8d6e63"},diag_deplacement:{n:"Déplacement",e:"🚶",c:"#ef6c00"},diag_portage:{n:"Portage",e:"📦",c:"#c62828"},diag_manutention:{n:"Manutention",e:"💪",c:"#8e24aa"},measure_distance:{n:"Distance",e:"📏",c:"#455a64"},measure_surface:{n:"Surface",e:"▰",c:"#1565c0"},measure_bed:{n:"Planche",e:"🥕",c:"#2e7d32"},measure_observation:{n:"Observation",e:"📝",c:"#c99a00"}};
 const FREQS={
   1:{n:"Plusieurs fois par jour",c:"#c62828"},
   2:{n:"Tous les jours ou presque",c:"#ef6c00"},
@@ -598,14 +610,18 @@ async function studentDash(){
  if(validationError){
   $("studentLab").innerHTML='<div class="labLocked"><div class="labIcon">⚠️</div><div style="flex:1"><h3>Validation non configurée</h3><p>La table dédiée aux validations n’est pas encore accessible.</p><div class="msg err">'+esc(validationError.message||"Erreur exercise_validations")+'</div><p><b>Exécute le SQL V28 une seule fois dans Supabase.</b></p></div></div>';
  }else $("studentLab").innerHTML=globalDone?
-  '<div class="labUnlock"><div style="flex:1"><div class="labIcon">🔓</div><h3>Mon laboratoire de diagnostic</h3><p>Les 4 outils sont acquis. Tu peux maintenant enquêter librement sur une nouvelle ferme.</p>'+
+  '<div class="labUnlock"><div style="flex:1"><div class="labIcon">🔓</div><h3>Mon laboratoire de design</h3><p>Les 4 outils sont acquis. Commence par observer des fermes modèles et comprendre leur logique de design et de standardisation.</p>'+
    studentValidationStatusHtml(validationStatus)+
-   '<button class="btn main" id="newDiagBtn">🔎 Nouvelle analyse</button></div></div>':
+   '<div id="modelGallery"></div>'+
+   '<div class="freeAnalysis"><b>Ensuite, à toi de choisir.</b><br><span class="muted">Tu peux aussi analyser librement une autre ferme avec les mêmes outils.</span><br><button class="btn" id="newDiagBtn">🔎 Analyse libre</button></div></div></div>':
   '<div class="labLocked"><div class="labIcon">🔒</div><div style="flex:1"><h3>Laboratoire de diagnostic</h3><p>Il se débloque lorsque les 4 exercices ont été validés par le formateur.</p>'+
    studentValidationStatusHtml(validationStatus)+
    '<div class="msg"><b>Encore à valider :</b> '+missing.map(x=>({ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"}[x])).join(" · ")+'</div>'+
    '<div class="row" style="margin-top:10px"><button class="btn small" id="studentRefreshValid">🔄 Vérifier mes validations</button><button class="btn small" id="studentDebugValid">🧪 Voir le détail</button></div></div></div>';
- if(globalDone)$("newDiagBtn").onclick=()=>newDiagnostic();
+ if(globalDone){
+  renderModelGallery();
+  $("newDiagBtn").onclick=()=>newDiagnostic()
+ }
  if($("studentRefreshValid"))$("studentRefreshValid").onclick=()=>studentDash();
  if($("studentDebugValid"))$("studentDebugValid").onclick=()=>{
   const existing=$("studentValidationRaw");
@@ -1446,6 +1462,57 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- LABORATOIRE DE DIAGNOSTIC : avant / pendant / après visite ---------- */
+const MODEL_FARMS=[
+ {id:"baba",name:"Ferme de Baba",place:"Bannalec (29)",search:"Castel Coudiec, Bannalec, 29380",lat:47.910834,lng:-3.655517,zoom:19,link:"https://www.bing.com/maps?cp=47.910834~-3.655517&lvl=18.5&style=h"},
+ {id:"valette",name:"Les Jardins de la Valette",place:"Sanvensa (12)",search:"520 route de la rivière, 12200 Sanvensa",zoom:19,link:"https://maps.app.goo.gl/Aqx4KfefZnZ7E8X48"},
+ {id:"buis",name:"La Ferme des Buis",place:"La Roche-sur-Grane (26)",search:"Les Buis, 26400 La Roche-sur-Grane",zoom:19,link:"https://maps.app.goo.gl/Ph5Datytfte8ksVk9"},
+ {id:"gogottes",name:"La Ferme des Gogottes",place:"Samois-sur-Seine (77)",search:"5 Rue du Petit Barbeau, 77920 Samois-sur-Seine",zoom:19,link:"https://maps.app.goo.gl/buAJvchDJkCm39fdA"},
+ {id:"gobettes",name:"La Ferme des Gobettes",place:"Saint-Sylvestre-de-Cormeilles (27)",search:"39 Rue d'Angerville, 27260 Saint-Sylvestre-de-Cormeilles",zoom:19,link:"https://maps.app.goo.gl/iHDKBFCszXjtaKVp9"}
+];
+function renderModelGallery(){
+ const root=$("modelGallery");if(!root)return;
+ root.innerHTML='<div class="modelIntro"><h3>📚 Fermes modèles</h3><p>Pour chacune : <b>observe d’abord</b>, puis mesure plusieurs planches et plusieurs blocs. Cherche ce qui semble avoir été volontairement standardisé.</p></div>'+
+  '<div class="modelGrid">'+MODEL_FARMS.map((m,i)=>
+   '<div class="modelCard">'+
+    '<div class="modelNum">'+(i+1)+'</div>'+
+    '<div class="modelBody"><b>'+esc(m.name)+'</b><small>📍 '+esc(m.place)+'</small>'+
+    '<p>🎯 <b>Mission :</b> comprendre la logique de design, mesurer et comparer les dimensions qui se répètent.</p>'+
+    '<div class="row"><button class="btn main small" data-model="'+m.id+'">🔎 Analyser</button><button class="btn small" data-model-link="'+m.id+'">🛰️ Voir le lien</button></div></div>'+
+   '</div>'
+  ).join('')+'</div>';
+ root.querySelectorAll("[data-model]").forEach(b=>b.onclick=()=>startModelDiagnostic(b.dataset.model));
+ root.querySelectorAll("[data-model-link]").forEach(b=>b.onclick=()=>{
+  const m=MODEL_FARMS.find(x=>x.id===b.dataset.modelLink);if(m)window.open(m.link,"_blank","noopener")
+ })
+}
+async function startModelDiagnostic(id){
+ const m=MODEL_FARMS.find(x=>x.id===id);if(!m)return;
+ $("who").textContent="👤 "+studentName()+" · "+m.name;
+ let lat=m.lat,lng=m.lng;
+ if(!Number.isFinite(lat)||!Number.isFinite(lng)){
+  show("vDiagNew");
+  $("diagSearchMsg").innerHTML='<div class="msg">📍 Localisation de '+esc(m.name)+'…</div>';
+  const g=await geocode(m.search);
+  if(!g){msg("diagSearchMsg","Je n’ai pas réussi à localiser cette ferme automatiquement. Ouvre son lien puis utilise l’analyse libre pour la retrouver.","err");return}
+  lat=g.lat;lng=g.lng
+ }
+ const d=await diagCreateRow({
+  nom:m.name,commune:m.place,lat,lng,zoom:m.zoom||19,phase:"pre",
+  pre:{
+   mode:"model",
+   model:{id:m.id,link:m.link},
+   items:[],
+   notes:diagBlankNotes(),
+   priorities:[],
+   extraQuestions:"",
+   design:{observe:"",why:"",standard:"",limits:"",reuse:"",principle:""}
+  },
+  visit:{answers:{},notes:[],photos:[]},
+  post:{themes:{},learning:"",newQuestions:""}
+ });
+ openDiagPre(d)
+}
+
 let DIAG=null,DIAG_SEARCH=null,DIAG_SYNC_OK=true;
 const DIAG_THEMES={
  org:{e:"🟠",n:"Organisation",help:"Où semble se concentrer l’activité ? Qu’est-ce qui paraît proche, éloigné ou regroupé ?"},
@@ -1458,7 +1525,7 @@ function diagLocalKey(){return "tea:diagnostics:"+(STUDENT_USER?STUDENT_USER.id:
 function diagLocalAll(){return LS.get(diagLocalKey(),[])||[]}
 function diagLocalPut(d){const a=diagLocalAll(),i=a.findIndex(x=>x.id===d.id);if(i>=0)a[i]=d;else a.unshift(d);LS.set(diagLocalKey(),a)}
 function diagBlankNotes(){return {org:{see:"",guess:"",verify:"",question:""},eau:{see:"",guess:"",verify:"",question:""},dep:{see:"",guess:"",verify:"",question:""},charges:{see:"",guess:"",verify:"",question:""}}}
-function diagNormalize(d){d=d||{};return {...d,phase:d.phase||"pre",zoom:+d.zoom||17,pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:"",...(d.pre||{}),notes:{...diagBlankNotes(),...((d.pre&&d.pre.notes)||{})}},visit:{answers:{},notes:[],photos:[],...(d.visit||{})},post:{themes:{},learning:"",newQuestions:"",...(d.post||{})}}}
+function diagNormalize(d){d=d||{};const pre=d.pre||{};return {...d,phase:d.phase||"pre",zoom:+d.zoom||17,pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:"",design:{observe:"",why:"",standard:"",limits:"",reuse:"",principle:""},...pre,notes:{...diagBlankNotes(),...(pre.notes||{})},design:{observe:"",why:"",standard:"",limits:"",reuse:"",principle:"",...(pre.design||{})}},visit:{answers:{},notes:[],photos:[],...(d.visit||{})},post:{themes:{},learning:"",newQuestions:"",...(d.post||{})}}}
 async function diagList(){
  if(!STUDENT_USER)return [];
  try{const{data,error}=await sb.from("diagnostics").select("*").eq("user_id",STUDENT_USER.id).order("updated_at",{ascending:false});if(error)throw error;DIAG_SYNC_OK=true;return (data||[]).map(diagNormalize)}catch(e){DIAG_SYNC_OK=false;return diagLocalAll().map(diagNormalize)}
@@ -1477,8 +1544,8 @@ function renderDiagnosticCards(diags,unlocked){
  const root=$("studentDiagnostics");if(!root)return;
  if(!unlocked){root.innerHTML="";return}
  root.innerHTML='<h3>Mes diagnostics</h3>'+(DIAG_SYNC_OK?'':'<div class="msg"><b>Mode local.</b> Le laboratoire fonctionne sur cet appareil. Pour la synchronisation entre appareils, applique le fichier SQL fourni avec cette version.</div>')+
-  (!diags.length?'<p class="muted">Aucune ferme analysée pour le moment.</p>':'<div class="grid diagGrid">'+diags.map(d=>'<div class="card diagCard"><div class="t">'+esc(d.nom)+'</div><div class="s">'+esc(d.commune||"")+'<br><b>'+diagPhaseLabel(d.phase)+'</b></div><button class="btn small" data-open-diag="'+esc(d.id)+'">'+(d.phase==="pre"?'Continuer l’analyse':d.phase==="visit"?'Ouvrir le mode visite':d.phase==="after"?'Faire la relecture':'Revoir le diagnostic')+'</button></div>').join("")+'</div>');
- root.querySelectorAll("[data-open-diag]").forEach(b=>b.onclick=()=>{const d=diags.find(x=>String(x.id)===b.dataset.openDiag);if(!d)return;d.phase==="pre"?openDiagPre(d):d.phase==="visit"?openDiagVisit(d):openDiagAfter(d)})
+  (!diags.length?'<p class="muted">Aucune ferme analysée pour le moment.</p>':'<div class="grid diagGrid">'+diags.map(d=>{const model=d.pre&&d.pre.mode==="model";return '<div class="card diagCard"><div class="t">'+esc(d.nom)+'</div><div class="s">'+esc(d.commune||"")+'<br><b>'+(model?(d.phase==="done"?"✅ Étude de design terminée":"📚 Étude de design"):diagPhaseLabel(d.phase))+'</b></div><button class="btn small" data-open-diag="'+esc(d.id)+'">'+(model?(d.phase==="done"?"Revoir l’étude":"Continuer l’étude"):(d.phase==="pre"?'Continuer l’analyse':d.phase==="visit"?'Ouvrir le mode visite':d.phase==="after"?'Faire la relecture':'Revoir le diagnostic'))+'</button></div>'}).join("")+'</div>');
+ root.querySelectorAll("[data-open-diag]").forEach(b=>b.onclick=()=>{const d=diags.find(x=>String(x.id)===b.dataset.openDiag);if(!d)return;if(d.pre&&d.pre.mode==="model")openDiagPre(d,d.phase==="done");else d.phase==="pre"?openDiagPre(d):d.phase==="visit"?openDiagVisit(d):openDiagAfter(d)})
 }
 function newDiagnostic(){DIAG_SEARCH=null;show("vDiagNew");$("who").textContent="👤 "+studentName()+" · Nouvelle analyse";$("diagNom").value="";$("diagCommune").value="";$("diagSearchMsg").innerHTML="";$("diagSearchResult").innerHTML=""}
 async function diagSearch(){
@@ -1490,6 +1557,29 @@ async function diagSearch(){
  $("diagUseSearch").onclick=diagUseSearch
 }
 async function diagUseSearch(){if(!DIAG_SEARCH)return;const d=await diagCreateRow({...DIAG_SEARCH,phase:"pre",pre:{items:[],notes:diagBlankNotes(),priorities:[],extraQuestions:""},visit:{answers:{},notes:[],photos:[]},post:{themes:{},learning:"",newQuestions:""}});openDiagPre(d)}
+
+function geoPolygonArea(pts){
+ if(!Array.isArray(pts)||pts.length<3)return 0;
+ const R=6378137,rad=Math.PI/180;let area=0;
+ for(let i=0;i<pts.length;i++){
+  const p1=pts[i],p2=pts[(i+1)%pts.length];
+  const lon1=p1[0]*rad,lon2=p2[0]*rad,lat1=p1[1]*rad,lat2=p2[1]*rad;
+  area+=(lon2-lon1)*(2+Math.sin(lat1)+Math.sin(lat2))
+ }
+ return Math.abs(area*R*R/2)
+}
+function fmtArea(m2){
+ if(!Number.isFinite(+m2))return "0 m²";
+ return m2>=10000?(Math.round((m2/10000)*100)/100)+" ha":Math.round(m2)+" m²"
+}
+function modelMeasureSummary(){
+ const its=CM.items||[],d=its.filter(x=>x.k==="measure_distance"),s=its.filter(x=>x.k==="measure_surface"),b=its.filter(x=>x.k==="measure_bed");
+ return '<div class="measureSummary">'+
+  '<span>📏 '+d.length+' distance'+(d.length>1?'s':'')+'</span>'+
+  '<span>▰ '+s.length+' surface'+(s.length>1?'s':'')+'</span>'+
+  '<span>🥕 '+b.length+' planche'+(b.length>1?'s':'')+'</span>'+
+ '</div>'
+}
 function diagDraftTheme(){return CM.diagTheme||"org"}
 function diagThemeItems(theme){return (CM.items||[]).filter(x=>x.theme===theme)}
 function diagVisibleItems(){return CM.diagShowAll?(CM.items||[]):diagThemeItems(diagDraftTheme())}
@@ -1497,11 +1587,50 @@ function diagQuestionCandidates(d){const p=d.pre||{},notes=p.notes||{};let a=[];
 function diagNoteField(theme,key,label,placeholder){const v=((((DIAG||{}).pre||{}).notes||{})[theme]||{})[key]||"";return '<label class="diagField"><b>'+label+'</b><textarea data-diag-note="'+theme+':'+key+'" rows="3" placeholder="'+placeholder+'">'+esc(v)+'</textarea></label>'}
 async function openDiagPre(d,readonly=false){
  DIAG=diagNormalize(d);const f={id:"diag-"+DIAG.id,nom:DIAG.nom,mode:"carte",lat:+DIAG.lat,lng:+DIAG.lng,zoom:+DIAG.zoom||17,fond:"ign"};$("who").textContent="👤 "+studentName()+" · "+DIAG.nom;await cmInit(f);
- CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=false;CM.exercise3Guide=false;CM.exercise3Demo=false;CM.diagnostic=true;CM.diag=DIAG;CM.diagTheme="org";CM.diagTool=null;CM.diagShowAll=true;CM.readonly=readonly||DIAG.phase!=="pre";CM.items=(DIAG.pre.items||[]).map(x=>({...x}));CM.logic=null;CM.overlays=[];CM.onChange=()=>diagMapChanged();cmSetMode("move");panelDiagPre(false)
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise4=false;CM.exercise3Guide=false;CM.exercise3Demo=false;CM.diagnostic=true;CM.diag=DIAG;CM.diagModel=DIAG.pre.mode==="model";CM.diagTheme=CM.diagModel?"design":"org";CM.diagTool=null;CM.diagShowAll=true;CM.readonly=readonly||DIAG.phase!=="pre";CM.items=(DIAG.pre.items||[]).map(x=>({...x}));CM.logic=null;CM.overlays=[];CM.onChange=()=>diagMapChanged();cmSetMode("move");CM.diagModel?panelDiagModel(false):panelDiagPre(false)
 }
-function diagMapChanged(){if(!DIAG)return;DIAG.pre.items=CM.items;const c=CM.map.getCenter();DIAG.lat=+c.lat.toFixed(6);DIAG.lng=+c.lng.toFixed(6);DIAG.zoom=CM.map.getZoom();panelDiagPre(true)}
+function diagMapChanged(){if(!DIAG)return;DIAG.pre.items=CM.items;const c=CM.map.getCenter();DIAG.lat=+c.lat.toFixed(6);DIAG.lng=+c.lng.toFixed(6);DIAG.zoom=CM.map.getZoom();CM.diagModel?panelDiagModel(true):panelDiagPre(true)}
 function diagThemeTabs(){return '<div class="diagTabs">'+Object.entries(DIAG_THEMES).map(([k,v])=>'<button class="btn small'+(CM.diagTheme===k?' on':'')+'" data-diag-theme="'+k+'">'+v.e+' '+v.n+'</button>').join("")+'</div>'}
 function diagToolSummary(){const its=diagThemeItems(CM.diagTheme);return its.length?'<div class="msg ok"><b>'+its.length+' élément(s) sur la carte pour ce thème.</b></div>':'<p class="muted">Aucun élément cartographique pour ce thème. Tu n’es pas obligé d’en dessiner si la vue aérienne ne permet rien d’utile.</p>'}
+
+function modelField(key,label,placeholder,rows=3){
+ const v=(DIAG.pre.design||{})[key]||"";
+ return '<label class="diagField"><b>'+label+'</b><textarea data-design="'+key+'" rows="'+rows+'" placeholder="'+placeholder+'">'+esc(v)+'</textarea></label>'
+}
+function panelDiagModel(dirty){
+ const p=$("panelC"),design=DIAG.pre.design||{},model=(DIAG.pre.model||{}),locked=DIAG.phase!=="pre"||CM.readonly;
+ let content='<div class="muted">LABORATOIRE · FERME MODÈLE</div><h3>📚 '+esc(DIAG.nom)+'</h3><p class="muted">'+esc(DIAG.commune||"")+'</p>'+
+  '<div class="msg ok"><b>🎯 Mission</b><br>Observe l’organisation générale. Mesure plusieurs planches et plusieurs blocs. Cherche ce qui semble avoir été volontairement standardisé.</div>'+
+  modelMeasureSummary()+
+  '<div class="modelToolHelp"><b>Comment enquêter ?</b><br>1. Observe sans mesurer. 2. Mesure plusieurs exemples. 3. Compare. 4. Cherche le principe de design derrière ce que tu vois.</div>'+
+  '<div class="diag4 designFields">'+
+   modelField("observe","👁 Ce que j’observe","Formes, alignements, blocs, répétitions, proximité des fonctions…")+
+   modelField("why","💭 Pourquoi ce choix ?","Quel problème ce design semble-t-il chercher à résoudre ?")+
+   modelField("standard","📐 Ce qui semble standardisé","Dimensions répétées, largeur ou longueur de planches, blocs, allées…")+
+   modelField("limits","⚠️ Limites / conditions","Dans quelles conditions ce design fonctionne-t-il ?")+
+   modelField("reuse","💡 Ce que je pourrais réutiliser","Un principe transférable à une autre ferme…")+
+   modelField("principle","🎯 Principe de design principal","En une ou deux phrases : quel principe essentiel retiens-tu ?",2)+
+  '</div>'+
+  '<div class="row">'+
+   (model.link?'<button class="btn small" id="modelExternal">🛰️ Ouvrir le lien d’origine</button>':'')+
+   '<button class="btn small" id="diagFrame">📍 Enregistrer ce cadrage</button>'+
+  '</div>'+
+  (locked?'<div class="msg ok"><b>Étude terminée.</b></div>':
+   '<div class="row"><button class="btn" id="diagSave">💾 Enregistrer'+(dirty?' *':'')+'</button><button class="btn main" id="modelFinish">✅ Terminer mon étude</button></div>')+
+  '<div id="diagSaveMsg"></div><button class="btn" id="diagBack">⬅ Mon laboratoire</button>'+creditC();
+ p.innerHTML=content;
+
+ p.querySelectorAll("[data-design]").forEach(t=>t.oninput=()=>{DIAG.pre.design[t.dataset.design]=t.value});
+ if($("modelExternal"))$("modelExternal").onclick=()=>window.open(model.link,"_blank","noopener");
+ if($("diagFrame"))$("diagFrame").onclick=()=>{const c=CM.map.getCenter();DIAG.lat=+c.lat.toFixed(6);DIAG.lng=+c.lng.toFixed(6);DIAG.zoom=CM.map.getZoom();msg("diagSaveMsg","Cadrage enregistré.","ok")};
+ if($("diagSave"))$("diagSave").onclick=async()=>{DIAG.pre.items=CM.items;const c=CM.map.getCenter();DIAG.lat=+c.lat.toFixed(6);DIAG.lng=+c.lng.toFixed(6);DIAG.zoom=CM.map.getZoom();const ok=await diagSave(DIAG);msg("diagSaveMsg",ok?"✅ Étude enregistrée.":"✅ Enregistrée localement.",ok?"ok":"")};
+ if($("modelFinish"))$("modelFinish").onclick=async()=>{
+  if(!String(DIAG.pre.design.principle||"").trim()){msg("diagSaveMsg","Écris d’abord le principe de design principal que tu retiens.","err");return}
+  DIAG.pre.items=CM.items;DIAG.pre.validated_at=new Date().toISOString();DIAG.phase="done";await diagSave(DIAG);CM.diagnostic=false;CM.diagModel=false;studentDash()
+ };
+ $("diagBack").onclick=()=>{DIAG.pre.items=CM.items;CM.diagnostic=false;CM.diagModel=false;studentDash()};
+ cmTools();cmTip();cmRender()
+}
 function panelDiagPre(dirty){
  const p=$("panelC"),theme=CM.diagTheme||"org",meta=DIAG_THEMES[theme],locked=DIAG.phase!=="pre"||CM.readonly;
  let content='<div class="phaseRail compact"><span class="on">1 · Avant</span><span>2 · Visite</span><span>3 · Après</span></div><div class="muted">LABORATOIRE DE DIAGNOSTIC</div><h3>🔎 '+esc(DIAG.nom)+'</h3><p class="muted">'+esc(DIAG.commune||"")+'</p>'+diagThemeTabs();
@@ -1527,7 +1656,7 @@ function panelDiagPre(dirty){
 }
 function diagPersistPanel(){if(!DIAG)return;DIAG.pre.items=CM.items}
 function diagToolTheme(k){return k==="source"||k==="stockage"||k==="eau_dist"||k==="eau_nat"||k==="accumulation"?"eau":k==="diag_deplacement"?"dep":k==="diag_portage"||k==="diag_manutention"?"charges":"org"}
-function diagRemoveLast(){const th=CM.diagTheme;for(let i=CM.items.length-1;i>=0;i--){if(CM.items[i].theme===th){CM.items.splice(i,1);cmChanged();return}}}
+function diagRemoveLast(){const th=CM.diagModel?"design":CM.diagTheme;for(let i=CM.items.length-1;i>=0;i--){if(CM.items[i].theme===th){CM.items.splice(i,1);cmChanged();return}}}
 function diagPhotoThumb(src,note,idx){return '<div class="photoCard"><img src="'+src+'" alt="Photo de visite"><div><small>'+esc(note||"Photo de visite")+'</small><br><button class="btn small" data-del-photo="'+idx+'">🗑️ Retirer</button></div></div>'}
 async function compressPhoto(file){return new Promise((res,rej)=>{const im=new Image(),u=URL.createObjectURL(file);im.onload=()=>{const max=900,s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",.72))};im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("Photo illisible"))};im.src=u})}
 async function openDiagVisit(d){DIAG=diagNormalize(d);show("vDiagVisit");$("who").textContent="👤 "+studentName()+" · Visite · "+DIAG.nom;renderDiagVisit()}
@@ -1547,7 +1676,7 @@ function renderDiagAfter(){
 }
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,diagnostic:false,diag:null,diagTheme:"org",diagTool:null,diagShowAll:true,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,ex4RampPts:[],ex4Note:"",ex4RevealStd:false,ex4RevealRamp:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise4:false,diagnostic:false,diag:null,diagModel:false,diagTheme:"org",diagTool:null,diagShowAll:true,exercise3Guide:false,exercise3Demo:false,ex3DemoMode:"c2",ex3DemoTool:null,ex3DemoShowGuides:true,ex4TrainerDemo:false,ex4DemoAction:"select",ex4DemoTool:null,ex4DemoDirty:false,guideTool:null,guideCase:"c1",guideShow:true,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",ex4Step:0,ex4Base:{crates:"",weight:""},ex4States:[],ex4Ex3Items:[],ex4PickStart:null,ex4RampPts:[],ex4Note:"",ex4RevealStd:false,ex4RevealRamp:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -1558,7 +1687,7 @@ async function cmInit(f){show("vCarte");await loadLeaflet();
   ["over","logic","items","draft","topo"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
   CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
- CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.diagnostic=false;CM.diag=null;CM.diagTool=null;CM.exercise3Demo=false;CM.ex3DemoTool=null;CM.ex4TrainerDemo=false;CM.ex4DemoAction="select";CM.ex4DemoTool=null;CM.ex4DemoDirty=false;CM.ex4PickStart=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.exercise4=false;CM.diagnostic=false;CM.diag=null;CM.diagModel=false;CM.diagTool=null;CM.exercise3Demo=false;CM.ex3DemoTool=null;CM.ex4TrainerDemo=false;CM.ex4DemoAction="select";CM.ex4DemoTool=null;CM.ex4DemoDirty=false;CM.ex4PickStart=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.guideShow=true;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
 
 const GUIDE_LABEL_OFFSETS=[[88,-42],[88,14],[-88,-42],[-88,14],[70,58],[-70,58]];
@@ -1596,8 +1725,8 @@ function addFlowArrow(group,pts,col){
  L.marker(pts[pts.length-1],{icon,interactive:false,keyboard:false}).addTo(group)
 }
 function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=itemType(it),col=o.color||freqColor(it)||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]),labels=o.labels!==false;
- if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);if(labels){const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);cLabel(group,c[0],c[1],it.nom||"?",col)}}
- else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);if(it.k==="eau_nat")addFlowArrow(group,pts,col);if(labels){const m=pts[Math.floor(pts.length/2)],d=it.distance?(" · "+Math.round(it.distance)+" m"):"";cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n)+d,col)}}
+ if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);if(labels){const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]),extra=it.surface?(" · "+fmtArea(it.surface)):"";cLabel(group,c[0],c[1],(it.nom||"?")+extra,col)}}
+ else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);if(it.k==="eau_nat")addFlowArrow(group,pts,col);if(labels){const m=pts[Math.floor(pts.length/2)],d=it.distance?(" · "+Math.round(it.distance)+" m"):"",w=it.width?(" × "+it.width+" m"):"",a=it.surface?(" · "+fmtArea(it.surface)):"";cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n)+d+w+a,col)}}
  else if(it.t==="point"){L.circleMarker([it.lat,it.lng],{radius:8,color:"#fff",weight:3,fillColor:col,fillOpacity:1,interactive:false}).addTo(group);if(labels)cLabel(group,it.lat,it.lng,T.e+" "+(it.nom||T.n),col)}
  else if(it.t==="note"&&labels)cLabel(group,it.lat,it.lng,"📝 "+(it.txt||""),col)})}
 const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"],["eau","💧 L'eau","tuyau, forage, réserve…"],["vehicule","🚐 Les véhicules","passage de camion, tracteur…"],["recolte","🧺 La récolte à pied","chemin des caisses, brouettes…"],["libre","✏️ Autre tracé","je le nomme moi-même"]];
@@ -1617,11 +1746,11 @@ function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLay
  if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
  const pv=CM.pending?CM.pending.pts.map(p=>[p[1],p[0]]):(CM.stroke&&CM.stroke.length>1?CM.stroke.map(s=>[s.lat,s.lng]):null);
  if(pv){const T=CM.pending&&CM.pending.type?TYPES[CM.pending.type]:null,col=T?T.c:"#14201a";
-  if(T&&(CM.pending.type==="zone"||CM.pending.type==="accumulation")&&pv.length>2)L.polygon(pv,{color:col,weight:4,fillColor:col,fillOpacity:.2,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);
+  if(T&&(CM.pending.type==="zone"||CM.pending.type==="accumulation"||CM.pending.type==="measure_surface")&&pv.length>2)L.polygon(pv,{color:col,weight:4,fillColor:col,fillOpacity:.2,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);
   else {L.polyline(pv,{color:col,weight:5,lineCap:"round",lineJoin:"round",dashArray:CM.pending?"6 5":null,interactive:false}).addTo(CM.g.draft);if(CM.pending&&CM.pending.type==="eau_nat"&&pv.length>1)addFlowArrow(CM.g.draft,pv,col)}}
  $("cm").classList.toggle("draw",CM.mode==="draw"&&!CM.readonly&&!CM.pending)}
 function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
- const min=CM.diagnostic&&["zone","accumulation"].includes(CM.diagTool)?3:(CM.exercise1?3:(CM.exercise2&&CM.ex2Tool==="accumulation"?3:2));
+ const min=CM.diagnostic&&(["zone","accumulation","measure_surface"].includes(CM.diagTool))?3:(CM.exercise1?3:(CM.exercise2&&CM.ex2Tool==="accumulation"?3:2));
  if(v.length<min){cmTools();cmTip();cmRender();return}
  const px=v.map(q=>{const c=CM.map.latLngToContainerPoint({lat:q[1],lng:q[0]});return{x:c.x,y:c.y}});
  CM.pending={px,pts:v,type:CM.diagnostic?CM.diagTool:(CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null)))))};cmTools();cmTip();cmSheet();cmRender()}
@@ -1636,6 +1765,16 @@ function cmTools(){const t=$("toolsC");
  t.style.display="flex";
  if(CM.diagnostic){
   if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Point précédent</button><button class="btn" id="mCancel">✖ Recommencer</button>';$('mDone').onclick=cmVertsDone;$('mUndo').onclick=cmUndo;$('mCancel').onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
+  if(CM.diagModel){
+   const defs=[["measure_distance","📏 Distance"],["measure_surface","▰ Surface"],["measure_bed","🥕 Planche"],["measure_observation","📝 Observation"]];
+   t.innerHTML='<button class="btn'+(CM.mode==="move"&&!CM.diagTool?' on':'')+'" id="mMove">✋ Explorer</button>'+
+    defs.map(d=>'<button class="btn'+(CM.diagTool===d[0]?' on':'')+'" data-dtool="'+d[0]+'">'+d[1]+'</button>').join('')+
+    '<button class="btn" id="mUndo">↩ Effacer le dernier</button>';
+   $("mMove").onclick=()=>{CM.diagTool=null;cmSetMode("move")};
+   t.querySelectorAll("[data-dtool]").forEach(b=>b.onclick=()=>{CM.diagTool=b.dataset.dtool;cmSetMode(CM.diagTool==="measure_observation"?"move":"draw")});
+   $("mUndo").onclick=diagRemoveLast;
+   return
+  }
   const th=CM.diagTheme;
   if(th==="questions"){t.innerHTML='<button class="btn on">❓ Préparation des questions</button><button class="btn" id="mMove">✋ Carte</button>';$('mMove').onclick=()=>cmSetMode('move');return}
   const defs=th==="org"?[["zone","🟪 Zone / fréquence"]]:th==="eau"?[["source","💧 Source"],["stockage","🛢️ Stockage"],["eau_dist","🔵 Réseau"],["eau_nat","🌧️ Écoulement"],["accumulation","💦 Accumulation"]]:th==="dep"?[["diag_deplacement","🚶 Trajet"]]:[["diag_portage","📦 Portage"],["diag_manutention","💪 Manutention"]];
@@ -1760,7 +1899,7 @@ async function topoTap(e){
  }
 }
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
- if(CM.diagnostic){const th=CM.diagTheme;if(th==="questions"){tx.textContent="❓ Choisis les questions qui méritent vraiment d’être posées pendant la visite.";return}if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Lecture de pente affichée.";return}if(!CM.diagTool){tx.textContent="✋ Observe la ferme puis choisis un outil lié au thème.";return}tx.textContent=CM.pending?"Valide ce que tu viens de représenter.":CM.verts.length?"Continue puis termine le tracé.":["source","stockage","diag_manutention"].includes(CM.diagTool)?"Clique sur la carte pour placer ce repère.":CM.diagTool==="zone"?"Dessine une zone puis indique sa fréquence probable.":"Trace seulement ce qui aide ton enquête.";return}
+ if(CM.diagnostic){if(CM.diagModel){tx.textContent=!CM.diagTool?"✋ Observe d’abord la ferme. Puis choisis un outil de mesure.":CM.pending?"✔ Vérifie la mesure puis garde-la.":CM.verts.length?"Ajoute des points puis termine la mesure.":CM.diagTool==="measure_distance"?"📏 Trace une distance ou un chemin.":CM.diagTool==="measure_surface"?"▰ Dessine le contour d’un bloc pour mesurer sa surface.":CM.diagTool==="measure_bed"?"🥕 Trace la longueur d’une planche ; tu indiqueras ensuite sa largeur.":"📝 Clique sur la carte pour noter une observation.";return}const th=CM.diagTheme;if(th==="questions"){tx.textContent="❓ Choisis les questions qui méritent vraiment d’être posées pendant la visite.";return}if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Lecture de pente affichée.";return}if(!CM.diagTool){tx.textContent="✋ Observe la ferme puis choisis un outil lié au thème.";return}tx.textContent=CM.pending?"Valide ce que tu viens de représenter.":CM.verts.length?"Continue puis termine le tracé.":["source","stockage","diag_manutention"].includes(CM.diagTool)?"Clique sur la carte pour placer ce repère.":CM.diagTool==="zone"?"Dessine une zone puis indique sa fréquence probable.":"Trace seulement ce qui aide ton enquête.";return}
  if(CM.exercise4){tx.textContent=CM.ex4Step===0?"📦 Renseigne les caisses et leur poids, puis observez ensemble ce que la pesée impose.":CM.ex4Step===1?((CM.ex4RampPts||[]).length===0?"📏 Clique là où le chariot s’arrêtait avant la marche.":(CM.ex4RampPts||[]).length===1?"📏 Clique maintenant là où les caisses étaient déposées dans la chambre froide.":"📏 La distance de portage avant la rampe est mesurée."):"✅ Comparez ce que les deux changements ont réellement supprimé.";return}
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
@@ -1773,7 +1912,7 @@ function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
   return
  }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
-async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.diagnostic&&!CM.readonly){const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);if(["source","stockage","diag_manutention"].includes(CM.diagTool)){let nom=TYPES[CM.diagTool].n;if(CM.diagTool==="diag_manutention"){const v=await ask("Quel geste ou quelle manutention veux-tu repérer ?","");if(v===null)return;nom=v||nom}CM.items.push({t:"point",k:CM.diagTool,theme:diagToolTheme(CM.diagTool),nom,lat,lng});cmChanged();return}}
+async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.diagnostic&&!CM.readonly){const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);if(CM.diagModel&&CM.diagTool==="measure_observation"){const v=await ask("Quelle observation veux-tu noter ici ?","");if(v!==null&&v.trim()){CM.items.push({t:"note",k:"measure_observation",theme:"design",txt:v.trim(),lat,lng});cmChanged()}return}if(["source","stockage","diag_manutention"].includes(CM.diagTool)){let nom=TYPES[CM.diagTool].n;if(CM.diagTool==="diag_manutention"){const v=await ask("Quel geste ou quelle manutention veux-tu repérer ?","");if(v===null)return;nom=v||nom}CM.items.push({t:"point",k:CM.diagTool,theme:diagToolTheme(CM.diagTool),nom,lat,lng});cmChanged();return}}
  if(CM.exercise4){if(CM.ex4Step===1)ex4MapTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
  if(CM.exercise3Guide&&CM.guideTool){const def=EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool);if(def){const previous=ex3GuideItem(def.id,CM.guideItems),caseIndex=Math.max(0,ex3Defs(def.caseId).findIndex(x=>x.id===def.baseId)),lp=previous&&Number.isFinite(+previous.labelLat)&&Number.isFinite(+previous.labelLng)?{labelLat:+previous.labelLat,labelLng:+previous.labelLng}:guideDefaultLabel(lat,lng,caseIndex);CM.guideItems=(CM.guideItems||[]).filter(x=>x.guideId!==def.id);CM.guideItems.push({t:"point",k:def.k,guideId:def.id,baseId:def.baseId,caseId:def.caseId,nom:def.label,lat,lng,...lp});CM.logic=null;CM.guideTool=null;CM.guideShow=true;panelEx3Guide(true);cmTools();cmTip();cmRender()}return}
  if(CM.exercise2&&CM.mode==="draw"&&["source","stockage","question"].includes(CM.ex2Tool)){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:CM.ex2Tool,lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
@@ -1783,7 +1922,7 @@ function dpSimplify(pts,tol){if(pts.length<3)return pts;const a=pts[0],b=pts[pts
  for(let i=1;i<pts.length-1;i++){const p=pts[i],d=len<1e-6?Math.hypot(p.x-a.x,p.y-a.y):Math.abs(dy*p.x-dx*p.y+b.x*a.y-b.y*a.x)/len;if(d>max){max=d;idx=i}}
  if(max>tol){const l=dpSimplify(pts.slice(0,idx+1),tol),r=dpSimplify(pts.slice(idx),tol);return l.slice(0,-1).concat(r)}return[a,b]}
 const ACT=new Set();
-function cmCanDraw(e){if(CM.diagnostic&&(!CM.diagTool||["source","stockage","diag_manutention"].includes(CM.diagTool)))return false;if(CM.exercise4)return false;if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
+function cmCanDraw(e){if(CM.diagnostic&&(!CM.diagTool||["source","stockage","diag_manutention","measure_observation"].includes(CM.diagTool)))return false;if(CM.exercise4)return false;if(CM.exercise3Demo&&CM.ex3DemoMode==="compare")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
 function cmDown(e){if(e.pointerType==="mouse"&&e.button!==0)return;ACT.add(e.pointerId);
  if(ACT.size>1){CM.stroke=null;cmRender();return}
  if(!cmCanDraw(e))return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll);CM.stroke=[{x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng}]}
@@ -1793,11 +1932,37 @@ function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;
  let len=0;for(let i=1;i<s.length;i++)len+=Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y);
  if(len<20){cmRender();return}
  const simp=dpSimplify(s,3.5);
- if((CM.diagnostic&&["zone","accumulation"].includes(CM.diagTool)||CM.exercise1||CM.exercise2&&CM.ex2Tool==="accumulation")&&simp.length<3){cmRender();return}
+ if((CM.diagnostic&&["zone","accumulation","measure_surface"].includes(CM.diagTool)||CM.exercise1||CM.exercise2&&CM.ex2Tool==="accumulation")&&simp.length<3){cmRender();return}
  CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.diagnostic?CM.diagTool:(CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:(CM.exercise3?CM.ex3Tool:(CM.exercise3Demo?CM.ex3DemoTool:(CM.ex4TrainerDemo&&CM.ex4DemoAction==="draw"?CM.ex4DemoTool:null)))))};
  cmTools();cmTip();cmSheet();cmRender()}
 function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
- if(CM.diagnostic){const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre,pts=CM.pending.pts||[];let dist=0;for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);sh.hidden=false;sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4>'+(dist?'<div class="msg ok"><b>'+Math.round(dist)+' m</b></div>':'')+'<p class="muted">Est-ce que cet élément aide réellement ton diagnostic ?</p><div class="row"><button class="btn main" id="shOk">✔ Garder</button><button class="btn" id="shNo">✖ Recommencer</button></div>';$('shNo').onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};$('shOk').onclick=async()=>{let it;if(ty==="zone"){const freq=await askFreq();if(freq===null)return;const nom=await ask("Comment appelles-tu cette zone ?","");if(nom===null)return;it={t:"zone",k:"zone",theme:"org",nom:nom||"Zone",freq,pts:pts.slice()}}else if(ty==="accumulation")it={t:"zone",k:ty,theme:"eau",nom:T.n,pts:pts.slice()};else it={t:"trace",k:ty,theme:diagToolTheme(ty),nom:T.n,distance:dist,pts:pts.slice()};CM.items.push(it);CM.pending=null;cmSheet();cmChanged();cmSetMode("move")};return}
+ if(CM.diagnostic){const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre,pts=CM.pending.pts||[];let dist=0;for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
+  if(CM.diagModel){
+   const area=ty==="measure_surface"?geoPolygonArea(pts):0;
+   sh.hidden=false;
+   sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4>'+
+    (ty==="measure_surface"?'<div class="msg ok"><b>'+fmtArea(area)+'</b></div>':'<div class="msg ok"><b>'+Math.round(dist)+' m</b></div>')+
+    (ty==="measure_bed"?'<p class="muted">Après validation, indique la largeur de cette planche pour calculer sa surface.</p>':'')+
+    '<div class="row"><button class="btn main" id="shOk">✔ Garder</button><button class="btn" id="shNo">✖ Recommencer</button></div>';
+   $("shNo").onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};
+   $("shOk").onclick=async()=>{
+    let it;
+    if(ty==="measure_surface"){
+     const nom=await ask("Que mesures-tu ?","Bloc / zone");if(nom===null)return;
+     it={t:"zone",k:ty,theme:"design",nom:nom||"Surface",surface:area,pts:pts.slice()}
+    }else if(ty==="measure_bed"){
+     const w=await ask("Largeur de la planche en mètres :","0.75");if(w===null)return;
+     const width=parseFloat(String(w).replace(",","."));if(!Number.isFinite(width)||width<=0){alert("Largeur invalide.");return}
+     it={t:"trace",k:ty,theme:"design",nom:"Planche",distance:dist,width,surface:dist*width,pts:pts.slice()}
+    }else{
+     const nom=await ask("Que mesures-tu ?","Distance");if(nom===null)return;
+     it={t:"trace",k:ty,theme:"design",nom:nom||"Distance",distance:dist,pts:pts.slice()}
+    }
+    CM.items.push(it);CM.pending=null;cmSheet();cmChanged();cmSetMode("move")
+   };
+   return
+  }
+  sh.hidden=false;sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4>'+(dist?'<div class="msg ok"><b>'+Math.round(dist)+' m</b></div>':'')+'<p class="muted">Est-ce que cet élément aide réellement ton diagnostic ?</p><div class="row"><button class="btn main" id="shOk">✔ Garder</button><button class="btn" id="shNo">✖ Recommencer</button></div>';$('shNo').onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};$('shOk').onclick=async()=>{let it;if(ty==="zone"){const freq=await askFreq();if(freq===null)return;const nom=await ask("Comment appelles-tu cette zone ?","");if(nom===null)return;it={t:"zone",k:"zone",theme:"org",nom:nom||"Zone",freq,pts:pts.slice()}}else if(ty==="accumulation")it={t:"zone",k:ty,theme:"eau",nom:T.n,pts:pts.slice()};else it={t:"trace",k:ty,theme:diagToolTheme(ty),nom:T.n,distance:dist,pts:pts.slice()};CM.items.push(it);CM.pending=null;cmSheet();cmChanged();cmSetMode("move")};return}
  if(CM.exercise3Demo){
   const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre;sh.hidden=false;
   let dist=0;const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
