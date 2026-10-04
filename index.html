@@ -521,11 +521,11 @@ function studentValidationStatusHtml(status){
  '</div>'
 }
 function studentValidationDebugHtml(status){
- return '<div class="msg"><b>Détail reçu depuis Supabase</b>'+
+ return '<div class="msg"><b>Détail des envois + validation officielle</b>'+
   ["ex1","ex2","ex3","ex4"].map(ex=>{
    const s=status[ex]||{rows:[]};
    return '<div style="margin-top:8px"><b>'+ex.toUpperCase()+'</b> : '+
-    (s.rows.length?s.rows.map(r=>'#'+esc(String(r.id||"").slice(0,8))+' '+(r.validated?'✅ validé':'⏳ non validé')).join(' · '):'aucune ligne')+
+    (s.rows.length?s.rows.map(r=>'#'+esc(String(r.id||"").slice(0,8))+' '+(r.validated?'✅ validé':'⏳ non validé')).join(' · '):'aucun envoi')+
    '</div>'
   }).join("")+
  '</div>'
@@ -541,30 +541,41 @@ async function studentDash(){
  let history=[];
  const{data,error}=await sb.from("schemas").select("id,ferme_id,created_at,contenu").eq("user_id",u.id).order("created_at",{ascending:false});
  if(!error)history=data||[];
- STUDENT_VALID_SIG=history.map(h=>h.id+":"+((h.contenu&&h.contenu.validated)?"1":"0")).sort().join("|");
+
+ const {data:validationRows,error:validationError}=await sb.from("exercise_validations")
+  .select("exercise,validated,validated_at")
+  .eq("user_id",u.id);
+
+ const officialValidations={};
+ if(!validationError)(validationRows||[]).forEach(v=>officialValidations[v.exercise]=!!v.validated);
+
+ STUDENT_VALID_SIG=validationError
+  ?"validation-table-error"
+  :(validationRows||[]).map(v=>v.exercise+":"+(v.validated?"1":"0")+":"+(v.validated_at||"")).sort().join("|");
+
  const counts={},validated={},validationStatus={
-  ex1:{sent:0,validated:0,rows:[]},
-  ex2:{sent:0,validated:0,rows:[]},
-  ex3:{sent:0,validated:0,rows:[]},
-  ex4:{sent:0,validated:0,rows:[]}
+  ex1:{sent:0,validated:officialValidations.ex1?1:0,rows:[]},
+  ex2:{sent:0,validated:officialValidations.ex2?1:0,rows:[]},
+  ex3:{sent:0,validated:officialValidations.ex3?1:0,rows:[]},
+  ex4:{sent:0,validated:officialValidations.ex4?1:0,rows:[]}
  };
  history.forEach(h=>{
   const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;
   counts[k]=(counts[k]||0)+1;
-  if(h.contenu&&h.contenu.validated)validated[k]=true;
   if(validationStatus[ex]){
    validationStatus[ex].sent++;
-   const ok=!!(h.contenu&&h.contenu.validated);
-   if(ok)validationStatus[ex].validated++;
-   validationStatus[ex].rows.push({id:h.id,validated:ok,ferme_id:h.ferme_id})
+   validationStatus[ex].rows.push({id:h.id,validated:!!officialValidations[ex],ferme_id:h.ferme_id})
   }
+ });
+ ["ex1","ex2","ex3","ex4"].forEach(ex=>{
+  if(officialValidations[ex])validated[ex]=true
  });
  $("studentFarms").innerHTML=FERMES.map(f=>{
   const n1=counts[f.id+":ex1"]||0,n2=counts[f.id+":ex2"]||0,n3=counts[f.id+":ex3"]||0,n4=counts[f.id+":ex4"]||0;
   return '<div class="card" style="cursor:default">'+
    (f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+
    '<div class="t">'+esc(f.nom)+'</div>'+
-   '<div class="s">1 Organisation : '+(validated[f.id+":ex1"]?'✅ validé':n1?'⏳ envoyé':'à faire')+'<br>2 Eau : '+(validated[f.id+":ex2"]?'✅ validé':n2?'⏳ envoyé':'à faire')+'<br>3 Déplacements : '+(validated[f.id+":ex3"]?'✅ validé':n3?'⏳ envoyé':'à faire')+'<br>4 Charges : '+(validated[f.id+":ex4"]?'✅ validé':n4?'⏳ envoyé':'à faire')+'</div>'+
+   '<div class="s">1 Organisation : '+(validated.ex1?'✅ validé':n1?'⏳ envoyé':'à faire')+'<br>2 Eau : '+(validated.ex2?'✅ validé':n2?'⏳ envoyé':'à faire')+'<br>3 Déplacements : '+(validated.ex3?'✅ validé':n3?'⏳ envoyé':'à faire')+'<br>4 Charges : '+(validated.ex4?'✅ validé':n4?'⏳ envoyé':'à faire')+'</div>'+
    '<div class="farmActions"><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex1">1 · Organisation</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex2" '+(f.mode!=="carte"?'disabled title="L’exercice Eau nécessite une carte vivante"':'')+'>2 · Eau</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex3" '+(f.mode!=="carte"?'disabled title="L’exercice Déplacements nécessite une carte vivante"':'')+'>3 · Déplacements</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex4" '+(f.mode!=="carte"?'disabled title="L’exercice Charges nécessite une carte vivante"':'')+'>4 · Charges</button></div></div>'
  }).join("")||'<p class="muted">Aucune ferme disponible pour le moment.</p>';
  $("studentFarms").querySelectorAll("[data-sfarm]").forEach(b=>b.onclick=()=>{
@@ -584,7 +595,9 @@ async function studentDash(){
  const globalDone=["ex1","ex2","ex3","ex4"].every(ex=>validationStatus[ex]&&validationStatus[ex].validated>0);
  const missing=["ex1","ex2","ex3","ex4"].filter(ex=>!(validationStatus[ex]&&validationStatus[ex].validated>0));
  if($("labMini"))$("labMini").classList.toggle("active",globalDone);
- $("studentLab").innerHTML=globalDone?
+ if(validationError){
+  $("studentLab").innerHTML='<div class="labLocked"><div class="labIcon">⚠️</div><div style="flex:1"><h3>Validation non configurée</h3><p>La table dédiée aux validations n’est pas encore accessible.</p><div class="msg err">'+esc(validationError.message||"Erreur exercise_validations")+'</div><p><b>Exécute le SQL V28 une seule fois dans Supabase.</b></p></div></div>';
+ }else $("studentLab").innerHTML=globalDone?
   '<div class="labUnlock"><div style="flex:1"><div class="labIcon">🔓</div><h3>Mon laboratoire de diagnostic</h3><p>Les 4 outils sont acquis. Tu peux maintenant enquêter librement sur une nouvelle ferme.</p>'+
    studentValidationStatusHtml(validationStatus)+
    '<button class="btn main" id="newDiagBtn">🔎 Nouvelle analyse</button></div></div>':
@@ -607,9 +620,11 @@ async function studentDash(){
  clearInterval(pollT);
  pollT=setInterval(async()=>{
   if(!$("vEleveDash")||!$("vEleveDash").classList.contains("show")||!STUDENT_USER)return;
-  const {data:vh,error:ve}=await sb.from("schemas").select("id,contenu").eq("user_id",STUDENT_USER.id);
+  const {data:vh,error:ve}=await sb.from("exercise_validations")
+   .select("exercise,validated,validated_at")
+   .eq("user_id",STUDENT_USER.id);
   if(ve)return;
-  const sig=(vh||[]).map(h=>h.id+":"+((h.contenu&&h.contenu.validated)?"1":"0")).sort().join("|");
+  const sig=(vh||[]).map(v=>v.exercise+":"+(v.validated?"1":"0")+":"+(v.validated_at||"")).sort().join("|");
   if(sig!==STUDENT_VALID_SIG){
    STUDENT_VALID_SIG=sig;
    await studentDash()
@@ -956,13 +971,36 @@ function refreshValidationToolbar(){
 }
 
 async function persistSchemaValidation(r,validated){
- const c={...(r.contenu||{}),validated:!!validated,validated_at:validated?new Date().toISOString():null};
- const {data,error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id).select("id,contenu");
- if(error)return {ok:false,error};
- if(!data||!data.length){
-  return {ok:false,error:{code:"VALIDATION_NOT_PERSISTED",message:"La base n’a modifié aucune ligne. La règle RLS de la table schemas bloque probablement la validation du formateur."}}
+ const ex=((r.contenu&&r.contenu.exercise)||"ex1");
+ if(!r.user_id){
+  return {ok:false,error:{code:"MISSING_STUDENT_USER_ID",message:"Cet ancien envoi n’est relié à aucun compte stagiaire (user_id manquant)."}}
  }
- r.contenu=data[0].contenu||c;
+
+ const trainer=await getCurrentUser();
+ const payload={
+  user_id:r.user_id,
+  exercise:ex,
+  validated:!!validated,
+  validated_at:validated?new Date().toISOString():null,
+  validated_by:trainer?trainer.id:null
+ };
+
+ const {data:vdata,error:verror}=await sb.from("exercise_validations")
+  .upsert(payload,{onConflict:"user_id,exercise"})
+  .select("user_id,exercise,validated,validated_at");
+
+ if(verror)return {ok:false,error:verror};
+ if(!vdata||!vdata.length){
+  return {ok:false,error:{code:"VALIDATION_NOT_PERSISTED",message:"La validation n’a pas été enregistrée dans exercise_validations."}}
+ }
+
+ // On garde aussi l'ancien marqueur dans schemas pour compatibilité visuelle.
+ const c={...(r.contenu||{}),validated:!!validated,validated_at:payload.validated_at};
+ const {data:sdata,error:serror}=await sb.from("schemas").update({contenu:c}).eq("id",r.id).select("id,contenu");
+ if(!serror&&sdata&&sdata.length)r.contenu=sdata[0].contenu||c;
+ else r.contenu=c;
+
+ r._exerciseValidated=!!validated;
  return {ok:true}
 }
 async function validateSchemaRows(ids){
@@ -979,10 +1017,14 @@ async function validateSchemaRows(ids){
 
 function validationErrorText(err){
  const raw=String((err&&err.message)||err||"Erreur inconnue");
+ if(err&&err.code==="MISSING_STUDENT_USER_ID"){
+  return "Cet envoi est ancien et n’est pas relié à un compte stagiaire. Il faudra que le stagiaire renvoie au moins une fois cet exercice avec son compte actuel."
+ }
+ const missingTable=/exercise_validations|relation .* does not exist|42P01/i.test(raw);
  const rls=(err&&err.code==="VALIDATION_NOT_PERSISTED")||/row.level|policy|permission|not authorized|42501/i.test(raw);
- return rls
-  ? "La validation n’est pas enregistrée dans Supabase. La règle RLS de la table schemas empêche probablement le formateur de modifier l’envoi du stagiaire. Applique le SQL V26 fourni avec cette version, puis réessaie. Détail : "+raw
-  : "Validation impossible : "+raw
+ if(missingTable)return "La table exercise_validations n’existe pas encore. Exécute le SQL V28 fourni avec cette version.";
+ if(rls)return "Supabase bloque l’écriture dans exercise_validations. Exécute ou vérifie le SQL V28. Détail : "+raw;
+ return "Validation impossible : "+raw
 }
 
 async function loadRecus(){
@@ -991,9 +1033,24 @@ async function loadRecus(){
  const f=FERMES.find(x=>x.id===fid),ex=$("selExercise")?$("selExercise").value:"ex1";
  const{data,error}=await sb.from("schemas").select("id,user_id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");
  RECUS=error?[]:(data||[]).filter(r=>((r.contenu&&r.contenu.exercise)||"ex1")===ex);
+
+ // La validation officielle est désormais stockée par stagiaire + exercice.
+ const uids=[...new Set(RECUS.map(r=>r.user_id).filter(Boolean))];
+ let validationMap=new Map();
+ if(uids.length){
+  const {data:vals,error:valsErr}=await sb.from("exercise_validations")
+   .select("user_id,exercise,validated")
+   .eq("exercise",ex)
+   .in("user_id",uids);
+  if(!valsErr)(vals||[]).forEach(v=>validationMap.set(v.user_id+":"+v.exercise,!!v.validated))
+ }
+ RECUS.forEach(r=>{
+  r._exerciseValidated=!!validationMap.get(r.user_id+":"+ex);
+  r.contenu={...(r.contenu||{}),validated:r._exerciseValidated}
+ });
  RECUS_SELECTED=new Set();
 
- $("nbRecus").textContent=RECUS.length+" présentation"+(RECUS.length>1?"s":"")+" reçue"+(RECUS.length>1?"s":"")+(RECUS.length?" · clique sur une présentation pour l'ouvrir":"");
+ $("nbRecus").textContent=RECUS.length+" présentation"+(RECUS.length>1?"s":"")+" reçue"+(RECUS.length>1?"s":"")+(RECUS.length?" · validation = stagiaire + exercice":"");
 
  $("mosaique").innerHTML=(RECUS.length?
   '<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Stagiaires anonymisés · Formateur · Consensus</div></button>':'')+
@@ -1003,12 +1060,12 @@ async function loadRecus(){
    '<button class="card" data-r="'+r.id+'">'+
     (f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+
     '<div class="t">'+esc(r.auteur)+'</div>'+
-    '<div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+' · '+(validated?'✅ validé':'⏳ à valider')+'</div>'+
+    '<div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+' · '+(validated?'✅ exercice validé':'⏳ exercice à valider')+'</div>'+
    '</button>'+
    (validated
     ?'<div class="receivedSelect validated">✅ Exercice validé</div>'
-    :'<label class="receivedSelect"><input type="checkbox" data-select-r="'+r.id+'"> Sélectionner pour validation</label>')+
-   '<button class="btn small'+(validated?' on':'')+'" data-validate-r="'+r.id+'">'+(validated?'↩ Annuler la validation':'✅ Valider seulement celui-ci')+'</button>'+
+    :'<label class="receivedSelect"><input type="checkbox" data-select-r="'+r.id+'"> Sélectionner ce stagiaire</label>')+
+   '<button class="btn small'+(validated?' on':'')+'" data-validate-r="'+r.id+'">'+(validated?'↩ Annuler la validation':'✅ Valider cet exercice')+'</button>'+
   '</div>'
  }).join("");
 
