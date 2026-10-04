@@ -236,7 +236,7 @@ window.addEventListener("error",e=>{try{const el=document.getElementById("studen
 window.addEventListener("unhandledrejection",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String((e.reason&&e.reason.message)||e.reason||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
 const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
-const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"}};
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Réseau primaire d’eau",e:"🔵",c:"#1976d2"},eau_nat:{n:"Écoulement naturel",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"},trajet_actuel:{n:"Trajet tomates — actuel",e:"🚶",c:"#2e7d32"},trajet_ancien:{n:"Trajet tomates — ancienne organisation",e:"🧶",c:"#c62828"},trajet_incident:{n:"Aller-retour supplémentaire",e:"↩️",c:"#ef6c00"},stock_local:{n:"Stock tampon",e:"📦",c:"#6a1b9a"},guide_depart:{n:"Départ / chargement vente",e:"🚩",c:"#455a64"},guide_tomate:{n:"Planche de tomates",e:"🍅",c:"#d84315"},guide_stockage:{n:"Stockage / chambre froide",e:"🧊",c:"#1565c0"},guide_prepa:{n:"Préparation de commande",e:"📦",c:"#6a1b9a"}};
 const FREQS={
   1:{n:"Plusieurs fois par jour",c:"#c62828"},
   2:{n:"Tous les jours ou presque",c:"#ef6c00"},
@@ -476,7 +476,7 @@ function ex2Stepbar(){return '<div class="stepbar">'+EX2_STEPS.map((_,i)=>'<span
 async function eleveCarteEx2(f){
  if(f.mode!=="carte"){alert("L’exercice 2 nécessite une carte vivante IGN.");return studentDash()}
  CUR=f;$('who').textContent='👤 '+studentName()+' · '+f.nom+' · Eau';await cmInit(f);
- CM.exercise1=false;CM.exercise2=true;CM.exercise3=false;CM.ex2Step=0;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex2"),[]);CM.logic=null;CM.overlays=[];CM.ex2ShowEx1=false;
+ CM.exercise1=false;CM.exercise2=true;CM.exercise3=false;CM.exercise3Guide=false;CM.ex2Step=0;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex2"),[]);CM.logic=null;CM.overlays=[];CM.ex2ShowEx1=false;
  CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex2"),CM.items);panelEleveEx2()};cmSetMode('move');panelEleveEx2();$('btnHelp').hidden=true
 }
 async function ex2ToggleEx1(){
@@ -513,14 +513,33 @@ async function sendEx2(){
 
 /* ---------- MODULE 1 · EXERCICE 3 : DÉPLACEMENTS / SPAGHETTI ---------- */
 const EX3_STEPS=[
- {title:"Récolter des tomates",tool:"trajet_actuel",help:"Imagine que tu pars récolter des tomates. Trace le trajet réel : point de départ → culture → stockage → point de départ pour la vente. L’outil mesure automatiquement la distance."},
- {title:"Ancienne organisation",tool:"trajet_ancien",help:"Après l’explication du formateur sur l’ancienne organisation de la ferme, retrace le même travail. On compare la distance imposée par les deux organisations."},
- {title:"Incident : pas assez de caisses",tool:"trajet_incident",help:"Tu es parti récolter des salades dans une zone éloignée. Sur place, il faut finalement en récolter davantage mais tu n’as plus assez de caisses. Trace uniquement l’aller-retour supplémentaire nécessaire pour aller chercher des caisses et revenir."},
- {title:"Répéter sur l’année",tool:null,help:"Estime combien de fois cette petite erreur peut se répéter. Ne cherche pas la précision parfaite : construis une hypothèse réaliste."},
- {title:"Supprimer la cause",tool:"stock_local",help:"Propose une solution qui évite cet aller-retour. Tu peux placer sur la carte l’endroit où un petit stock tampon de caisses ou de consommables serait utile."},
- {title:"Synthèse",tool:null,help:"Compare les distances. Le but n’est pas de marcher plus vite : c’est de repérer les déplacements que l’organisation peut supprimer."}
+ {title:"Cas 1 — Récolte de tomates",tool:"trajet_actuel",help:"Le formateur a placé les repères du cas : départ / chargement vente, 3 planches de tomates, stockage / chambre froide et préparation de commande. Trace le trajet que tu ferais : départ → tomates → stockage → préparation de commande → retour au point de chargement / vente."},
+ {title:"Cas 2 — Ancienne organisation",tool:"trajet_ancien",help:"Le formateur vous explique maintenant comment la ferme était organisée avant le bâtiment central. Reprenez la même récolte et retracez ensemble le flux jusqu’au stockage, à la préparation des commandes puis au départ vente. Le trajet du cas 1 est masqué pendant ce tracé pour garder la carte lisible."},
+ {title:"Cas 3 — Salades : il manque des caisses",tool:"trajet_incident",help:"Vous êtes en train de récolter des salades dans une zone éloignée et vous n’avez plus assez de caisses. Trace seulement l’ALLER entre la zone de récolte et l’endroit où vous devez aller chercher les caisses. L’outil ajoutera automatiquement le retour vers la récolte."},
+ {title:"Mesurer l’effet sur l’année",tool:null,help:"Estimez combien de fois vous récoltez des salades dans l’année et combien de fois ce manque de caisses pourrait réellement arriver. L’outil calcule la distance annuelle supplémentaire."},
+ {title:"Trouver une amélioration",tool:null,help:"Cherchez maintenant comment réduire ou supprimer la probabilité de cet aller-retour. L’outil ne donne pas la solution : formulez votre proposition avec vos propres mots."},
+ {title:"Synthèse",tool:null,help:"Comparez les situations. Le premier cas sert surtout à apprendre à lire un flux. Les cas suivants montrent comment de petits défauts d’organisation, répétés, peuvent produire beaucoup de déplacements."}
 ];
-function ex3DraftKey(fid){return "schema:"+fid+":ex3:v1"}
+const EX3_GUIDE_DEF=[
+ {id:"depart",k:"guide_depart",label:"Départ / chargement vente"},
+ {id:"tomate1",k:"guide_tomate",label:"Planche tomate 1"},
+ {id:"tomate2",k:"guide_tomate",label:"Planche tomate 2"},
+ {id:"tomate3",k:"guide_tomate",label:"Planche tomate 3"},
+ {id:"stockage",k:"guide_stockage",label:"Stockage / chambre froide"},
+ {id:"prepa",k:"guide_prepa",label:"Préparation de commande"}
+];
+function ex3GuideItem(id){return (CM.guideItems||CM.ex3Guide||[]).find(x=>x.guideId===id)}
+function ex3GuideComplete(arr){return EX3_GUIDE_DEF.every(d=>(arr||[]).some(x=>x.guideId===d.id))}
+function ex3VisibleItems(){
+ if(!CM.exercise3)return CM.items;
+ const s=CM.ex3Step;
+ if(s===0)return CM.items.filter(x=>x.k==="trajet_actuel");
+ if(s===1)return CM.items.filter(x=>x.k==="trajet_ancien");
+ if(s>=2&&s<=4)return CM.items.filter(x=>x.k==="trajet_incident");
+ return CM.items.filter(x=>["trajet_actuel","trajet_ancien","trajet_incident"].includes(x.k));
+}
+function ex3ApplyStep(){CM.logic=CM.ex3Step===0?(CM.ex3Guide||[]):null;cmTools();cmTip();cmRender();panelEleveEx3()}
+function ex3DraftKey(fid){return "schema:"+fid+":ex3:v2"}
 function ex3Load(fid){
  const d=LS.get(ex3DraftKey(fid),null);
  if(d&&typeof d==="object"&&!Array.isArray(d))return {items:Array.isArray(d.items)?d.items:[],calc:d.calc||{weeks:"",perWeek:"",incidents:""},solution:d.solution||""};
@@ -540,40 +559,48 @@ function ex3Annual(){
 async function eleveCarteEx3(f){
  if(f.mode!=="carte"){alert("L’exercice 3 nécessite une carte vivante IGN.");return studentDash()}
  CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom+" · Déplacements";await cmInit(f);
- const d=ex3Load(f.id);
- CM.exercise1=false;CM.exercise2=false;CM.exercise3=true;CM.ex3Step=0;CM.readonly=false;CM.items=d.items;CM.ex3Calc=d.calc;CM.ex3Solution=d.solution;CM.logic=null;CM.overlays=[];
+ const d=ex3Load(f.id),{data:gdata}=await sb.from("fermes").select("logique").eq("id",f.id).single();
+ CM.exercise1=false;CM.exercise2=false;CM.exercise3=true;CM.exercise3Guide=false;CM.ex3Step=0;CM.readonly=false;CM.items=d.items;CM.ex3Calc=d.calc;CM.ex3Solution=d.solution;CM.ex3Guide=(gdata&&gdata.logique&&Array.isArray(gdata.logique.ex3Guide))?gdata.logique.ex3Guide:[];CM.logic=CM.ex3Guide;CM.overlays=[];
  CM.onChange=()=>{ex3Save();panelEleveEx3()};cmSetMode("move");panelEleveEx3();$("btnHelp").hidden=true
 }
 function ex3SummaryHtml(){
- const a=ex3Distance("trajet_actuel"),b=ex3Distance("trajet_ancien"),c=ex3Distance("trajet_incident"),y=ex3Annual();
+ const a=ex3Distance("trajet_actuel"),b=ex3Distance("trajet_ancien"),c=ex3Distance("trajet_incident"),y=ex3Annual(),one=ex3Items("trajet_incident")[0]?.oneWayDistance||c/2;
  return '<div class="kpis">'+
-  '<div class="kpi"><b>'+Math.round(a)+' m</b><small>trajet actuel</small></div>'+
-  '<div class="kpi"><b>'+Math.round(b)+' m</b><small>ancien trajet</small></div>'+
-  '<div class="kpi"><b>'+Math.round(c)+' m</b><small>1 incident caisses</small></div>'+
+  '<div class="kpi"><b>'+Math.round(a)+' m</b><small>cas 1 · actuel</small></div>'+
+  '<div class="kpi"><b>'+Math.round(b)+' m</b><small>cas 2 · ancien</small></div>'+
+  '<div class="kpi"><b>'+Math.round(c)+' m</b><small>cas 3 · aller-retour</small></div>'+
   '<div class="kpi"><b>'+y.km.toFixed(1)+' km</b><small>supplément annuel estimé</small></div>'+
- '</div>'
+ '</div>'+(c?'<p class="muted">Cas 3 : aller '+Math.round(one)+' m + retour '+Math.round(one)+' m = '+Math.round(c)+' m.</p>':'')
+}
+function ex3StepTraceInfo(){
+ const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return "";
+ const it=ex3Items(k)[0];if(!it)return '<p class="muted">Aucun tracé enregistré pour cette étape.</p>';
+ if(k==="trajet_incident")return '<div class="msg ok"><b>Aller tracé : '+Math.round(it.oneWayDistance||(+it.distance||0)/2)+' m</b><br>Retour automatique : '+Math.round(it.oneWayDistance||(+it.distance||0)/2)+' m<br><b>Aller-retour : '+Math.round(+it.distance||0)+' m</b></div>';
+ return '<div class="msg ok"><b>Distance enregistrée : '+Math.round(+it.distance||0)+' m</b></div>'
 }
 function panelEleveEx3(){
- const p=$("panelC"),st=EX3_STEPS[CM.ex3Step],y=ex3Annual();
+ const p=$("panelC"),st=EX3_STEPS[CM.ex3Step],y=ex3Annual(),guideOk=ex3GuideComplete(CM.ex3Guide);
  p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 3</div><h3>🚶 Déplacements / spaghetti</h3>'+ex3Stepbar()+
   '<div class="msg"><b>Étape '+(CM.ex3Step+1)+' / '+EX3_STEPS.length+' — '+st.title+'</b><br>'+st.help+'</div>'+
-  ex3SummaryHtml()+
-  (CM.ex3Step===0?'<div class="msg"><b>Consigne</b><br>Ne cherche pas le trajet le plus court. Dessine celui que tu penses réellement devoir faire.</div>':'')+
-  (CM.ex3Step===1?'<div class="msg"><b>À comparer</b><br>Même produit, même objectif. Seule l’organisation de la ferme change.</div>':'')+
-  (CM.ex3Step===2?'<div class="msg"><b>Important</b><br>Trace seulement le détour créé par le manque de caisses : zone de récolte → stock de caisses → retour à la zone.</div>':'')+
-  (CM.ex3Step===3?'<div class="calcbox"><label class="f">Pendant combien de semaines récoltez-vous des salades ?<input id="ex3Weeks" inputmode="decimal" type="number" min="0" step="1" value="'+esc(CM.ex3Calc.weeks)+'" placeholder="Votre estimation"></label><label class="f">Combien de récoltes par semaine ?<input id="ex3PerWeek" inputmode="decimal" type="number" min="0" step="0.1" value="'+esc(CM.ex3Calc.perWeek)+'" placeholder="Votre estimation"></label><label class="f">Sur l’année, combien de fois pensez-vous manquer de caisses ?<input id="ex3Incidents" inputmode="decimal" type="number" min="0" step="1" value="'+esc(CM.ex3Calc.incidents)+'" placeholder="Votre estimation"></label><div class="msg ok"><b>'+y.harvests.toFixed(0)+' récoltes estimées/an</b><br>'+Math.round(ex3Distance("trajet_incident"))+' m supplémentaires × '+y.incidents+' incident(s) = <b>'+Math.round(y.meters)+' m, soit '+y.km.toFixed(1)+' km/an</b>'+(y.harvests?'<br><span class="muted">Cela représente environ '+y.rate.toFixed(0)+' % des récoltes.</span>':'')+'</div></div>':'')+
-  (CM.ex3Step===4?'<label class="f">Quelle solution proposerais-tu ?<textarea id="ex3Solution" rows="4" placeholder="Ex. créer un petit stock tampon de caisses à proximité de cette zone…">'+esc(CM.ex3Solution)+'</textarea></label><div class="msg"><b>📦 Stock au point d’usage</b><br>Le but n’est pas de tout dupliquer partout. On rapproche surtout ce dont l’absence provoque des allers-retours répétés.</div>':'')+
-  (CM.ex3Step===5?'<div class="msg ok"><b>À retenir</b><br>Un trajet de plusieurs centaines de mètres n’est pas forcément un problème. Un trajet inutile répété toute l’année en devient un.<br><br><b>Distance × fréquence × raison du déplacement.</b></div>':'')+
-  (CM.items.length?'<h3>Mes tracés</h3>'+itemList(CM.items,true):'')+
+  (CM.ex3Step===0?('<div class="msg '+(guideOk?'ok':'')+'"><b>Repères du cas 1</b><br>'+(guideOk?'🚩 Départ / chargement vente · 🍅 3 planches de tomates · 🧊 stockage / chambre froide · 📦 préparation de commande':'Le formateur n’a pas encore placé tous les repères. Demande-lui de les valider avant de commencer.')+'</div>'):'')+
+  (CM.ex3Step===5?ex3SummaryHtml():'')+
+  (CM.ex3Step<=2?ex3StepTraceInfo():'')+
+  (CM.ex3Step===0?'<div class="msg"><b>But de ce premier cas</b><br>Comprendre le chemin suivi par le produit. Ne cherchez pas encore une énorme différence de distance : l’intérêt apparaîtra surtout dans les situations suivantes.</div>':'')+
+  (CM.ex3Step===1?'<div class="msg"><b>Même produit, même objectif.</b><br>Seule l’organisation de la ferme change. Le tracé actuel est volontairement masqué pendant que vous construisez l’ancien trajet.</div>':'')+
+  (CM.ex3Step===2?'<div class="msg"><b>Important</b><br>Ne tracez PAS le retour. Tracez seulement : zone de salades → lieu où sont les caisses. L’application multiplie automatiquement cette distance par 2.</div>':'')+
+  (CM.ex3Step===3?'<div class="calcbox"><label class="f">Pendant combien de semaines récoltez-vous des salades ?<input id="ex3Weeks" inputmode="decimal" type="number" min="0" step="1" value="'+esc(CM.ex3Calc.weeks)+'" placeholder="Votre estimation"></label><label class="f">Combien de récoltes de salades par semaine ?<input id="ex3PerWeek" inputmode="decimal" type="number" min="0" step="0.1" value="'+esc(CM.ex3Calc.perWeek)+'" placeholder="Votre estimation"></label><label class="f">Sur l’année, combien de fois ce manque de caisses pourrait-il arriver ?<input id="ex3Incidents" inputmode="decimal" type="number" min="0" step="1" value="'+esc(CM.ex3Calc.incidents)+'" placeholder="Votre estimation"></label><div class="msg ok"><b>'+y.harvests.toFixed(0)+' récoltes estimées/an</b><br>'+Math.round(ex3Distance("trajet_incident"))+' m d’aller-retour supplémentaire × '+y.incidents+' incident(s) = <b>'+Math.round(y.meters)+' m, soit '+y.km.toFixed(1)+' km/an</b>'+(y.harvests?'<br><span class="muted">Cela représente environ '+y.rate.toFixed(0)+' % des récoltes.</span>':'')+'</div></div>':'')+
+  (CM.ex3Step===4?'<label class="f">Quelle solution proposeriez-vous pour éviter que cette situation se reproduise ?<textarea id="ex3Solution" rows="4" placeholder="Décrivez votre proposition…">'+esc(CM.ex3Solution)+'</textarea></label><div class="msg"><b>Ne cherchez pas « la réponse du formateur ».</b><br>Votre proposition doit agir sur la cause de l’aller-retour.</div>':'')+
+  (CM.ex3Step===5?'<div class="msg ok"><b>À retenir</b><br>Un trajet n’est pas automatiquement un problème. Ce sont surtout les détours évitables et leur répétition qui finissent par coûter beaucoup de déplacements.<br><br><b>Distance × fréquence × raison du déplacement.</b></div>':'')+
+  ([0,1,2].includes(CM.ex3Step)&&ex3Items(st.tool).length?'<button class="btn small" id="ex3Clear">🗑️ Refaire ce tracé</button>':'')+
   '<div class="row"><button class="btn small" id="ex3Prev" '+(CM.ex3Step===0?'disabled':'')+'>⬅ Étape précédente</button><button class="btn main" id="ex3Next" '+(CM.ex3Step===EX3_STEPS.length-1?'disabled':'')+'>Étape suivante ➡</button></div>'+
   '<button class="btn main" id="ex3Send">📤 Envoyer l’exercice 3</button><div id="ex3SendMsg"></div>'+
   '<button class="btn" id="ex3Back">⬅ Retour à mon espace</button>'+creditC();
- cmWireList(p);
  if($("ex3Weeks"))["ex3Weeks","ex3PerWeek","ex3Incidents"].forEach(id=>{$(id).onchange=()=>{CM.ex3Calc={weeks:$("ex3Weeks").value,perWeek:$("ex3PerWeek").value,incidents:$("ex3Incidents").value};ex3Save();panelEleveEx3()}});
  if($("ex3Solution"))$("ex3Solution").oninput=()=>{CM.ex3Solution=$("ex3Solution").value;ex3Save()};
- $("ex3Prev").onclick=()=>{CM.ex3Step--;CM.pending=null;CM.verts=[];cmSetMode("move");panelEleveEx3()};
- $("ex3Next").onclick=()=>{CM.ex3Step++;CM.pending=null;CM.verts=[];cmSetMode("move");panelEleveEx3()};
- $("ex3Send").onclick=sendEx3;$("ex3Back").onclick=()=>{CM.exercise3=false;CM.overlays=[];studentDash()};
+ if($("ex3Clear"))$("ex3Clear").onclick=()=>{CM.items=CM.items.filter(x=>x.k!==st.tool);ex3Save();cmRender();panelEleveEx3()};
+ $("ex3Prev").onclick=()=>{CM.ex3Step--;CM.pending=null;CM.verts=[];cmSetMode("move");CM.logic=CM.ex3Step===0?CM.ex3Guide:null;panelEleveEx3();cmRender()};
+ $("ex3Next").onclick=()=>{CM.ex3Step++;CM.pending=null;CM.verts=[];cmSetMode("move");CM.logic=CM.ex3Step===0?CM.ex3Guide:null;panelEleveEx3();cmRender()};
+ $("ex3Send").onclick=sendEx3;$("ex3Back").onclick=()=>{CM.exercise3=false;CM.logic=null;CM.overlays=[];studentDash()};
  cmTools();cmTip();cmRender()
 }
 async function sendEx3(){
@@ -602,11 +629,28 @@ async function isTrainer(){
 async function dash(tab){clearInterval(pollT);if(!await isTrainer()){show("vLogin");return}show("vDash");const{data:u}=await sb.auth.getUser();$("who").textContent="🧑‍🌾 "+(u&&u.user?u.user.email:"");
  await loadFermes();renderDashFermes();fillSel();setTab(tab||"fermes")}
 function setTab(t){document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));$("tabFermes").hidden=t!=="fermes";$("tabRecus").hidden=t!=="recus";if(t==="recus")loadRecus()}
-function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+(f.mode==='carte'?' 🗺️':'')+'</div><div class="s row"><button class="btn small" data-link="'+f.id+'">🔗 Lien</button><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button><button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
+function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+(f.mode==='carte'?' 🗺️':'')+'</div><div class="s row"><button class="btn small" data-link="'+f.id+'">🔗 Lien</button><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button>'+(f.mode==='carte'?'<button class="btn small" data-ex3guide="'+f.id+'">🎯 Repères ex.3</button>':'')+'<button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
  $("dashFermes").querySelectorAll("[data-logic]").forEach(b=>b.onclick=()=>editLogicAny(FERMES.find(f=>f.id===b.dataset.logic)));
+ $("dashFermes").querySelectorAll("[data-ex3guide]").forEach(b=>b.onclick=()=>setupEx3Guide(FERMES.find(f=>f.id===b.dataset.ex3guide)));
  $("dashFermes").querySelectorAll("[data-link]").forEach(b=>b.onclick=()=>copyLink(b.dataset.link));
  $("dashFermes").querySelectorAll("[data-rev]").forEach(b=>b.onclick=async()=>{const f=FERMES.find(x=>x.id===b.dataset.rev);const{error}=await sb.from("fermes").update({revele:!f.revele}).eq("id",f.id);if(!error){f.revele=!f.revele;renderDashFermes()}});
  $("dashFermes").querySelectorAll("[data-delf]").forEach(b=>b.onclick=async()=>{if(!confirm("Supprimer cette ferme et tous ses schémas reçus ?"))return;await sb.from("fermes").delete().eq("id",b.dataset.delf);dash("fermes")})}
+async function setupEx3Guide(f){
+ if(!f||f.mode!=="carte"){alert("Les repères de l’exercice 3 nécessitent une carte vivante IGN.");return}
+ CUR=f;$("who").textContent="🧑‍🌾 Repères exercice 3 · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();const base=(data&&data.logique)||{};
+ await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=true;CM.readonly=false;CM.items=[];CM.guideItems=Array.isArray(base.ex3Guide)?base.ex3Guide.slice():[];CM.logic=CM.guideItems;CM.overlays=[];CM.onChange=null;CM.guideTool=null;cmSetMode("move");panelEx3Guide(false)
+}
+function panelEx3Guide(dirty){
+ const p=$("panelC"),done=ex3GuideComplete(CM.guideItems);
+ p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 3</div><h3>🎯 Repères du cas tomate</h3><p class="muted">Place les repères que les stagiaires verront uniquement dans le cas 1. Pour déplacer un repère, sélectionne-le puis reclique sur la carte.</p>'+
+  EX3_GUIDE_DEF.map(d=>{const it=(CM.guideItems||[]).find(x=>x.guideId===d.id),T=TYPES[d.k];return '<button class="btn'+(CM.guideTool===d.id?' on':'')+'" data-gid="'+d.id+'" style="justify-content:flex-start">'+T.e+' '+d.label+' '+(it?'✅':'')+'</button>'}).join('')+
+  '<div class="msg '+(done?'ok':'')+'"><b>'+((CM.guideItems||[]).length)+' / '+EX3_GUIDE_DEF.length+' repères placés</b><br>'+(done?'Le cas 1 est prêt pour les stagiaires.':'Il manque encore des repères.')+'</div>'+
+  '<button class="btn main" id="saveEx3Guide">💾 Enregistrer les repères'+(dirty?' *':'')+'</button><div id="guideMsg"></div><button class="btn" id="backEx3Guide">⬅ Retour</button>'+creditC();
+ p.querySelectorAll("[data-gid]").forEach(b=>b.onclick=()=>{CM.guideTool=b.dataset.gid;panelEx3Guide(dirty);cmTip()});
+ $("saveEx3Guide").onclick=async()=>{const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();const base=(data&&data.logique)||{};const{error}=await sb.from("fermes").update({logique:{...base,ex3Guide:CM.guideItems}}).eq("id",CUR.id);msg("guideMsg",error?"Erreur : "+error.message:"✅ Repères enregistrés.",error?"err":"ok");if(!error)panelEx3Guide(false)};
+ $("backEx3Guide").onclick=()=>{CM.exercise3Guide=false;CM.logic=null;dash("fermes")};cmTools();cmTip();cmRender()
+}
+
 async function addFerme(){const nom=$("inNomFerme").value.trim(),file=$("inImg").files[0];if(!nom||!file){msg("addMsg","Il faut un nom et une image.","err");return}
  msg("addMsg","Envoi en cours…");const path=Date.now()+"-"+file.name.replace(/[^a-z0-9.\-_]/gi,"_");
  const up=await sb.storage.from("vues").upload(path,file);if(up.error){msg("addMsg","Image refusée : "+up.error.message,"err");return}
@@ -725,7 +769,7 @@ async function openRecusEx2(f,ids){
 
 async function openRecusEx3(f,ids){
  CUR=f;const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1,sel=multi?collectiveCopy(selected):selected;
- await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.readonly=true;CM.logic=null;CM.onChange=null;CM.items=[];CM.overlays=[];cmSetMode("move");
+ await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=false;CM.readonly=true;CM.logic=null;CM.onChange=null;CM.items=[];CM.overlays=[];cmSetMode("move");
  if(multi){CM.overlays=sel.map((r,i)=>({items:(r.contenu&&r.contenu.items)||[],color:PEOPLE[i%PEOPLE.length]}));$("who").textContent="🧑‍🌾 "+f.nom+" · DÉPLACEMENTS · DÉBRIEF ANONYME"}
  else {CM.items=(sel[0].contenu&&sel[0].contenu.items)||[];$("who").textContent="🧑‍🌾 "+f.nom+" · Déplacements · "+sel[0].auteur}
  cmRender();const p=$("panelC");
@@ -766,7 +810,7 @@ async function mbSearch(){const q=$("inAdr").value.trim();if(!q){msg("mbMsg","É
  msg("mbMsg","Recherche en cours…");
  try{await loadLeaflet();const g=await geocode(q);if(!g){msg("mbMsg","Aucun résultat. Essaie avec la commune, ou un autre mot.","err");return}
   $("mbWrap").hidden=false;$("rotRow").hidden=false;$("rotHelp").hidden=false;$("useRow").hidden=false;$("useHelp").hidden=false;
-  if(!MB){MB=L.map("mb",{zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:21}).setView([g.lat,g.lng],17);L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(MB)}
+  if(!MB){MB=L.map("mb",{zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:19}).setView([g.lat,g.lng],17);L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:19}).addTo(MB)}
   else{MB.setView([g.lat,g.lng],17)}
   setTimeout(()=>{MB.invalidateSize();drawFrame()},60);
   msg("mbMsg","✅ Trouvé : "+g.label+". Déplace et zoome, tourne le cadre si besoin, puis clique sur « Utiliser cette vue ».","ok")
@@ -794,18 +838,18 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,exercise3:false,exercise3Guide:false,guideTool:null,guideItems:[],ex3Guide:[],ex2Tool:null,ex2Step:0,ex2ShowEx1:false,ex3Tool:null,ex3Step:0,ex3Calc:{weeks:"",perWeek:"",incidents:""},ex3Solution:"",collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
 async function cmInit(f){show("vCarte");await loadLeaflet();
- if(!CM.map){CM.map=L.map("cm",{zoomControl:false,zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:21,doubleClickZoom:false});
+ if(!CM.map){CM.map=L.map("cm",{zoomControl:false,zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:19,doubleClickZoom:false});
   L.control.zoom({position:"topright"}).addTo(CM.map);
-  L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(CM.map);
+  L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:19}).addTo(CM.map);
   ["over","logic","items","draft","topo"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
   CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
- CM.f=f;CM.mode="draw";CM.stroke=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.guideTool=null;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
 function addFlowArrow(group,pts,col){
  if(!CM.map||!pts||pts.length<2)return;
@@ -814,16 +858,16 @@ function addFlowArrow(group,pts,col){
  const icon=L.divIcon({className:"flow-arrow-icon",html:'<div class="flow-arrow" style="color:'+col+';transform:rotate('+ang+'deg)">➤</div>',iconSize:[28,28],iconAnchor:[14,14]});
  L.marker(pts[pts.length-1],{icon,interactive:false,keyboard:false}).addTo(group)
 }
-function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=itemType(it),col=o.color||freqColor(it)||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]);
- if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);cLabel(group,c[0],c[1],it.nom||"?",col)}
- else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);if(it.k==="eau_nat")addFlowArrow(group,pts,col);const m=pts[Math.floor(pts.length/2)],d=it.distance?(" · "+Math.round(it.distance)+" m"):"";cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n)+d,col)}
- else if(it.t==="point"){L.circleMarker([it.lat,it.lng],{radius:8,color:"#fff",weight:3,fillColor:col,fillOpacity:1,interactive:false}).addTo(group);cLabel(group,it.lat,it.lng,T.e+" "+(it.nom||T.n),col)}
- else if(it.t==="note")cLabel(group,it.lat,it.lng,"📝 "+(it.txt||""),col)})}
+function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=itemType(it),col=o.color||freqColor(it)||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]),labels=o.labels!==false;
+ if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);if(labels){const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);cLabel(group,c[0],c[1],it.nom||"?",col)}}
+ else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);if(it.k==="eau_nat")addFlowArrow(group,pts,col);if(labels){const m=pts[Math.floor(pts.length/2)],d=it.distance?(" · "+Math.round(it.distance)+" m"):"";cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n)+d,col)}}
+ else if(it.t==="point"){L.circleMarker([it.lat,it.lng],{radius:8,color:"#fff",weight:3,fillColor:col,fillOpacity:1,interactive:false}).addTo(group);if(labels)cLabel(group,it.lat,it.lng,T.e+" "+(it.nom||T.n),col)}
+ else if(it.t==="note"&&labels)cLabel(group,it.lat,it.lng,"📝 "+(it.txt||""),col)})}
 const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"],["eau","💧 L'eau","tuyau, forage, réserve…"],["vehicule","🚐 Les véhicules","passage de camion, tracteur…"],["recolte","🧺 La récolte à pied","chemin des caisses, brouettes…"],["libre","✏️ Autre tracé","je le nomme moi-même"]];
 function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLayers());
- CM.overlays.forEach(o=>drawGeo(CM.g.over,o.items,{color:o.color,fill:.12}));
+ CM.overlays.forEach(o=>drawGeo(CM.g.over,o.items,{color:o.color,fill:.12,labels:!CM.exercise3}));
  if(CM.logic)drawGeo(CM.g.logic,CM.logic,{dash:"8 6",fill:.06,weight:5});
- drawGeo(CM.g.items,CM.items);
+ drawGeo(CM.g.items,CM.exercise3?ex3VisibleItems():CM.items,CM.exercise3?{labels:false}:{});
  if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
  const pv=CM.pending?CM.pending.pts.map(p=>[p[1],p[0]]):(CM.stroke&&CM.stroke.length>1?CM.stroke.map(s=>[s.lat,s.lng]):null);
  if(pv){const T=CM.pending&&CM.pending.type?TYPES[CM.pending.type]:null,col=T?T.c:"#14201a";
@@ -842,10 +886,14 @@ function cmTools(){const t=$("toolsC");
  t.style.display="flex";
  if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
   $("mDone").onclick=cmVertsDone;$("mUndo").onclick=cmUndo;$("mCancel").onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
+ if(CM.exercise3Guide){
+  t.innerHTML='<button class="btn on" id="mMove">🎯 Placement des repères</button>';
+  $("mMove").onclick=()=>cmSetMode("move");return
+ }
  if(CM.exercise3){
   const tool=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;CM.ex3Tool=tool||null;
-  const action=tool?'<button class="btn'+(CM.mode==="draw"?" on":"")+'" id="mEx3">'+itemType({k:tool}).e+' '+(tool==="trajet_actuel"?"Tracer le trajet actuel":tool==="trajet_ancien"?"Tracer l’ancien trajet":tool==="trajet_incident"?"Tracer le détour caisses":"Placer un stock tampon")+'</button>':'';
-  t.innerHTML=action+'<button class="btn'+(CM.mode==="move"?" on":"")+'" id="mMove">✋ Déplacer</button><button class="btn" id="mUndo">↩ Effacer le dernier</button>';
+  const action=tool?'<button class="btn'+(CM.mode==="draw"?" on":"")+'" id="mEx3">'+itemType({k:tool}).e+' '+(tool==="trajet_actuel"?"Tracer le cas 1":tool==="trajet_ancien"?"Tracer le cas 2":"Tracer l’aller chercher les caisses")+'</button>':'';
+  t.innerHTML=action+'<button class="btn'+(CM.mode==="move"?" on":"")+'" id="mMove">✋ Déplacer</button><button class="btn" id="mUndo">↩ Effacer ce tracé</button>';
   if($("mEx3"))$("mEx3").onclick=()=>{CM.ex3Tool=tool;cmSetMode("draw")};
   $("mMove").onclick=()=>cmSetMode("move");$("mUndo").onclick=cmUndo;return
  }
@@ -949,7 +997,8 @@ async function topoTap(e){
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
- if(CM.exercise3){const st=EX3_STEPS[CM.ex3Step]||EX3_STEPS[0];tx.textContent=CM.pending?"Valide ce que tu viens d’ajouter.":CM.verts.length?"Continue le trajet, puis termine-le.":CM.mode==="draw"&&st.tool?(st.tool==="stock_local"?"📦 Clique sur la carte pour placer le stock tampon.":"🚶 Trace le trajet réel, puis termine-le."):"✋ Observe, zoome et déplace la carte.";return}
+ if(CM.exercise3Guide){tx.textContent=CM.guideTool?"🎯 Clique sur la carte pour placer : "+(EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool)?.label||"ce repère")+".":"Choisis un repère dans le panneau, puis clique sur la carte.";return}
+ if(CM.exercise3){const st=EX3_STEPS[CM.ex3Step]||EX3_STEPS[0];tx.textContent=CM.pending?"Valide ce que tu viens de tracer.":CM.verts.length?"Continue le trajet, puis termine-le.":CM.mode==="draw"&&st.tool?(st.tool==="trajet_incident"?"↩️ Trace uniquement l’aller vers les caisses. Le retour sera ajouté automatiquement.":"🚶 Trace le trajet demandé, puis termine-le."):"✋ Observe, zoome et déplace la carte.";return}
  if(CM.exercise2){const st=EX2_STEPS[CM.ex2Step]||EX2_STEPS[0];tx.textContent=CM.pending?"Valide ce que tu viens d’ajouter.":CM.verts.length?"Continue le tracé, puis termine-le.":CM.mode==="draw"&&st.tool?st.tip:"✋ Observe, zoome et déplace la carte.";return}
  if(CM.exercise1){
   tx.textContent=CM.pending?"Zone dessinée : choisis maintenant sa fréquence de passage.":CM.verts.length?"Continue à poser les coins de la zone, puis clique sur « Terminer la zone ».":CM.mode==="draw"?"🟪 Trace le contour de la zone. Tu peux dessiner à main levée ou cliquer sur ses coins.":"✋ Déplace ou zoome sur la carte, puis clique sur « Dessiner une zone ».";
@@ -957,7 +1006,7 @@ function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
  }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
 async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
- if(CM.exercise3&&CM.mode==="draw"&&CM.ex3Tool==="stock_local"){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:"stock_local",lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
+ if(CM.exercise3Guide&&CM.guideTool){const def=EX3_GUIDE_DEF.find(x=>x.id===CM.guideTool);if(def){CM.guideItems=(CM.guideItems||[]).filter(x=>x.guideId!==def.id);CM.guideItems.push({t:"point",k:def.k,guideId:def.id,nom:def.label,lat,lng});CM.logic=CM.guideItems;CM.guideTool=null;panelEx3Guide(true);cmTools();cmTip();cmRender()}return}
  if(CM.exercise2&&CM.mode==="draw"&&["source","stockage","question"].includes(CM.ex2Tool)){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:CM.ex2Tool,lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
  if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
  CM.noteArmed=false;const txt=await ask("Ta note :");cmSetMode("draw");if(txt){CM.items.push({t:"note",lat,lng,txt});cmChanged()}}
@@ -965,7 +1014,7 @@ function dpSimplify(pts,tol){if(pts.length<3)return pts;const a=pts[0],b=pts[pts
  for(let i=1;i<pts.length-1;i++){const p=pts[i],d=len<1e-6?Math.hypot(p.x-a.x,p.y-a.y):Math.abs(dy*p.x-dx*p.y+b.x*a.y-b.y*a.x)/len;if(d>max){max=d;idx=i}}
  if(max>tol){const l=dpSimplify(pts.slice(0,idx+1),tol),r=dpSimplify(pts.slice(idx),tol);return l.slice(0,-1).concat(r)}return[a,b]}
 const ACT=new Set();
-function cmCanDraw(e){if(CM.exercise3&&CM.ex3Tool==="stock_local")return false;if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
+function cmCanDraw(e){if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
 function cmDown(e){if(e.pointerType==="mouse"&&e.button!==0)return;ACT.add(e.pointerId);
  if(ACT.size>1){CM.stroke=null;cmRender();return}
  if(!cmCanDraw(e))return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll);CM.stroke=[{x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng}]}
@@ -980,16 +1029,17 @@ function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;
  cmTools();cmTip();cmSheet();cmRender()}
 function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
  if(CM.exercise3){
-  const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre,point=ty==="stock_local";sh.hidden=false;
-  let dist=0;if(!point){const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]])}
+  const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre;sh.hidden=false;
+  let dist=0;const pts=CM.pending.pts||[];for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);
+  const isIncident=ty==="trajet_incident",total=isIncident?dist*2:dist;
   sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4>'+
-   (point?'<p>Tu proposes ici un stock au point d’usage. Ajoute éventuellement une précision.</p>':'<div class="msg ok"><b>Distance du trajet : '+Math.round(dist)+' m</b></div>')+
-   '<input id="shName" maxlength="120" placeholder="'+(point?'Ex. caisses + élastiques':'Précision facultative')+'" autocomplete="off">'+
+   (isIncident?'<div class="msg ok"><b>Aller : '+Math.round(dist)+' m</b><br>Retour automatique : '+Math.round(dist)+' m<br><b>Aller-retour supplémentaire : '+Math.round(total)+' m</b></div>':'<div class="msg ok"><b>Distance du trajet : '+Math.round(total)+' m</b></div>')+
+   '<input id="shName" maxlength="120" placeholder="Précision facultative" autocomplete="off">'+
    '<div id="shMsg"></div><div class="row"><button class="btn main" id="shOk">✔ Valider</button><button class="btn" id="shNo">✖ Recommencer</button></div>';
   $("shNo").onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};
   $("shOk").onclick=()=>{const nom=$("shName").value.trim();
-   if(point)CM.items.push({t:"point",k:ty,nom:nom||T.n,lat:CM.pending.lat,lng:CM.pending.lng});
-   else CM.items.push({t:"trace",k:ty,nom:nom||T.n,distance:dist,pts:CM.pending.pts.slice()});
+   CM.items=CM.items.filter(x=>x.k!==ty);
+   CM.items.push({t:"trace",k:ty,nom:nom||T.n,distance:total,oneWayDistance:isIncident?dist:undefined,autoReturn:isIncident||undefined,pts:CM.pending.pts.slice()});
    CM.pending=null;CM.lastDel=null;cmSheet();cmChanged();cmSetMode("move")
   };
   return
@@ -1040,14 +1090,14 @@ function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerH
    CM.items.push({t:"zone",nom:nom||"?",freq,pts})}else CM.items.push({t:"trace",k:t,nom,pts});
   CM.pending=null;CM.lastDel=null;cmSheet();cmChanged()};
  $("shName").focus()}
-function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
+function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}if(CM.exercise3){const k=EX3_STEPS[CM.ex3Step]&&EX3_STEPS[CM.ex3Step].tool;if(!k)return;const i=CM.items.map(x=>x.k).lastIndexOf(k);if(i>=0){const it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()}return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
 function cmChanged(){cmTools();cmTip();cmRender();if(CM.onChange)CM.onChange()}
 function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const i=+b.dataset.del,it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()});
  if($("bRestore"))$("bRestore").onclick=()=>{if(CM.lastDel){CM.items.splice(CM.lastDel.i,0,CM.lastDel.item);CM.lastDel=null;cmChanged()}};
  root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=CM.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;cmChanged()}})}
 function creditC(){return'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>'}
 async function eleveCarte(f){CUR=f;CM.exercise2=false;CM.exercise3=false;$("who").textContent="👤 "+studentName()+" · "+f.nom;await cmInit(f);
- CM.exercise1=true;CM.exercise2=false;CM.exercise3=false;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),CM.items);panelEleveC()};
+ CM.exercise1=true;CM.exercise2=false;CM.exercise3=false;CM.exercise3Guide=false;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),CM.items);panelEleveC()};
  cmSetMode("move");panelEleveC();$("btnHelp").hidden=false;if(!SS.get("tour_ok",false))showTour(0);
  clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleveC()}},15000)}
 function panelEleveC(){const p=$("panelC");
