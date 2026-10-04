@@ -62,6 +62,12 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .legend{display:flex;flex-direction:column;gap:6px}
 .legend div{display:flex;gap:8px;align-items:center;font-size:15px}
 .row input{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);flex:1;min-width:200px}
+#stageC{flex:1;position:relative;min-width:0;background:#cfd8d2}
+#cm{position:absolute;inset:0}
+#cm.draw{cursor:crosshair}
+#stageC .tools,#stageC .tip{z-index:1000}
+.lbl{background:none;border:0}
+.lbl span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:#fff;border:2px solid var(--c);border-radius:999px;padding:3px 10px;font:600 14px Lexend,Arial,sans-serif;color:#14201a;pointer-events:none;box-shadow:2px 2px 0 #14201a}
 #mbWrap{position:relative}
 #frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:900}
 #mb{height:min(60vh,460px);border:2px solid var(--shade);border-radius:12px;overflow:hidden;background:#cfd8d2}
@@ -94,6 +100,21 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <aside><div class="in" id="panel"></div></aside>
 </section>
 
+<!-- Carte vivante (IGN) -->
+<section class="view work" id="vCarte">
+<div id="stageC"><div id="cm"></div><div class="tip" id="tipC"><span id="tipCTxt"></span></div><div class="tools" id="toolsC"></div></div>
+<aside><div class="in" id="panelC"></div></aside>
+</section>
+
+<!-- Lien direct vers une ferme -->
+<section class="view center" id="vLien"><div class="box">
+<h2 id="lienNom">Ferme</h2>
+<p class="muted">Tu vas voir la ferme vue du ciel. Tu pourras y dessiner, puis envoyer ton schéma à ton formateur.</p>
+<label class="f">Ton prénom<input id="lienPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
+<button class="btn main" id="lienGo">Commencer</button>
+<div id="lienMsg"></div>
+</div></section>
+
 <!-- FORMATEUR : connexion -->
 <section class="view center" id="vLogin"><div class="box">
 <h2>🔑 Espace formateur</h2>
@@ -122,7 +143,11 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <span class="muted" id="rotTxt"></span>
 </div>
 <p class="muted" id="rotHelp" hidden>Le cadre jaune montre ce que verront les stagiaires. La flèche indique le <b>haut</b> du schéma. Fais tourner le cadre pour que la ferme soit bien orientée, puis zoome pour la faire entrer dans le cadre.</p>
-<button class="btn main" id="btnUseView" hidden>📸 Utiliser cette vue pour la ferme</button>
+<div class="row" id="useRow" hidden>
+<button class="btn main" id="btnLive">🗺️ Créer une carte vivante (lien direct)</button>
+<button class="btn" id="btnUseView">📸 Utiliser comme image fixe (avec rotation)</button>
+</div>
+<p class="muted" id="useHelp" hidden>« Carte vivante » : les stagiaires dessinent sur la vraie carte, avec zoom libre (nord en haut). « Image fixe » : une photo figée, que tu peux faire pivoter.</p>
 <div id="mbMsg"></div>
 <hr class="sep2">
 <h3 style="margin:0">📁 Option B : envoyer une image</h3>
@@ -154,7 +179,7 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("show",v.id===id));$("btnHome").hidden=id==="vAccueil"||id==="vLogin"}
+function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("show",v.id===id));$("btnHome").hidden=id==="vAccueil"||id==="vLogin"||id==="vLien"}
 function ask(label,val=""){return new Promise(res=>{const d=$("dlg");$("dlgLab").textContent=label;$("dlgIn").value=val;d.returnValue="";d.showModal();$("dlgIn").focus();d.onclose=()=>res(d.returnValue==="ok"?$("dlgIn").value.trim():null)})}
 function msg(el,t,cls){$(el).innerHTML=t?'<div class="msg '+(cls||"")+'">'+esc(t)+'</div>':""}
 
@@ -234,11 +259,11 @@ const LEGEND='<div class="legend">'+["zone","eau","vehicule","recolte","libre","
 
 /* ---------- ÉLÈVE ---------- */
 let FERMES=[],CUR=null,pollT=null;
-async function loadFermes(){const{data,error}=await sb.from("fermes").select("id,nom,image_url,revele,ordre,created_at,bearing,crop_w,crop_h").order("ordre").order("created_at");FERMES=error?[]:data;return FERMES}
+async function loadFermes(){const{data,error}=await sb.from("fermes").select("id,nom,image_url,revele,ordre,created_at,bearing,crop_w,crop_h,mode,lat,lng,zoom,fond").order("ordre").order("created_at");FERMES=error?[]:data;return FERMES}
 async function accueil(){show("vAccueil");$("who").textContent="";$("inPrenom").value=LS.get("prenom","");await loadFermes();
  $("fermesVide").hidden=!!FERMES.length;
  $("listeFermes").innerHTML=FERMES.map(f=>'<button class="card" data-id="'+f.id+'">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+'</div></button>').join("");
- $("listeFermes").querySelectorAll(".card").forEach(c=>c.onclick=()=>{const p=$("inPrenom").value.trim();if(!p){alert("Écris d'abord ton prénom.");$("inPrenom").focus();return}LS.set("prenom",p);eleve(FERMES.find(f=>f.id===c.dataset.id))})}
+ $("listeFermes").querySelectorAll(".card").forEach(c=>c.onclick=()=>{const p=$("inPrenom").value.trim();if(!p){alert("Écris d'abord ton prénom.");$("inPrenom").focus();return}LS.set("prenom",p);openStudent(FERMES.find(f=>f.id===c.dataset.id))})}
 async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;
  ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get("schema:"+f.id,[]);ED.onChange=()=>{LS.set("schema:"+f.id,ED.items);panelEleve()};ED.refreshPanel=panelEleve;
  $("lLogic").innerHTML="";await loadImage(f);buildTools();tip();drawAll();panelEleve();
@@ -261,8 +286,9 @@ async function isTrainer(){const{data}=await sb.auth.getSession();return!!(data&
 async function dash(tab){clearInterval(pollT);if(!await isTrainer()){show("vLogin");return}show("vDash");const{data:u}=await sb.auth.getUser();$("who").textContent="🧑‍🌾 "+(u&&u.user?u.user.email:"");
  await loadFermes();renderDashFermes();fillSel();setTab(tab||"fermes")}
 function setTab(t){document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));$("tabFermes").hidden=t!=="fermes";$("tabRecus").hidden=t!=="recus";if(t==="recus")loadRecus()}
-function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+'</div><div class="s row"><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button><button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
- $("dashFermes").querySelectorAll("[data-logic]").forEach(b=>b.onclick=()=>editLogic(FERMES.find(f=>f.id===b.dataset.logic)));
+function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+(f.mode==='carte'?' 🗺️':'')+'</div><div class="s row"><button class="btn small" data-link="'+f.id+'">🔗 Lien</button><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button><button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
+ $("dashFermes").querySelectorAll("[data-logic]").forEach(b=>b.onclick=()=>editLogicAny(FERMES.find(f=>f.id===b.dataset.logic)));
+ $("dashFermes").querySelectorAll("[data-link]").forEach(b=>b.onclick=()=>copyLink(b.dataset.link));
  $("dashFermes").querySelectorAll("[data-rev]").forEach(b=>b.onclick=async()=>{const f=FERMES.find(x=>x.id===b.dataset.rev);const{error}=await sb.from("fermes").update({revele:!f.revele}).eq("id",f.id);if(!error){f.revele=!f.revele;renderDashFermes()}});
  $("dashFermes").querySelectorAll("[data-delf]").forEach(b=>b.onclick=async()=>{if(!confirm("Supprimer cette ferme et tous ses schémas reçus ?"))return;await sb.from("fermes").delete().eq("id",b.dataset.delf);dash("fermes")})}
 async function addFerme(){const nom=$("inNomFerme").value.trim(),file=$("inImg").files[0];if(!nom||!file){msg("addMsg","Il faut un nom et une image.","err");return}
@@ -282,8 +308,8 @@ async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").
  const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:data;
  $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
  $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Tous superposés</div><div class="s">Chaque prénom a sa couleur</div></button>':'')+
- RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30})+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
- $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>openRecus(f,[b.dataset.r]));if($("allSup"))$("allSup").onclick=()=>openRecus(f,RECUS.map(r=>r.id))}
+ RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
+ $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>openRecusAny(f,[b.dataset.r]));if($("allSup"))$("allSup").onclick=()=>openRecusAny(f,RECUS.map(r=>r.id))}
 async function openRecus(f,ids){CUR=f;show("vTravail");const sel=RECUS.filter(r=>ids.includes(r.id)),multi=sel.length>1;let idx=0,withLogic=false,logic=[];
  const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();logic=(data&&data.logique&&data.logique.items)||[];
  ED.readonly=true;ED.tool=null;ED.draft=[];await loadImage(f);buildTools();tip();
@@ -316,14 +342,14 @@ function drawFrame(){const W=$("mb").clientWidth,H=$("mb").clientHeight;if(!W||!
   '<text x="'+(tip[0]+u[0]*16).toFixed(1)+'" y="'+(tip[1]+u[1]*16+5).toFixed(1)+'" text-anchor="middle" font-family="Lexend,Arial" font-weight="700" font-size="15" fill="#ffd400" stroke="#14201a" stroke-width="3" paint-order="stroke">HAUT</text>';
  $("rotTxt").textContent=deg===0?"Nord en haut":"Rotation "+deg+"°"}
 function setAng(v){v=((Math.round(v)%360)+360)%360;$("rotAng").value=v;drawFrame()}
-function captureParams(){const W=$("mb").clientWidth,H=$("mb").clientHeight,deg=+$("rotAng").value,t=deg*Math.PI/180,{fw,fh}=frameDims(W,H,deg),z=MB.getZoom(),res=156543.03392804097/Math.pow(2,z),c=MB.getCenter(),m=merc(c.lat,c.lng),
+function captureParams(forceDeg){const W=$("mb").clientWidth,H=$("mb").clientHeight,deg=forceDeg===undefined?+$("rotAng").value:forceDeg,t=deg*Math.PI/180,{fw,fh}=frameDims(W,H,deg),z=MB.getZoom(),res=156543.03392804097/Math.pow(2,z),c=MB.getCenter(),m=merc(c.lat,c.lng),
  hx=(fw*Math.abs(Math.cos(t))+fh*Math.abs(Math.sin(t)))/2,hy=(fw*Math.abs(Math.sin(t))+fh*Math.abs(Math.cos(t)))/2,s=Math.min(2,1600/(2*Math.max(hx,hy))),iw=Math.round(2*hx*s),ih=Math.round(2*hy*s);
  const bbox=[m[0]-hx*res,m[1]-hy*res,m[0]+hx*res,m[1]+hy*res].map(n=>n.toFixed(2)).join(",");
  return{url:"https://data.geopf.fr/wms-r?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=ORTHOIMAGERY.ORTHOPHOTOS&STYLES=&FORMAT=image/jpeg&CRS=EPSG:3857&BBOX="+bbox+"&WIDTH="+iw+"&HEIGHT="+ih,bearing:deg,crop_w:+(fw*s).toFixed(1),crop_h:+(fh*s).toFixed(1)}}
 async function mbSearch(){const q=$("inAdr").value.trim();if(!q){msg("mbMsg","Écris une adresse, une commune ou un lieu-dit.","err");return}
  msg("mbMsg","Recherche en cours…");
  try{await loadLeaflet();const g=await geocode(q);if(!g){msg("mbMsg","Aucun résultat. Essaie avec la commune, ou un autre mot.","err");return}
-  $("mbWrap").hidden=false;$("rotRow").hidden=false;$("rotHelp").hidden=false;$("btnUseView").hidden=false;
+  $("mbWrap").hidden=false;$("rotRow").hidden=false;$("rotHelp").hidden=false;$("useRow").hidden=false;$("useHelp").hidden=false;
   if(!MB){MB=L.map("mb",{zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:21}).setView([g.lat,g.lng],17);L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(MB)}
   else{MB.setView([g.lat,g.lng],17)}
   setTimeout(()=>{MB.invalidateSize();drawFrame()},60);
@@ -338,16 +364,106 @@ async function mbUse(){const nom=$("inNomFerme").value.trim();
  const{error}=await sb.from("fermes").insert({nom,image_url:cp.url,bearing:cp.bearing,crop_w:cp.crop_w,crop_h:cp.crop_h,ordre:FERMES.length});
  if(error){msg("mbMsg","Erreur : "+error.message,"err");return}
  $("inNomFerme").value="";msg("mbMsg","✅ Ferme ajoutée avec cette vue aérienne.","ok");await loadFermes();renderDashFermes();fillSel()}
+async function mbLive(){const nom=$("inNomFerme").value.trim();
+ if(!nom){msg("mbMsg","Donne d'abord un nom à la ferme (case plus haut).","err");return}
+ if(!MB){msg("mbMsg","Cherche d'abord un lieu.","err");return}
+ const c=MB.getCenter(),z=Math.round(MB.getZoom()*2)/2,cp=captureParams(0);
+ const{error}=await sb.from("fermes").insert({nom,image_url:cp.url,bearing:0,mode:"carte",lat:+c.lat.toFixed(6),lng:+c.lng.toFixed(6),zoom:z,fond:"ign",ordre:FERMES.length});
+ if(error){msg("mbMsg","Erreur : "+error.message,"err");return}
+ $("inNomFerme").value="";msg("mbMsg","✅ Carte vivante créée. Clique sur « 🔗 Lien » dans « Mes fermes » pour copier le lien à envoyer.","ok");await loadFermes();renderDashFermes();fillSel()}
+$("btnLive").onclick=mbLive;
 $("btnSearch").onclick=mbSearch;$("btnUseView").onclick=mbUse;$("inAdr").addEventListener("keydown",e=>{if(e.key==="Enter")mbSearch()});
 $("rotAng").addEventListener("input",drawFrame);$("rotL").onclick=()=>setAng(+$("rotAng").value-15);$("rotR").onclick=()=>setAng(+$("rotAng").value+15);$("rotN").onclick=()=>setAng(0);
 window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
+
+/* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
+const CM={map:null,items:[],tool:null,draft:[],g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[]};
+function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
+function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
+function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
+async function cmInit(f){show("vCarte");await loadLeaflet();
+ if(!CM.map){CM.map=L.map("cm",{zoomControl:false,zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:21,doubleClickZoom:false});
+  L.control.zoom({position:"topright"}).addTo(CM.map);
+  L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(CM.map);
+  ["over","logic","items","draft"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
+  CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.draft.length>1){CM.draft.pop();cmFinish()}});
+  window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
+ CM.f=f;CM.tool=null;CM.draft=[];CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
+function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre,col=o.color||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]);
+ if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);cLabel(group,c[0],c[1],it.nom||"?",col)}
+ else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);const m=pts[Math.floor(pts.length/2)];cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n),col)}
+ else if(it.t==="note")cLabel(group,it.lat,it.lng,"📝 "+(it.txt||""),col)})}
+function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLayers());
+ CM.overlays.forEach(o=>drawGeo(CM.g.over,o.items,{color:o.color,fill:.12}));
+ if(CM.logic)drawGeo(CM.g.logic,CM.logic,{color:"#ffd400",dash:"8 6",fill:.1,weight:5});
+ drawGeo(CM.g.items,CM.items);
+ if(CM.draft.length){const T=TYPES[CM.tool],ll=CM.draft.map(p=>[p[1],p[0]]);if(CM.tool==="zone"&&ll.length>2)L.polygon(ll,{color:T.c,weight:2,fillOpacity:.15,interactive:false}).addTo(CM.g.draft);L.polyline(ll,{color:T.c,weight:4,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(p=>L.circleMarker(p,{radius:6,color:T.c,fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
+ $("cm").classList.toggle("draw",!!CM.tool&&!CM.readonly)}
+function cmTools(){const t=$("toolsC");
+ if(CM.readonly){t.innerHTML="";return}
+ t.innerHTML=TOOLBTN.map(b=>'<button class="btn'+(CM.tool===b[0]||(!CM.tool&&b[0]==="pan")?" on":"")+'" data-tool="'+b[0]+'">'+b[1]+'</button>').join("")+(CM.draft.length?'<button class="btn main" id="cFin">✔ Terminer</button>':'')+'<button class="btn" id="cUndo">↩ Annuler</button>';
+ t.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{CM.tool=b.dataset.tool==="pan"?null:b.dataset.tool;CM.draft=[];cmTools();cmRender();cmTip()});
+ if($("cFin"))$("cFin").onclick=cmFinish;$("cUndo").onclick=cmUndo}
+function cmTip(){const t=CM.tool;$("tipC").style.display=CM.readonly?"none":"flex";$("tipCTxt").textContent=!t?"Glisse pour te déplacer, molette ou pincement pour zoomer. Choisis un outil en bas.":t==="note"?"Touche la carte là où tu veux écrire une note.":t==="zone"?"Touche la carte pour poser les coins de la zone, puis ✔ Terminer.":"Touche la carte pour tracer le chemin, point par point, puis ✔ Terminer."}
+async function cmTap(e){if(CM.readonly||!CM.tool)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+ if(CM.tool==="note"){const txt=await ask("Ta note :");if(txt){CM.items.push({t:"note",lat,lng,txt});cmChanged()}return}
+ CM.draft.push([lng,lat]);cmTools();cmRender()}
+async function cmFinish(){const t=CM.tool,pts=CM.draft;if(!t)return;
+ if(t==="zone"&&pts.length<3){alert("Une zone a besoin d'au moins 3 points.");return}
+ if(t!=="zone"&&pts.length<2){alert("Un tracé a besoin d'au moins 2 points.");return}
+ let nom="";if(t==="zone"){nom=await ask("Comment appelles-tu cette zone ?");if(nom===null)return}else if(t==="libre"){nom=await ask("Que représente ce tracé ?");if(nom===null)return}
+ CM.items.push(t==="zone"?{t:"zone",nom:nom||"?",pts}:{t:"trace",k:t,nom,pts});CM.draft=[];cmChanged()}
+function cmUndo(){if(CM.draft.length){CM.draft.pop();cmTools();cmRender()}else{CM.items.pop();cmChanged()}}
+function cmChanged(){cmTools();cmRender();if(CM.onChange)CM.onChange()}
+function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{CM.items.splice(+b.dataset.del,1);cmChanged()});
+ root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=CM.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;cmChanged()}})}
+function creditC(){return'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>'}
+async function eleveCarte(f){CUR=f;$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;await cmInit(f);
+ CM.readonly=false;CM.items=LS.get("schema:"+f.id,[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set("schema:"+f.id,CM.items);panelEleveC()};
+ cmTools();cmTip();cmRender();panelEleveC();
+ clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleveC()}},15000)}
+function panelEleveC(){const p=$("panelC");
+ p.innerHTML='<h3>Mon schéma</h3>'+itemList(CM.items,true)+'<button class="btn main" id="bSendC">📤 Envoyer mon schéma</button><div id="sendMsgC"></div>'+(CUR.revele?'<button class="btn" id="bLogicC">'+(showLogic?"🙈 Cacher":"👁️ Voir")+' la logique du formateur</button>':'')+'<h3>Légende</h3>'+LEGEND+creditC();
+ cmWireList(p);$("bSendC").onclick=sendCarte;if($("bLogicC"))$("bLogicC").onclick=async()=>{showLogic=!showLogic;if(showLogic){const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();CM.logic=(data&&data.logique&&data.logique.items)||[]}else CM.logic=null;cmRender();panelEleveC()}}
+async function sendCarte(){if(!CM.items.length){msg("sendMsgC","Ton schéma est vide.","err");return}
+ $("bSendC").disabled=true;const c=CM.map.getCenter(),{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:LS.get("prenom","?").slice(0,60),contenu:{mode:"carte",items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
+ $("bSendC").disabled=false;msg("sendMsgC",error?"Envoi impossible : vérifie ta connexion et réessaie.":"✅ Envoyé ! Ton formateur l'a reçu.",error?"err":"ok")}
+async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma logique · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();await cmInit(f);
+ CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmTools();cmTip();cmRender();panelLogicC(false)}
+function panelLogicC(dirty){const p=$("panelC");p.innerHTML='<h3>Ma logique</h3><p class="muted">Dessine ta lecture de la ferme, avec les bons termes.</p>'+itemList(CM.items,true)+'<button class="btn main" id="bSaveLC">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsgC"></div><button class="btn" id="bBackC">⬅ Retour</button><h3>Légende</h3>'+LEGEND+creditC();
+ cmWireList(p);$("bSaveLC").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:CM.items}}).eq("id",CUR.id);msg("saveMsgC",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBackC").onclick=()=>dash("fermes")}
+async function openRecusCarte(f,ids){CUR=f;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single(),logic=(data&&data.logique&&data.logique.items)||[];await cmInit(f);
+ const multi=ids.length>1,all=RECUS.slice();let idx=Math.max(0,all.findIndex(r=>r.id===ids[0])),withLogic=false;CM.readonly=true;CM.onChange=null;
+ const draw=()=>{const cur=all[idx];CM.items=multi?[]:((cur.contenu||{}).items||[]);CM.overlays=multi?all.map((r,i)=>({items:(r.contenu||{}).items,color:PEOPLE[i%PEOPLE.length]})):[];CM.logic=withLogic?logic:null;cmTools();cmTip();cmRender();
+  $("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"tous superposés":cur.auteur);
+  const p=$("panelC");p.innerHTML=(multi?'<h3>Tous superposés</h3><div class="legend">'+all.map((r,i)=>'<div><span class="dot" style="background:'+PEOPLE[i%PEOPLE.length]+'"></span>'+esc(r.auteur)+'</div>').join("")+'</div>':'<h3>'+esc(cur.auteur)+'</h3><div class="row"><button class="btn small" id="cPrev">⬅</button><span class="muted">'+(idx+1)+' / '+all.length+'</span><button class="btn small" id="cNext">➡</button></div>'+itemList((cur.contenu||{}).items||[],false))+
+   '<button class="btn'+(withLogic?" on":"")+'" id="cWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button><button class="btn" id="cBk">⬅ Retour aux schémas</button>'+(multi?'':'<button class="btn small" id="cDel">🗑️ Supprimer ce schéma</button>');
+  $("cWL").onclick=()=>{withLogic=!withLogic;draw()};$("cBk").onclick=()=>{CM.overlays=[];CM.logic=null;dash("recus")};
+  if(!multi){$("cPrev").disabled=idx===0;$("cNext").disabled=idx===all.length-1;$("cPrev").onclick=()=>{idx--;draw()};$("cNext").onclick=()=>{idx++;draw()};$("cDel").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",cur.id);dash("recus")}}};
+ draw()}
+function itemsThumb(items){const pts=[];(items||[]).forEach(it=>{if(it.pts)it.pts.forEach(p=>pts.push(p));if(it.t==="note")pts.push([it.lng,it.lat])});
+ if(!pts.length)return'<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#e9ece6"/></svg>';
+ const lats=pts.map(p=>p[1]),lngs=pts.map(p=>p[0]),la0=Math.min(...lats),la1=Math.max(...lats),ln0=Math.min(...lngs),ln1=Math.max(...lngs),k=Math.cos(((la0+la1)/2)*Math.PI/180),w=Math.max((ln1-ln0)*k,1e-6),hh=Math.max(la1-la0,1e-6),s=Math.min(260/w,160/hh),ox=(300-w*s)/2,oy=(200-hh*s)/2;
+ const X=p=>(ox+(p[0]-ln0)*k*s).toFixed(1),Y=p=>(oy+(la1-p[1])*s).toFixed(1);let o='<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#dde6d9"/>';
+ (items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre;
+  if(it.t==="zone"&&it.pts.length>2)o+='<polygon points="'+it.pts.map(p=>X(p)+","+Y(p)).join(" ")+'" fill="'+T.c+'" fill-opacity=".3" stroke="'+T.c+'" stroke-width="2"/>';
+  else if(it.t==="trace"&&it.pts.length>1)o+='<polyline points="'+it.pts.map(p=>X(p)+","+Y(p)).join(" ")+'" fill="none" stroke="'+T.c+'" stroke-width="3" stroke-linecap="round"/>';
+  else if(it.t==="note")o+='<circle cx="'+X([it.lng,it.lat])+'" cy="'+Y([it.lng,it.lat])+'" r="5" fill="'+T.c+'"/>'});
+ return o+'</svg>'}
+function copyLink(id){const url=location.origin+location.pathname+"#ferme="+id;const done=()=>alert("Lien copié :\n"+url+"\n\nEnvoie-le à tes stagiaires.");
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,()=>prompt("Copie ce lien :",url));else prompt("Copie ce lien :",url)}
+async function lienPage(id){await loadFermes();const f=FERMES.find(x=>x.id===id);if(!f){accueil();return}
+ show("vLien");$("lienNom").textContent=f.nom;$("lienPrenom").value=LS.get("prenom","");$("who").textContent="";
+ $("lienGo").onclick=()=>{const p=$("lienPrenom").value.trim();if(!p){msg("lienMsg","Écris d'abord ton prénom.","err");$("lienPrenom").focus();return}LS.set("prenom",p);openStudent(f)}}
+
 /* ---------- Navigation ---------- */
-$("btnHome").onclick=()=>{location.hash.startsWith("#formateur")?dash():accueil()};
+$("btnHome").onclick=()=>{if(location.hash.startsWith("#formateur"))dash();else{clearInterval(pollT);if(location.hash.startsWith("#ferme=")){location.hash="";accueil()}else accueil()}};
 $("btnLogin").onclick=login;$("btnSignup").onclick=signup;
 $("btnLogout").onclick=async()=>{await sb.auth.signOut();location.hash="";accueil()};
 $("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-function route(){if(location.hash.startsWith("#formateur"))dash();else accueil()}
+function route(){const m=/^#ferme=([0-9a-f-]{36})/i.exec(location.hash);if(location.hash.startsWith("#formateur"))dash();else if(m)lienPage(m[1]);else accueil()}
 window.addEventListener("hashchange",route);route();
 </script></body></html>
