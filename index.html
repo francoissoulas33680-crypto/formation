@@ -362,7 +362,7 @@ let RECUS=[];
 async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").innerHTML="";return}const f=FERMES.find(x=>x.id===fid);
  const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:data;
  $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
- $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Profils anonymisés</div></button>':'')+
+ $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Stagiaires anonymisés · Formateur · Consensus</div></button>':'')+
  RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
  $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>openRecusAny(f,[b.dataset.r]));if($("allSup"))$("allSup").onclick=()=>openRecusAny(f,RECUS.map(r=>r.id))}
 let RECUS_FREQ_FILTER="all";
@@ -504,7 +504,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,collectiveIds:[]};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -524,7 +524,7 @@ function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=TYPES[i
 const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"],["eau","💧 L'eau","tuyau, forage, réserve…"],["vehicule","🚐 Les véhicules","passage de camion, tracteur…"],["recolte","🧺 La récolte à pied","chemin des caisses, brouettes…"],["libre","✏️ Autre tracé","je le nomme moi-même"]];
 function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLayers());
  CM.overlays.forEach(o=>drawGeo(CM.g.over,o.items,{color:o.color,fill:.12}));
- if(CM.logic)drawGeo(CM.g.logic,CM.logic,{color:"#ffd400",dash:"8 6",fill:.1,weight:5});
+ if(CM.logic)drawGeo(CM.g.logic,CM.logic,{dash:"8 6",fill:.06,weight:5});
  drawGeo(CM.g.items,CM.items);
  if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
  const pv=CM.pending?CM.pending.pts.map(p=>[p[1],p[0]]):(CM.stroke&&CM.stroke.length>1?CM.stroke.map(s=>[s.lat,s.lng]):null);
@@ -624,43 +624,98 @@ function panelEleveC(){const p=$("panelC");
 async function sendCarte(){if(!CM.items.length){msg("sendMsgC","Tu n'as encore rien dessiné.","err");return}
  $("bSendC").disabled=true;const c=CM.map.getCenter(),{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:(studentName()||"?").slice(0,60),contenu:{mode:"carte",items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
  $("bSendC").disabled=false;msg("sendMsgC",error?"L'envoi n'a pas marché. Vérifie ta connexion internet, puis réessaie.":"✅ Bravo ! Ton dessin est envoyé. Tu peux continuer à le modifier et le renvoyer.",error?"err":"ok")}
-async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma logique · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();await cmInit(f);
- CM.exercise1=false;CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("draw");panelLogicC(false)}
-function panelLogicC(dirty){const p=$("panelC");p.innerHTML='<h3>Ma logique</h3><p class="muted">Dessine ta lecture de la ferme, avec les bons termes.</p>'+itemList(CM.items,true)+'<button class="btn main" id="bSaveLC">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsgC"></div><button class="btn" id="bBackC">⬅ Retour</button><h3>Légende</h3>'+LEGEND+creditC();
- cmWireList(p);$("bSaveLC").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:CM.items}}).eq("id",CUR.id);msg("saveMsgC",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBackC").onclick=()=>dash("fermes")}
+async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma lecture · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();await cmInit(f);
+ CM.exercise1=true;CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("move");panelLogicC(false)}
+function panelLogicC(dirty){const p=$("panelC");
+ p.innerHTML='<h3>Ma lecture formateur</h3><p class="muted">Dessine les zones comme les stagiaires : contour, fréquence F1 à F5, puis nom facultatif.</p>'+
+ (CM.items.length?itemList(CM.items,true):'<p class="muted">Aucune zone pour l’instant.</p>')+
+ '<button class="btn main" id="bSaveLC">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsgC"></div>'+
+ '<button class="btn" id="bBackC">⬅ Retour</button><h3>Fréquence des zones</h3>'+FREQLEG+creditC();
+ cmWireList(p);
+ $("bSaveLC").onclick=async()=>{
+  const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();
+  const base=(data&&data.logique)||{};
+  const{error}=await sb.from("fermes").update({logique:{...base,items:CM.items}}).eq("id",CUR.id);
+  msg("saveMsgC",error?"Erreur : "+error.message:"✅ Ma lecture est enregistrée.",error?"err":"ok")
+ };
+ $("bBackC").onclick=()=>dash("fermes")
+}
+
+async function editConsensusCarte(f,ids){
+ CUR=f;CM.collectiveIds=(ids||[]).slice();
+ const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
+ const base=(data&&data.logique)||{},cons=(base.consensus&&base.consensus.items)||[];
+ await cmInit(f);
+ CM.exercise1=true;CM.readonly=false;CM.items=cons;CM.logic=null;CM.overlays=[];CM.onChange=()=>panelConsensusC(true);
+ cmSetMode("move");panelConsensusC(false)
+}
+function panelConsensusC(dirty){
+ const p=$("panelC");
+ p.innerHTML='<h3>✅ Carte consensus</h3><p class="muted">Construis avec le groupe la carte finale. Chaque zone est validée collectivement.</p>'+
+ (CM.items.length?itemList(CM.items,true):'<p class="muted">Aucune zone consensus pour l’instant.</p>')+
+ '<button class="btn main" id="bSaveCons">💾 Enregistrer le consensus'+(dirty?" *":"")+'</button><div id="saveConsMsg"></div>'+
+ '<button class="btn" id="bBackCons">⬅ Retour au débrief collectif</button><h3>Fréquence des zones</h3>'+FREQLEG+creditC();
+ cmWireList(p);
+ $("bSaveCons").onclick=async()=>{
+  const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();
+  const base=(data&&data.logique)||{};
+  const{error}=await sb.from("fermes").update({logique:{...base,consensus:{items:CM.items}}}).eq("id",CUR.id);
+  msg("saveConsMsg",error?"Erreur : "+error.message:"✅ Carte consensus enregistrée.",error?"err":"ok")
+ };
+ $("bBackCons").onclick=()=>openRecusCarte(CUR,CM.collectiveIds)
+}
+
 async function openRecusCarte(f,ids){
- CUR=f;
- const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single(),logic=(data&&data.logique&&data.logique.items)||[];
+ CUR=f;CM.collectiveIds=(ids||[]).slice();
+ const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
+ const base=(data&&data.logique)||{},trainer=base.items||[],consensus=(base.consensus&&base.consensus.items)||[];
  await cmInit(f);CM.exercise1=false;
  const multi=ids.length>1;
  const raw=RECUS.slice(),all=multi?collectiveCopy(raw):raw;
- let idx=Math.max(0,raw.findIndex(r=>r.id===ids[0])),withLogic=false;
+ let idx=Math.max(0,raw.findIndex(r=>r.id===ids[0])),withTrainer=false,showStudents=true,showConsensus=!!consensus.length;
  CM.readonly=true;CM.onChange=null;cmSetMode("move");
  if(multi)RECUS_VISIBLE_IDS=new Set(all.map(r=>r.id));
+
  const draw=()=>{
   const cur=all[idx],shown=multi?visibleRecus(all):all;
-  CM.items=multi?[]:filteredItems((cur.contenu||{}).items||[]);
-  CM.overlays=multi?shown.map(r=>{
+  CM.items=multi?(showConsensus?filteredItems(consensus):[]):filteredItems((cur.contenu||{}).items||[]);
+  CM.overlays=multi&&showStudents?shown.map(r=>{
     const i=all.findIndex(x=>x.id===r.id);
     return {items:filteredItems((r.contenu||{}).items),color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null}
   }):[];
-  CM.logic=withLogic?logic:null;cmTools();cmTip();cmRender();
+  CM.logic=multi&&withTrainer?filteredItems(trainer):null;
+  cmTools();cmTip();cmRender();
   $("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"DÉBRIEF COLLECTIF — ANONYME":cur.auteur);
+
   const p=$("panelC");
-  p.innerHTML=(multi?
-    '<h3>Débrief collectif</h3><div class="msg ok">🔒 Mode anonyme : aucun prénom n’est affiché.</div>'+peopleFilterBar(all)
-    :
-    '<h3>'+esc(cur.auteur)+'</h3><div class="row"><button class="btn small" id="cPrev">⬅</button><span class="muted">'+(idx+1)+' / '+all.length+'</span><button class="btn small" id="cNext">➡</button></div>'+itemList(filteredItems((cur.contenu||{}).items||[]),false)
-  )+
-  freqFilterBar()+
-  '<button class="btn'+(withLogic?" on":"")+'" id="cWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button>'+
-  '<button class="btn" id="cBk">⬅ Retour aux schémas</button>'+
-  (multi?'':'<button class="btn small" id="cDel">🗑️ Supprimer ce schéma</button>');
-  if(multi)wirePeopleFilter(p,all,draw);
-  wireFreqFilter(p,draw);
-  $("cWL").onclick=()=>{withLogic=!withLogic;draw()};
-  $("cBk").onclick=()=>{CM.overlays=[];CM.logic=null;RECUS_VISIBLE_IDS=null;dash("recus")};
-  if(!multi){
+  if(multi){
+   p.innerHTML=
+    '<h3>Débrief collectif</h3><div class="msg ok">🔒 Les stagiaires sont anonymisés.</div>'+
+    '<div class="row">'+
+      '<button class="btn'+(showStudents?" on":"")+'" id="togStudents">👥 Stagiaires</button>'+
+      '<button class="btn'+(withTrainer?" on":"")+'" id="togTrainer">🧑‍🌾 Formateur</button>'+
+      '<button class="btn'+(showConsensus?" on":"")+'" id="togConsensus">✅ Consensus</button>'+
+    '</div>'+
+    (showStudents?peopleFilterBar(all):'')+
+    freqFilterBar()+
+    '<button class="btn main" id="editConsensus">✏️ Construire / modifier le consensus</button>'+
+    '<button class="btn" id="onlyConsensus">✅ Afficher seulement la carte finale</button>'+
+    '<button class="btn" id="cBk">⬅ Retour aux schémas</button>';
+
+   $("togStudents").onclick=()=>{showStudents=!showStudents;draw()};
+   $("togTrainer").onclick=()=>{withTrainer=!withTrainer;draw()};
+   $("togConsensus").onclick=()=>{showConsensus=!showConsensus;draw()};
+   if(showStudents)wirePeopleFilter(p,all,draw);
+   wireFreqFilter(p,draw);
+   $("editConsensus").onclick=()=>editConsensusCarte(f,ids);
+   $("onlyConsensus").onclick=()=>{showStudents=false;withTrainer=false;showConsensus=true;draw()};
+   $("cBk").onclick=()=>{CM.overlays=[];CM.logic=null;RECUS_VISIBLE_IDS=null;dash("recus")}
+  }else{
+   p.innerHTML='<h3>'+esc(cur.auteur)+'</h3><div class="row"><button class="btn small" id="cPrev">⬅</button><span class="muted">'+(idx+1)+' / '+all.length+'</span><button class="btn small" id="cNext">➡</button></div>'+
+    itemList(filteredItems((cur.contenu||{}).items||[]),false)+freqFilterBar()+
+    '<button class="btn" id="cBk">⬅ Retour aux schémas</button><button class="btn small" id="cDel">🗑️ Supprimer ce schéma</button>';
+   wireFreqFilter(p,draw);
+   $("cBk").onclick=()=>{CM.overlays=[];CM.logic=null;dash("recus")};
    $("cPrev").disabled=idx===0;$("cNext").disabled=idx===all.length-1;
    $("cPrev").onclick=()=>{idx--;draw()};$("cNext").onclick=()=>{idx++;draw()};
    $("cDel").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",cur.id);dash("recus")}
