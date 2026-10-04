@@ -88,6 +88,19 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 #frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:900}
 #mb{height:min(60vh,460px);border:2px solid var(--shade);border-radius:12px;overflow:hidden;background:#cfd8d2}
 .sep2{border:0;border-top:2px dashed var(--line);margin:8px 0}
+
+/* ===== MODULE 1 / PARCOURS ===== */
+.moduleHero{border:2px solid var(--shade);border-radius:16px;padding:16px;background:var(--paper);box-shadow:4px 4px 0 var(--shade)}
+.moduleHero h3{margin:0 0 6px;font-size:21px}.moduleHero p{margin:0;color:var(--muted)}
+.exerciseStrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.exMini{border:2px solid var(--line);border-radius:12px;padding:10px;background:var(--paper);min-height:88px}
+.exMini b{display:block;margin-bottom:4px}.exMini small{color:var(--muted)}.exMini.active{border-color:var(--shade);box-shadow:2px 2px 0 var(--shade)}
+.farmActions{padding:0 12px 12px;display:flex;flex-wrap:wrap;gap:7px}.farmActions .btn{flex:1;min-width:125px}
+.stepbar{display:flex;gap:4px;flex-wrap:wrap}.stepdot{height:9px;flex:1;min-width:18px;background:var(--line);border-radius:999px}.stepdot.done{background:var(--accent)}.stepdot.now{background:#1f6fd1}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.kpi{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--bg)}.kpi b{display:block;font-size:20px}.kpi small{color:var(--muted)}
+.ex2item{border:1px solid var(--line);border-radius:10px;padding:8px 10px}.ex2item small{color:var(--muted)}
+@media (max-width:560px){.kpis{grid-template-columns:1fr}.exerciseStrip{grid-template-columns:1fr 1fr}}
+
 @media (max-width:820px){.work{flex-direction:column}aside{width:auto;border-left:0;border-top:2px solid var(--line);max-height:38%}}
 </style></head><body>
 <header>
@@ -115,7 +128,15 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <button class="btn small" id="btnStudentLogout">Se déconnecter</button>
 </div>
 <div class="msg ok"><b>Ta progression est enregistrée.</b><br>Sur cet appareil, ton accès reste ouvert tant que tu ne choisis pas « Se déconnecter ». Sur un nouvel appareil, il suffit de refaire la connexion par e-mail.</div>
-<h3>Mon parcours</h3>
+<div class="moduleHero"><h3>🔎 Module 1 — Analyse de ferme</h3><p>Apprendre à lire une ferme comme un système organisé avant de chercher à la modifier.</p></div>
+<div class="exerciseStrip">
+ <div class="exMini active"><b>1 · Organisation</b><small>Zones et fréquences</small></div>
+ <div class="exMini active"><b>2 · Eau</b><small>Source, réseau, relief</small></div>
+ <div class="exMini"><b>3 · Déplacements</b><small>Prochain lot</small></div>
+ <div class="exMini"><b>4 · Charges</b><small>Prochain lot</small></div>
+ <div class="exMini"><b>5 · Pré-visite</b><small>Prochain lot</small></div>
+</div>
+<h3>Choisis une ferme pour travailler</h3>
 <div class="grid" id="studentFarms"></div>
 <h3>Mon historique</h3>
 <div id="studentHistory"><p class="muted">Chargement…</p></div>
@@ -189,7 +210,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </div>
 <div id="tabRecus" hidden>
 <h2>Schémas reçus</h2>
-<label class="f">Ferme<select id="selFerme"></select></label>
+<div class="row"><label class="f" style="flex:1">Ferme<select id="selFerme"></select></label><label class="f" style="flex:1">Exercice<select id="selExercise"><option value="ex1">1 — Organisation</option><option value="ex2">2 — Eau</option></select></label></div>
 <div class="row"><button class="btn small" id="btnRefresh">🔄 Actualiser</button><span class="muted" id="nbRecus"></span></div>
 <div class="grid" id="mosaique"></div>
 </div>
@@ -207,7 +228,7 @@ window.addEventListener("error",e=>{try{const el=document.getElementById("studen
 window.addEventListener("unhandledrejection",e=>{try{const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Erreur technique :</b> '+String((e.reason&&e.reason.message)||e.reason||"inconnue")+'</div>';document.getElementById("vAccueil")?.classList.add("show")}catch(_){}});
 const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
-const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"}};
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"},source:{n:"Source d’eau",e:"💧",c:"#1565c0"},stockage:{n:"Stockage d’eau",e:"🛢️",c:"#00838f"},eau_dist:{n:"Eau distribuée",e:"🔵",c:"#1976d2"},eau_nat:{n:"Eau naturelle",e:"🌧️",c:"#5e92f3"},accumulation:{n:"Accumulation probable",e:"💦",c:"#00a7a7"},question:{n:"Question / fragilité",e:"⚠️",c:"#d97706"}};
 const FREQS={
   1:{n:"Plusieurs fois par jour",c:"#c62828"},
   2:{n:"Tous les jours ou presque",c:"#ef6c00"},
@@ -247,7 +268,7 @@ function newStudentSession(){
 function studentSessionId(){return SS.get("student_session_id",null)||newStudentSession()}
 function studentName(){return (STUDENT_USER&&STUDENT_USER.user_metadata&&STUDENT_USER.user_metadata.prenom)||SS.get("student_name","")}
 function setStudentName(n){SS.set("student_name",n);LS.set("last_prenom",n)}
-function studentSchemaKey(fid){return "schema:"+fid+":"+(STUDENT_USER?("user:"+STUDENT_USER.id):studentSessionId())}
+function studentSchemaKey(fid,exercise="ex1"){const who=(STUDENT_USER?("user:"+STUDENT_USER.id):studentSessionId());return exercise==="ex1"?("schema:"+fid+":"+who):("schema:"+exercise+":"+fid+":"+who)}
 function startStudentSession(name,fid){
  if(!STUDENT_USER){
   const prevName=studentName(),prevFarm=SS.get("student_farm","");
@@ -290,12 +311,15 @@ const U=()=>Math.max(IMG.w,IMG.h)/1000;
 function label(x,y,t,color,fs,style){const w=t.length*fs*.58+fs*1.2,h=fs*1.7;
  return '<g'+(style?' opacity="'+style+'"':'')+'><rect x="'+(x-w/2)+'" y="'+(y-h/2)+'" width="'+w+'" height="'+h+'" rx="'+h/2+'" fill="#fff" stroke="'+color+'" stroke-width="'+fs*.15+'"/><text x="'+x+'" y="'+(y+fs*.35)+'" text-anchor="middle" font-family="Lexend,Arial" font-weight="600" font-size="'+fs+'" fill="#14201a">'+esc(t)+'</text></g>'}
 function centroid(pts){let x=0,y=0;pts.forEach(p=>{x+=p[0];y+=p[1]});return[x/pts.length,y/pts.length]}
+function itemType(it){return TYPES[(it&&it.k)||((it&&it.t)==="trace"?it.k:(it&&it.t))]||TYPES.libre}
 function renderItems(items,o={}){const u=U(),fs=(o.fs||22)*u;let s="";
- (items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre,col=o.color||freqColor(it)||T.c,pts=it.pts||[];
+ (items||[]).forEach(it=>{const T=itemType(it),col=o.color||freqColor(it)||T.c,pts=it.pts||[];
   if(it.t==="zone"&&pts.length>2){s+='<polygon points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="'+col+'" fill-opacity="'+(o.fillOp??.22)+'" stroke="'+col+'" stroke-width="'+(o.sw||3)+'" vector-effect="non-scaling-stroke"'+(o.dash?' stroke-dasharray="8 6"':'')+'/>';}
   if(it.t==="trace"&&pts.length>1){s+='<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="'+(o.sw||4)+'" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"'+(it.k==="vehicule"?' stroke-dasharray="14 8"':it.k==="recolte"?' stroke-dasharray="2 8"':'')+'/>';}
+  if(it.t==="point"){s+='<circle cx="'+it.x+'" cy="'+it.y+'" r="'+(9*u)+'" fill="'+col+'" stroke="#fff" stroke-width="'+(3*u)+'"/>';}
   if(o.labels!==false){if(it.t==="zone"&&pts.length>2){const c=centroid(pts);s+=label(c[0],c[1],it.nom||"?",col,fs)}
    if(it.t==="trace"&&pts.length>1){const i2=Math.floor(pts.length/2),a1=pts[i2-1]||pts[0],b1=pts[i2],m=pts.length%2?b1:[(a1[0]+b1[0])/2,(a1[1]+b1[1])/2];s+=label(m[0],m[1],(T.e+" ")+(it.nom||T.n),col,fs*.85)}
+   if(it.t==="point")s+=label(it.x,it.y,T.e+" "+(it.nom||T.n),col,fs*.85);
    if(it.t==="note")s+=label(it.x,it.y,"📝 "+(it.txt||""),col,fs*.9)}});
  return s}
 function itemsSVG(items,w,h,f,o){let bg='';if(f&&f.image_url){if(f.bearing&&f.crop_w){bg=bgSVG(f,0,0,w,h)}else bg='<image href="'+esc(f.image_url)+'" width="'+w+'" height="'+h+'"/>'}return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid slice">'+bg+renderItems(items,o)+'</svg>'}
@@ -327,8 +351,8 @@ dblCb=()=>{if(ED.draft.length)finish()};
 function drawAll(){$("lItems").innerHTML=ED.overlay?ED.overlay():renderItems(ED.items);
  const d=ED.draft,u=U();let s="";if(d.length){const T=TYPES[ED.tool];s+=(ED.tool==="zone"&&d.length>2?'<polygon points="'+d.map(p=>p.join(",")).join(" ")+'" fill="'+T.c+'" fill-opacity=".15" stroke="none"/>':'')+'<polyline points="'+d.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+T.c+'" stroke-width="4" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>'+d.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+6*u*(vb.w/IMG.w)+'" fill="#fff" stroke="'+T.c+'" stroke-width="3" vector-effect="non-scaling-stroke"/>').join("")}
  $("lDraft").innerHTML=s}
-function itemList(items,onDel){if(!items.length)return'<p class="muted">Rien pour l\'instant.</p>';
- return'<ul class="items">'+items.map((it,i)=>{const T=TYPES[it.t==="trace"?it.k:it.t],fc=freqColor(it)||T.c;return'<li><span class="dot" style="background:'+fc+'"></span><span class="n">'+T.e+" "+esc(it.t==="note"?it.txt:(it.nom||T.n))+esc(freqLabel(it))+'</span>'+(onDel?'<button aria-label="Renommer" data-ren="'+i+'">✏️</button><button aria-label="Supprimer" data-del="'+i+'">🗑️</button>':'')+'</li>'}).join("")+'</ul>'}
+function itemList(items,onDel){if(!items.length)return"<p class='muted'>Rien pour l'instant.</p>";
+ return'<ul class="items">'+items.map((it,i)=>{const T=itemType(it),fc=freqColor(it)||T.c,meta=(it.distance?" · "+Math.round(it.distance)+" m":"")+(it.certainty?" · "+it.certainty:"");return'<li><span class="dot" style="background:'+fc+'"></span><span class="n">'+T.e+" "+esc(it.t==="note"?it.txt:(it.nom||T.n))+esc(freqLabel(it)+meta)+'</span>'+(onDel?'<button aria-label="Renommer" data-ren="'+i+'">✏️</button><button aria-label="Supprimer" data-del="'+i+'">🗑️</button>':'')+'</li>'}).join("")+'</ul>'}
 function wireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ED.items.splice(+b.dataset.del,1);changed();ED.refreshPanel&&ED.refreshPanel()});
  root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=ED.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;changed();ED.refreshPanel&&ED.refreshPanel()}})}
 function credit(){return CUR&&CUR.image_url&&CUR.image_url.includes('geopf.fr')?'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>':''}
@@ -385,16 +409,17 @@ async function studentDash(){
  let history=[];
  const{data,error}=await sb.from("schemas").select("id,ferme_id,created_at,contenu").eq("user_id",u.id).order("created_at",{ascending:false});
  if(!error)history=data||[];
- const counts={};history.forEach(h=>counts[h.ferme_id]=(counts[h.ferme_id]||0)+1);
+ const counts={};history.forEach(h=>{const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;counts[k]=(counts[k]||0)+1});
  $("studentFarms").innerHTML=FERMES.map(f=>{
-  const n=counts[f.id]||0;
-  return '<button class="card" data-sfarm="'+f.id+'">'+
+  const n1=counts[f.id+":ex1"]||0,n2=counts[f.id+":ex2"]||0;
+  return '<div class="card" style="cursor:default">'+
    (f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+
    '<div class="t">'+esc(f.nom)+'</div>'+
-   '<div class="s">Exercice 1 — Zones et fréquences<br>'+(n?('✅ '+n+' envoi'+(n>1?'s':'')):'À commencer')+'</div></button>'
+   '<div class="s">1 Organisation : '+(n1?'✅ envoyé':'à faire')+'<br>2 Eau : '+(n2?'✅ envoyé':'à faire')+'</div>'+
+   '<div class="farmActions"><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex1">1 · Organisation</button><button class="btn small" data-sfarm="'+f.id+'" data-ex="ex2" '+(f.mode!=="carte"?'disabled title="L’exercice Eau nécessite une carte vivante"':'')+'>2 · Eau</button></div></div>'
  }).join("")||'<p class="muted">Aucune ferme disponible pour le moment.</p>';
  $("studentFarms").querySelectorAll("[data-sfarm]").forEach(b=>b.onclick=()=>{
-  const f=FERMES.find(x=>x.id===b.dataset.sfarm);startStudentSession(prenom,f.id);openStudent(f)
+  const f=FERMES.find(x=>x.id===b.dataset.sfarm),ex=b.dataset.ex;startStudentSession(prenom,f.id);openStudentExercise(f,ex)
  });
  if(error){
   $("studentHistory").innerHTML='<div class="msg err">L’historique n’est pas encore configuré dans Supabase. Le fichier SQL fourni avec cette version doit être appliqué une seule fois.</div>'
@@ -404,12 +429,12 @@ async function studentDash(){
   $("studentHistory").innerHTML='<ul class="items">'+history.slice(0,20).map(h=>{
    const f=FERMES.find(x=>x.id===h.ferme_id);
    const d=new Date(h.created_at);
-   return '<li><span class="dot" style="background:#315a48"></span><span class="n"><b>'+esc(f?f.nom:"Ferme")+'</b> · Exercice 1<br><small>'+d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</small></span></li>'
+   const ex=(h.contenu&&h.contenu.exercise)||"ex1",lab=ex==="ex2"?"Exercice 2 — Eau":"Exercice 1 — Organisation";return '<li><span class="dot" style="background:#315a48"></span><span class="n"><b>'+esc(f?f.nom:"Ferme")+'</b> · '+lab+'<br><small>'+d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</small></span></li>'
   }).join("")+'</ul>'
  }
 }
 async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+studentName()+" · "+f.nom;
- ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get(studentSchemaKey(f.id),[]);ED.onChange=()=>{LS.set(studentSchemaKey(f.id),ED.items);panelEleve()};ED.refreshPanel=panelEleve;
+ ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);ED.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),ED.items);panelEleve()};ED.refreshPanel=panelEleve;
  $("lLogic").innerHTML="";await loadImage(f);buildTools();tip();drawAll();panelEleve();
  clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleve()}},15000)}
 let showLogic=false;
@@ -423,6 +448,58 @@ async function send(){if(!ED.items.length){msg("sendMsg","Ton schéma est vide."
  $("bSend").disabled=true;if(!STUDENT_USER){msg("sendMsg","Reconnecte-toi à ton espace pour envoyer.","err");$("bSend").disabled=false;return}
  const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||"?").slice(0,60),contenu:{exercise:"ex1",items:ED.items,w:IMG.w,h:IMG.h}});
  $("bSend").disabled=false;msg("sendMsg",error?"Envoi impossible : vérifie ta connexion et réessaie.":"✅ Envoyé ! Ton formateur l'a reçu.",error?"err":"ok")}
+
+
+/* ---------- MODULE 1 · EXERCICE 2 : SUIVRE L'EAU ---------- */
+const EX2_STEPS=[
+ {title:"Observer",tool:null,tip:"Observe la ferme sans dessiner. Zoome et déplace la carte.",help:"Avant de tracer quoi que ce soit, regarde simplement ce qui pourrait être lié à l’eau."},
+ {title:"Ressource",tool:"source",tip:"Clique à l’endroit où tu situes une source d’eau.",help:"Place une ou plusieurs ressources : forage, puits, réseau, mare… Distingue ce que tu vois de ce que tu supposes."},
+ {title:"Stockage",tool:"stockage",tip:"Clique à l’endroit où tu situes un stockage d’eau.",help:"Repère les réserves, bassins ou stockages éventuels. Si tu n’en vois pas, tu peux passer à l’étape suivante."},
+ {title:"Eau distribuée",tool:"eau_dist",tip:"Trace le trajet supposé de l’eau distribuée. Termine le tracé pour obtenir sa distance.",help:"Trace source → pompe / stockage → zones cultivées. La longueur de chaque tracé est calculée automatiquement."},
+ {title:"Eau naturelle",tool:"eau_nat",tip:"Trace le sens probable de l’eau quand elle suit le relief.",help:"Utilise « Comprendre la pente » si nécessaire, puis représente les écoulements probables."},
+ {title:"Accumulations",tool:"accumulation",tip:"Dessine le contour d’une zone où l’eau pourrait s’accumuler.",help:"Repère les points bas ou zones qui pourraient rester humides. Il s’agit d’une hypothèse à vérifier."},
+ {title:"Questions",tool:"question",tip:"Clique sur la carte pour placer une question ou un point de vigilance.",help:"Note ce que la vue aérienne ne permet pas de trancher : ressource réelle, panne, stockage, réseau, humidité…"},
+ {title:"Synthèse",tool:null,tip:"Relis ta carte avant de l’envoyer.",help:"Ta carte doit distinguer ce que tu observes, ce que tu supposes et ce qu’il faudra vérifier sur la ferme."}
+];
+function openStudentExercise(f,ex){if(ex==="ex2")return eleveCarteEx2(f);return openStudent(f)}
+function ex2Count(k){return CM.items.filter(it=>it.k===k).length}
+function ex2TotalDistance(){return CM.items.filter(it=>it.k==="eau_dist"&&it.distance).reduce((a,it)=>a+it.distance,0)}
+function ex2Stepbar(){return '<div class="stepbar">'+EX2_STEPS.map((_,i)=>'<span class="stepdot '+(i<CM.ex2Step?'done':i===CM.ex2Step?'now':'')+'"></span>').join('')+'</div>'}
+async function eleveCarteEx2(f){
+ if(f.mode!=="carte"){alert("L’exercice 2 nécessite une carte vivante IGN.");return studentDash()}
+ CUR=f;$('who').textContent='👤 '+studentName()+' · '+f.nom+' · Eau';await cmInit(f);
+ CM.exercise1=false;CM.exercise2=true;CM.ex2Step=0;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex2"),[]);CM.logic=null;CM.overlays=[];CM.ex2ShowEx1=false;
+ CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex2"),CM.items);panelEleveEx2()};cmSetMode('move');panelEleveEx2();$('btnHelp').hidden=true
+}
+async function ex2ToggleEx1(){
+ CM.ex2ShowEx1=!CM.ex2ShowEx1;
+ if(CM.ex2ShowEx1){const{data}=await sb.from('fermes').select('logique').eq('id',CUR.id).single();CM.logic=(data&&data.logique&&data.logique.consensus&&data.logique.consensus.items)||(data&&data.logique&&data.logique.items)||[]}
+ else CM.logic=null;
+ cmRender();panelEleveEx2()
+}
+function panelEleveEx2(){
+ const p=$('panelC'),st=EX2_STEPS[CM.ex2Step],dist=ex2TotalDistance();
+ p.innerHTML='<div class="muted">MODULE 1 · EXERCICE 2</div><h3>💧 Suivre l’eau</h3>'+ex2Stepbar()+
+  '<div class="msg"><b>Étape '+(CM.ex2Step+1)+' / '+EX2_STEPS.length+' — '+st.title+'</b><br>'+st.help+'</div>'+ 
+  (CM.items.length?itemList(CM.items,true):'<p class="muted">Aucun élément dessiné pour l’instant.</p>')+
+  '<div class="kpis"><div class="kpi"><b>'+ex2Count('source')+'</b><small>source(s)</small></div><div class="kpi"><b>'+Math.round(dist)+' m</b><small>réseau distribué tracé</small></div></div>'+ 
+  '<div class="row"><button class="btn small" id="ex2Prev" '+(CM.ex2Step===0?'disabled':'')+'>⬅ Étape précédente</button><button class="btn main" id="ex2Next" '+(CM.ex2Step===EX2_STEPS.length-1?'disabled':'')+'>Étape suivante ➡</button></div>'+ 
+  '<button class="btn" id="ex2Overlay">'+(CM.ex2ShowEx1?'🙈 Masquer':'👁️ Afficher')+' les zones de l’exercice 1</button>'+ 
+  '<button class="btn main" id="ex2Send">📤 Envoyer l’exercice 2</button><div id="ex2SendMsg"></div>'+ 
+  '<button class="btn" id="ex2Back">⬅ Retour à mon espace</button>'+creditC();
+ cmWireList(p);
+ $('ex2Prev').onclick=()=>{CM.ex2Step--;CM.pending=null;CM.verts=[];cmSetMode('move');panelEleveEx2()};
+ $('ex2Next').onclick=()=>{CM.ex2Step++;CM.pending=null;CM.verts=[];cmSetMode('move');panelEleveEx2()};
+ $('ex2Overlay').onclick=ex2ToggleEx1;$('ex2Send').onclick=sendEx2;$('ex2Back').onclick=()=>{CM.exercise2=false;CM.logic=null;CM.overlays=[];studentDash()};
+ cmTools();cmTip();cmRender()
+}
+async function sendEx2(){
+ if(!CM.items.length){msg('ex2SendMsg','Ajoute au moins un élément avant d’envoyer.','err');return}
+ if(!STUDENT_USER){msg('ex2SendMsg','Reconnecte-toi à ton espace pour envoyer.','err');return}
+ $('ex2Send').disabled=true;const c=CM.map.getCenter();
+ const{error}=await sb.from('schemas').insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||'?').slice(0,60),contenu:{exercise:'ex2',mode:'carte',items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
+ $('ex2Send').disabled=false;msg('ex2SendMsg',error?'Envoi impossible : '+error.message:'✅ Exercice 2 envoyé. Ta carte reste modifiable.',error?'err':'ok')
+}
 
 /* ---------- FORMATEUR ---------- */
 async function login(){
@@ -460,12 +537,12 @@ function panelLogic(dirty){const p=$("panel");p.innerHTML='<h3>Ma logique</h3><p
  wireList(p);$("bSaveL").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:ED.items,w:IMG.w,h:IMG.h}}).eq("id",CUR.id);msg("saveMsg",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBack").onclick=()=>dash("fermes")}
 function fillSel(){const s=$("selFerme"),v=s.value;s.innerHTML=FERMES.map(f=>'<option value="'+f.id+'">'+esc(f.nom)+'</option>').join("");if(v)s.value=v}
 let RECUS=[];
-async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").innerHTML="";return}const f=FERMES.find(x=>x.id===fid);
- const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:data;
+async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").innerHTML="";return}const f=FERMES.find(x=>x.id===fid),ex=$("selExercise")?$("selExercise").value:"ex1";
+ const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:(data||[]).filter(r=>((r.contenu&&r.contenu.exercise)||"ex1")===ex);
  $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
  $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Débrief collectif</div><div class="s">Stagiaires anonymisés · Formateur · Consensus</div></button>':'')+
  RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
- $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>openRecusAny(f,[b.dataset.r]));if($("allSup"))$("allSup").onclick=()=>openRecusAny(f,RECUS.map(r=>r.id))}
+ $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex2"?openRecusEx2(f,[b.dataset.r]):openRecusAny(f,[b.dataset.r])});if($("allSup"))$("allSup").onclick=()=>{const ex=$("selExercise")?$("selExercise").value:"ex1";ex==="ex2"?openRecusEx2(f,RECUS.map(r=>r.id)):openRecusAny(f,RECUS.map(r=>r.id))}}
 let RECUS_FREQ_FILTER="all";
 let RECUS_VISIBLE_IDS=null;
 function anonLabel(i){return "Profil "+String.fromCharCode(65+i)}
@@ -552,6 +629,16 @@ async function openRecus(f,ids){
 }
 
 
+
+async function openRecusEx2(f,ids){
+ CUR=f;const selected=RECUS.filter(r=>ids.includes(r.id)),multi=selected.length>1,sel=multi?collectiveCopy(selected):selected;
+ await cmInit(f);CM.exercise1=false;CM.exercise2=false;CM.readonly=true;CM.logic=null;CM.onChange=null;CM.items=[];CM.overlays=[];cmSetMode('move');
+ if(multi){CM.overlays=sel.map((r,i)=>({items:(r.contenu&&r.contenu.items)||[],color:PEOPLE[i%PEOPLE.length]}));$('who').textContent='🧑‍🌾 '+f.nom+' · EAU · DÉBRIEF ANONYME'}
+ else {CM.items=(sel[0].contenu&&sel[0].contenu.items)||[];$('who').textContent='🧑‍🌾 '+f.nom+' · Eau · '+sel[0].auteur}
+ cmRender();const p=$('panelC');p.innerHTML=(multi?'<h3>💧 Exercice 2 — Débrief</h3><div class="msg ok">🔒 Les profils sont anonymisés.</div><div class="legend">'+sel.map((r,i)=>'<div><span class="dot" style="background:'+PEOPLE[i%PEOPLE.length]+'"></span>'+anonLabel(i)+'</div>').join('')+'</div>':'<h3>'+esc(sel[0].auteur)+'</h3>'+itemList(CM.items,false))+'<button class="btn" id="ex2RecBack">⬅ Retour aux schémas</button><p class="muted">Le débrief Formateur + Consensus de l’exercice 2 sera ajouté au prochain lot.</p>';
+ $('ex2RecBack').onclick=()=>{CM.overlays=[];dash('recus')};cmTools();cmTip()
+}
+
 /* ---------- IGN : chercher et cadrer la ferme (photos aériennes, gratuit) ---------- */
 let MB=null,leafReady=null;
 const IGN_TILES="https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg";
@@ -605,7 +692,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false,exercise2:false,ex2Tool:null,ex2Step:0,ex2ShowEx1:false,collectiveIds:[],topoMode:false,topoPts:[],topoData:null};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -616,11 +703,12 @@ async function cmInit(f){show("vCarte");await loadLeaflet();
   ["over","logic","items","draft","topo"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
   CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
   window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
- CM.f=f;CM.mode="draw";CM.stroke=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;CM.ex2Tool=null;CM.topoMode=false;CM.topoPts=[];CM.topoData=null;if(CM.g.topo)CM.g.topo.clearLayers();ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
 function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
-function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre,col=o.color||freqColor(it)||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]);
+function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=itemType(it),col=o.color||freqColor(it)||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]);
  if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);cLabel(group,c[0],c[1],it.nom||"?",col)}
- else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);const m=pts[Math.floor(pts.length/2)];cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n),col)}
+ else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);const m=pts[Math.floor(pts.length/2)],d=it.distance?(" · "+Math.round(it.distance)+" m"):"";cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n)+d,col)}
+ else if(it.t==="point"){L.circleMarker([it.lat,it.lng],{radius:8,color:"#fff",weight:3,fillColor:col,fillOpacity:1,interactive:false}).addTo(group);cLabel(group,it.lat,it.lng,T.e+" "+(it.nom||T.n),col)}
  else if(it.t==="note")cLabel(group,it.lat,it.lng,"📝 "+(it.txt||""),col)})}
 const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"],["eau","💧 L'eau","tuyau, forage, réserve…"],["vehicule","🚐 Les véhicules","passage de camion, tracteur…"],["recolte","🧺 La récolte à pied","chemin des caisses, brouettes…"],["libre","✏️ Autre tracé","je le nomme moi-même"]];
 function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLayers());
@@ -634,16 +722,24 @@ function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLay
   else L.polyline(pv,{color:col,weight:5,lineCap:"round",lineJoin:"round",dashArray:CM.pending?"6 5":null,interactive:false}).addTo(CM.g.draft)}
  $("cm").classList.toggle("draw",CM.mode==="draw"&&!CM.readonly&&!CM.pending)}
 function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
- if(v.length<(CM.exercise1?3:2)){cmTools();cmTip();cmRender();return}
+ const min=CM.exercise1?3:(CM.exercise2&&CM.ex2Tool==="accumulation"?3:2);
+ if(v.length<min){cmTools();cmTip();cmRender();return}
  const px=v.map(q=>{const c=CM.map.latLngToContainerPoint({lat:q[1],lng:q[0]});return{x:c.x,y:c.y}});
- CM.pending={px,pts:v,type:CM.exercise1?"zone":null};cmTools();cmTip();cmSheet();cmRender()}
+ CM.pending={px,pts:v,type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:null)};cmTools();cmTip();cmSheet();cmRender()}
 function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
 function cmTools(){const t=$("toolsC");
  if(CM.pending){t.innerHTML="";t.style.display="none";return}
  if(CM.readonly){t.style.display="flex";t.innerHTML=topoBtnHtml();topoWire();return}
  t.style.display="flex";
- if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer la zone</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
+ if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
   $("mDone").onclick=cmVertsDone;$("mUndo").onclick=cmUndo;$("mCancel").onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
+ if(CM.exercise2){
+  const tool=EX2_STEPS[CM.ex2Step]&&EX2_STEPS[CM.ex2Step].tool;CM.ex2Tool=tool||null;
+  const action=tool?'<button class="btn'+(CM.mode==="draw"&&!CM.topoMode?" on":"")+'" id="mEx2">'+itemType({k:tool}).e+' '+(tool==="source"?"Placer une source":tool==="stockage"?"Placer un stockage":tool==="eau_dist"?"Tracer l’eau distribuée":tool==="eau_nat"?"Tracer l’eau naturelle":tool==="accumulation"?"Dessiner une accumulation":"Placer une question")+'</button>':'';
+  t.innerHTML=action+'<button class="btn'+(CM.mode==="move"&&!CM.topoMode?" on":"")+'" id="mMove">✋ Déplacer</button><button class="btn" id="mUndo">↩ Effacer le dernier</button>'+topoBtnHtml();
+  if($("mEx2"))$("mEx2").onclick=()=>{if(CM.topoMode)topoClose();CM.ex2Tool=tool;cmSetMode("draw")};
+  $("mMove").onclick=()=>{if(CM.topoMode)topoClose();cmSetMode("move")};$("mUndo").onclick=cmUndo;topoWire();return
+ }
  if(CM.exercise1){
   t.innerHTML='<button class="btn'+(CM.mode==="draw"&&!CM.topoMode?" on":"")+'" id="mDraw">🟪 Dessiner une zone</button><button class="btn'+(CM.mode==="move"&&!CM.topoMode?" on":"")+'" id="mMove">✋ Déplacer la carte</button><button class="btn" id="mUndo">↩ Effacer la dernière zone</button>'+topoBtnHtml();
   $("mDraw").onclick=()=>{if(CM.topoMode)topoClose();cmSetMode("draw")};$("mMove").onclick=()=>{if(CM.topoMode)topoClose();cmSetMode("move")};$("mUndo").onclick=cmUndo;topoWire();return
@@ -731,19 +827,21 @@ async function topoTap(e){
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display="flex";
  if(CM.topoMode){tx.textContent=CM.topoPts.length===0?"⛰️ Clique sur un point A.":CM.topoPts.length===1?"⛰️ Clique maintenant sur un point B.":"⛰️ Comparaison A–B affichée. Tu peux recommencer depuis le panneau.";return}
  if(CM.readonly){el.style.display="none";return}
+ if(CM.exercise2){const st=EX2_STEPS[CM.ex2Step]||EX2_STEPS[0];tx.textContent=CM.pending?"Valide ce que tu viens d’ajouter.":CM.verts.length?"Continue le tracé, puis termine-le.":CM.mode==="draw"&&st.tool?st.tip:"✋ Observe, zoome et déplace la carte.";return}
  if(CM.exercise1){
   tx.textContent=CM.pending?"Zone dessinée : choisis maintenant sa fréquence de passage.":CM.verts.length?"Continue à poser les coins de la zone, puis clique sur « Terminer la zone ».":CM.mode==="draw"?"🟪 Trace le contour de la zone. Tu peux dessiner à main levée ou cliquer sur ses coins.":"✋ Déplace ou zoome sur la carte, puis clique sur « Dessiner une zone ».";
   return
  }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
 async function cmTap(e){if(CM.topoMode){await topoTap(e);return}if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+ if(CM.exercise2&&CM.mode==="draw"&&["source","stockage","question"].includes(CM.ex2Tool)){const pt=CM.map.latLngToContainerPoint(e.latlng);CM.pending={type:CM.ex2Tool,lat,lng,px:[{x:pt.x,y:pt.y}],pts:[]};cmSheet();cmTools();cmTip();cmRender();return}
  if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
  CM.noteArmed=false;const txt=await ask("Ta note :");cmSetMode("draw");if(txt){CM.items.push({t:"note",lat,lng,txt});cmChanged()}}
 function dpSimplify(pts,tol){if(pts.length<3)return pts;const a=pts[0],b=pts[pts.length-1],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);let max=0,idx=0;
  for(let i=1;i<pts.length-1;i++){const p=pts[i],d=len<1e-6?Math.hypot(p.x-a.x,p.y-a.y):Math.abs(dy*p.x-dx*p.y+b.x*a.y-b.y*a.x)/len;if(d>max){max=d;idx=i}}
  if(max>tol){const l=dpSimplify(pts.slice(0,idx+1),tol),r=dpSimplify(pts.slice(idx),tol);return l.slice(0,-1).concat(r)}return[a,b]}
 const ACT=new Set();
-function cmCanDraw(e){return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
+function cmCanDraw(e){if(CM.exercise2&&["source","stockage","question"].includes(CM.ex2Tool))return false;return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
 function cmDown(e){if(e.pointerType==="mouse"&&e.button!==0)return;ACT.add(e.pointerId);
  if(ACT.size>1){CM.stroke=null;cmRender();return}
  if(!cmCanDraw(e))return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll);CM.stroke=[{x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng}]}
@@ -753,10 +851,27 @@ function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;
  let len=0;for(let i=1;i<s.length;i++)len+=Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y);
  if(len<20){cmRender();return}
  const simp=dpSimplify(s,3.5);
- if(CM.exercise1&&simp.length<3){cmRender();return}
- CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.exercise1?"zone":null};
+ if((CM.exercise1||CM.exercise2&&CM.ex2Tool==="accumulation")&&simp.length<3){cmRender();return}
+ CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.exercise1?"zone":(CM.exercise2?CM.ex2Tool:null)};
  cmTools();cmTip();cmSheet();cmRender()}
 function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
+ if(CM.exercise2){
+  const ty=CM.pending.type,T=TYPES[ty]||TYPES.libre,point=["source","stockage","question"].includes(ty);sh.hidden=false;
+  const cert=CM.pending.certainty||"";
+  sh.innerHTML='<h4>'+T.e+' '+T.n+'</h4>'+
+   (ty==="question"?'<p>Quelle question ou fragilité veux-tu garder pour la visite ?</p>':'<p>Est-ce une observation ou une hypothèse ?</p><div class="types"><button type="button" data-cert="Je le vois" class="'+(cert==="Je le vois"?"on":"")+'" style="--c:#2e7d4f"><b>👁️ Je le vois</b></button><button type="button" data-cert="Je le suppose" class="'+(cert==="Je le suppose"?"on":"")+'" style="--c:#6b7280"><b>💭 Je le suppose</b></button></div>')+
+   '<input id="shName" maxlength="120" placeholder="'+(ty==="question"?'Écris ta question ou ton point de vigilance':'Nom ou précision (facultatif)')+'" autocomplete="off">'+
+   '<div id="shMsg"></div><div class="row"><button class="btn main" id="shOk" '+((ty!=="question"&&!cert)?"disabled":"")+'>✔ Valider</button><button class="btn" id="shNo">✖ Recommencer</button></div>';
+  sh.querySelectorAll("[data-cert]").forEach(b=>b.onclick=()=>{const v=$("shName")?$("shName").value:"";CM.pending.certainty=b.dataset.cert;cmSheet();$("shName").value=v});
+  $("shNo").onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};
+  $("shOk").onclick=()=>{const nom=$("shName").value.trim(),certainty=CM.pending.certainty||"";
+   if(ty==="question"&&!nom){msg("shMsg","Écris la question ou le point à vérifier.","err");return}
+   if(point){CM.items.push({t:"point",k:ty,nom:nom||(T.n),certainty,lat:CM.pending.lat,lng:CM.pending.lng})}
+   else {let pts=CM.pending.pts.slice();if(ty==="accumulation"){const px=CM.pending.px;if(px.length>3&&Math.hypot(px[0].x-px[px.length-1].x,px[0].y-px[px.length-1].y)<25)pts.pop();if(pts.length<3){msg("shMsg","Dessine une zone avec au moins 3 points.","err");return};CM.items.push({t:"zone",k:ty,nom:nom||T.n,certainty,pts})}
+   else {let dist=0;for(let i=1;i<pts.length;i++)dist+=CM.map.distance([pts[i-1][1],pts[i-1][0]],[pts[i][1],pts[i][0]]);CM.items.push({t:"trace",k:ty,nom:nom||T.n,certainty,distance:dist,pts})}}
+   CM.pending=null;CM.lastDel=null;cmSheet();cmChanged();cmSetMode("move")};
+  return
+ }
  if(CM.exercise1){
   const f=CM.pending.freq||null;sh.hidden=false;
   sh.innerHTML='<h4>À quelle fréquence penses-tu qu\'on passe dans cette zone ?</h4>'+
@@ -792,8 +907,8 @@ function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.oncli
  if($("bRestore"))$("bRestore").onclick=()=>{if(CM.lastDel){CM.items.splice(CM.lastDel.i,0,CM.lastDel.item);CM.lastDel=null;cmChanged()}};
  root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=CM.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;cmChanged()}})}
 function creditC(){return'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>'}
-async function eleveCarte(f){CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom;await cmInit(f);
- CM.exercise1=true;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id),[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set(studentSchemaKey(f.id),CM.items);panelEleveC()};
+async function eleveCarte(f){CUR=f;CM.exercise2=false;$("who").textContent="👤 "+studentName()+" · "+f.nom;await cmInit(f);
+ CM.exercise1=true;CM.exercise2=false;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),CM.items);panelEleveC()};
  cmSetMode("move");panelEleveC();$("btnHelp").hidden=false;if(!SS.get("tour_ok",false))showTour(0);
  clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleveC()}},15000)}
 function panelEleveC(){const p=$("panelC");
@@ -807,7 +922,7 @@ async function sendCarte(){if(!CM.items.length){msg("sendMsgC","Tu n'as encore r
  const c=CM.map.getCenter(),{error}=await sb.from("schemas").insert({ferme_id:CUR.id,user_id:STUDENT_USER.id,auteur:(studentName()||"?").slice(0,60),contenu:{exercise:"ex1",mode:"carte",items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
  $("bSendC").disabled=false;msg("sendMsgC",error?"L'envoi n'a pas marché. Vérifie ta connexion internet, puis réessaie.":"✅ Bravo ! Ton dessin est envoyé. Tu peux continuer à le modifier et le renvoyer.",error?"err":"ok")}
 async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma lecture · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();await cmInit(f);
- CM.exercise1=true;CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("move");panelLogicC(false)}
+ CM.exercise1=true;CM.exercise2=false;CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("move");panelLogicC(false)}
 function panelLogicC(dirty){const p=$("panelC");
  p.innerHTML='<h3>Ma lecture formateur</h3><p class="muted">Dessine les zones comme les stagiaires : contour, fréquence F1 à F5, puis nom facultatif.</p>'+
  (CM.items.length?itemList(CM.items,true):'<p class="muted">Aucune zone pour l’instant.</p>')+
@@ -828,7 +943,7 @@ async function editConsensusCarte(f,ids){
  const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
  const base=(data&&data.logique)||{},cons=(base.consensus&&base.consensus.items)||[];
  await cmInit(f);
- CM.exercise1=true;CM.readonly=false;CM.items=cons;CM.logic=null;CM.overlays=[];CM.onChange=()=>panelConsensusC(true);
+ CM.exercise1=true;CM.exercise2=false;CM.readonly=false;CM.items=cons;CM.logic=null;CM.overlays=[];CM.onChange=()=>panelConsensusC(true);
  cmSetMode("move");panelConsensusC(false)
 }
 function panelConsensusC(dirty){
@@ -851,7 +966,7 @@ async function openRecusCarte(f,ids){
  CUR=f;CM.collectiveIds=(ids||[]).slice();
  const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
  const base=(data&&data.logique)||{},trainer=base.items||[],consensus=(base.consensus&&base.consensus.items)||[];
- await cmInit(f);CM.exercise1=false;
+ await cmInit(f);CM.exercise1=false;CM.exercise2=false;
  const multi=ids.length>1;
  const raw=RECUS.slice(),all=multi?collectiveCopy(raw):raw;
  let idx=Math.max(0,raw.findIndex(r=>r.id===ids[0])),withTrainer=false,showStudents=true,showConsensus=!!consensus.length;
@@ -905,14 +1020,14 @@ async function openRecusCarte(f,ids){
  };
  draw()
 }
-function itemsThumb(items){const pts=[];(items||[]).forEach(it=>{if(it.pts)it.pts.forEach(p=>pts.push(p));if(it.t==="note")pts.push([it.lng,it.lat])});
+function itemsThumb(items){const pts=[];(items||[]).forEach(it=>{if(it.pts)it.pts.forEach(p=>pts.push(p));if(it.t==="note"||it.t==="point")pts.push([it.lng,it.lat])});
  if(!pts.length)return'<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#e9ece6"/></svg>';
  const lats=pts.map(p=>p[1]),lngs=pts.map(p=>p[0]),la0=Math.min(...lats),la1=Math.max(...lats),ln0=Math.min(...lngs),ln1=Math.max(...lngs),k=Math.cos(((la0+la1)/2)*Math.PI/180),w=Math.max((ln1-ln0)*k,1e-6),hh=Math.max(la1-la0,1e-6),s=Math.min(260/w,160/hh),ox=(300-w*s)/2,oy=(200-hh*s)/2;
  const X=p=>(ox+(p[0]-ln0)*k*s).toFixed(1),Y=p=>(oy+(la1-p[1])*s).toFixed(1);let o='<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#dde6d9"/>';
- (items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre;
+ (items||[]).forEach(it=>{const T=itemType(it);
   if(it.t==="zone"&&it.pts.length>2)o+='<polygon points="'+it.pts.map(p=>X(p)+","+Y(p)).join(" ")+'" fill="'+T.c+'" fill-opacity=".3" stroke="'+T.c+'" stroke-width="2"/>';
   else if(it.t==="trace"&&it.pts.length>1)o+='<polyline points="'+it.pts.map(p=>X(p)+","+Y(p)).join(" ")+'" fill="none" stroke="'+T.c+'" stroke-width="3" stroke-linecap="round"/>';
-  else if(it.t==="note")o+='<circle cx="'+X([it.lng,it.lat])+'" cy="'+Y([it.lng,it.lat])+'" r="5" fill="'+T.c+'"/>'});
+  else if(it.t==="note"||it.t==="point")o+='<circle cx="'+X([it.lng,it.lat])+'" cy="'+Y([it.lng,it.lat])+'" r="5" fill="'+T.c+'"/>'});
  return o+'</svg>'}
 function copyLink(id){const url=location.origin+location.pathname+"#ferme="+id;const done=()=>alert("Lien copié :\n"+url+"\n\nEnvoie-le à tes stagiaires.");
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,()=>prompt("Copie ce lien :",url));else prompt("Copie ce lien :",url)}
@@ -943,7 +1058,7 @@ $("btnLogin").onclick=login;$("btnSignup").onclick=signup;
 $("btnStudentLink").onclick=()=>sendStudentMagicLink(null,false);
 $("btnStudentLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
-$("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;
+$("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;if($("selExercise"))$("selExercise").onchange=loadRecus;
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
 async function finishStudentAuthIfNeeded(){
