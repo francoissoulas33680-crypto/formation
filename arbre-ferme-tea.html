@@ -68,6 +68,9 @@ button:focus-visible,.part:focus-visible{outline:3px solid var(--accent);outline
 #formateur{display:none;max-width:1100px;margin:0 auto;padding:20px 24px 40px}
 body.vue-formateur #projection, body.vue-formateur #barre, body.vue-formateur #tiroir{display:none}
 body.vue-formateur #formateur{display:block}
+body.vue-projection #barre, body.vue-projection #tiroir{display:none !important}
+body.vue-projection #projection{height:100vh}
+.pilotage{display:grid;gap:14px;margin-top:16px}.pilot-card{background:var(--carte);border:1px solid var(--trait);border-radius:14px;padding:16px 18px}.pilot-card h2{font-size:18px;margin:0 0 10px}.flow{font-size:22px;font-weight:800;line-height:1.55}.reveal-grid{display:flex;flex-wrap:wrap;gap:8px}.reveal-grid button,.transition-btn{border:2px solid var(--accent);background:var(--carte);border-radius:12px;padding:10px 14px;font-size:17px;font-weight:800}.reveal-grid button.on{background:var(--accent);color:#fff}.transition-btn{background:var(--accent);color:#fff;width:100%;font-size:19px}.detail-toggle{margin-top:8px}.details-hidden{display:none}
 .f-tete{display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;top:env(safe-area-inset-top,0px);background:var(--fond);padding:10px 0;border-bottom:2px solid var(--trait);z-index:2}
 .f-tete h1{font-size:30px;margin:0 auto 0 0}
 .f-tete button{background:var(--carte);border:2px solid var(--trait);border-radius:12px;padding:10px 16px;font-size:18px}
@@ -115,6 +118,7 @@ body.vue-stagiaire .student-help{
   text-align:center;margin:8px auto 14px;color:var(--texte2);font-size:.92rem;
 }
 
+#f-projecteur{display:inline-flex;align-items:center;text-decoration:none}
 </style>
 </head>
 <body>
@@ -222,6 +226,13 @@ body.vue-stagiaire .student-help{
       <g class="badge"><circle cx="150" cy="650" r="22"/><text x="150" y="659" text-anchor="middle">?</text></g>
     </g>
 
+    <!-- Graine -->
+    <g class="part cache" data-part="graine" tabindex="0" role="button" aria-label="Graine">
+      <g class="forme"><ellipse cx="500" cy="612" rx="18" ry="11" fill="#B9824B" transform="rotate(-18 500 612)"/></g>
+      <text class="nom" x="535" y="620" style="fill:#FFF7EA;stroke:var(--sol)">Graine : envie</text>
+      <g class="badge"><circle cx="500" cy="612" r="22"/><text x="500" y="621" text-anchor="middle">?</text></g>
+    </g>
+
     <!-- Racines -->
     <g class="part cache" data-part="racines" tabindex="0" role="button" aria-label="Racines">
       <g class="forme" stroke="#F1C27D" stroke-width="7" stroke-linecap="round" fill="none">
@@ -268,29 +279,41 @@ body.vue-stagiaire .student-help{
 <section id="formateur" aria-live="polite">
   <div class="f-tete">
     <h1 id="f-titre">Vue formateur</h1>
+    <a id="f-projecteur" href="?vue=projection" target="arbre-projection" rel="noopener" role="button">📽️ Ouvrir le vidéoprojecteur</a>
     <button id="f-prec">Précédent</button>
     <button id="f-suiv" class="fort">Suivant</button>
   </div>
   <p class="f-etat" id="f-etat"></p>
   <div class="plan" id="f-plan"></div>
-  <div class="notes" id="f-notes"></div>
+  <div class="pilotage" id="f-pilotage"></div>
+  <button class="detail-toggle" id="f-details-toggle">📚 Notes détaillées / sources</button>
+  <div class="notes details-hidden" id="f-notes"></div>
   <p class="suite" id="f-suite"></p>
 </section>
 
 <script>
 /* ---------- Contenu ---------- */
-const ORDRE = ["racines","oiseaux","sol","ciel","tronc","branches","vente","production","recolte","mo","seve","fruits","animaux","jardinier"];
+const ORDRE = ["oiseaux","graine","racines","sol","ciel","tronc","branches","vente","production","recolte","mo","seve","fruits","animaux","jardinier"];
 
 const P = {
   intro:{
     titre:"La ferme diversifiée : un système vivant",
-    role:"Une ferme commence comme une graine : une envie, une idée, un projet. Pour germer, elle doit trouver les bonnes conditions. Elle développe alors ses racines : le projet personnel du maraîcher, ses objectifs, ses besoins et ses contraintes. Puis viennent le sol, l’eau, le tronc, les branches et enfin les fruits. Comme une ferme, un arbre est un système : aucune partie ne fonctionne réellement seule.",
+    role:"Un écosystème existe avant la ferme. Les premiers signes visibles sont les clients potentiels : les oiseaux. Leur présence participe à faire naître l’idée qu’une ferme peut fonctionner ici.",
     question:"De quoi un arbre a-t-il besoin pour vivre et donner des fruits ?",
     dire:["Projeter l'arbre vide. Ne rien nommer.","Laisser les stagiaires proposer les parties de l'arbre.","Écrire leurs idées au tableau avant de révéler."],
     question_f:"De quoi un arbre a-t-il besoin pour vivre et donner des fruits ?",
     exemple:[],
     sources:[["s","Synthèse : carte co-construite pour la formation TEA"]],
-    transition:"La graine représente l’envie de créer sa ferme. En germant, elle développe d’abord ses racines : le projet personnel du maraîcher."
+    transition:"Écosystème → clients potentiels → opportunité → envie → graine"
+  },
+  graine:{
+    titre:"Graine : envie / intention", role:"L’idée de ferme qui commence à germer dans un territoire où l’on sent qu’elle peut fonctionner.",
+    question:"Pourquoi une ferme ici ?",
+    rameaux:[["Opportunité","Ça peut fonctionner ici"],["Envie","J’ai envie de construire quelque chose"],["Intention","Première vision de la ferme"]],
+    dire:["Territoire → clients potentiels → opportunité","Opportunité ↔ envie personnelle → idée de ferme"],
+    exemple:[], alerte:"La graine n’est pas encore le projet détaillé : elle représente l’envie et l’intention initiales.",
+    sources:[["s","Synthèse pédagogique : métaphore de l’arbre de la ferme diversifiée"]],
+    transition:"Envie → projet personnel → besoins → contraintes → racines"
   },
   oiseaux:{
     titre:"Oiseaux : les clients", role:"Ils viennent autour de l’arbre, le font vivre et participent à la dissémination de ce qu’il produit.",
@@ -431,10 +454,30 @@ const P = {
   }
 };
 
+/* ---------- Pupitre formateur compact ---------- */
+const PILOT={
+ oiseaux:{q:"Pour qui ?",em:"Où ? → Qui ? → Attentes ? → Habitudes ? → Relation ?",idee:"Territoire → Population → Clients potentiels → Débouchés possibles",trans:"Clients → Opportunité → Envie → 🌰 Graine",next:"graine",label:"🌰 Faire apparaître la graine"},
+ graine:{q:"Pourquoi une ferme ici ?",em:"Opportunité ↔ Envie personnelle",idee:"Je sens que c’est possible → Envie → Idée → Intention",trans:"Envie → Projet personnel → Besoins → Contraintes",next:"racines",label:"🌱 Faire pousser les racines"},
+ racines:{q:"Qu’est-ce que j’attends de cette ferme ?",em:"Motivation → Revenu → Temps → Santé → Vie perso → Compétences → Seul / plusieurs",idee:"Besoins différents → Objectifs différents → Ferme différente",trans:"Ce que je veux → Ce que le lieu permet",next:"sol",label:"🌍 Faire apparaître le sol"},
+ sol:{q:"Sur quoi mon projet va-t-il pousser ?",em:"Physique ↔ Chimique ↔ Biologique → Observer → Comprendre → Adapter",idee:"Sol → Potentiels + Contraintes → Pratiques possibles",trans:"Sol + Eau + Lumière + Température",next:"ciel",label:"🌧️ Faire apparaître le ciel"},
+ ciel:{q:"Avec quelles ressources ?",em:"Eau → Lumière → Température → Climat → Protection",idee:"Ressources disponibles ↔ Besoins → Sécurisation",trans:"Clients + Projet + Sol + Climat → Que produire ?",next:"tronc",label:"🪵 Faire pousser le tronc"},
+ tronc:{q:"Que produire ?",em:"Pour qui ? → Quoi ? → Quand ? → Combien ?",idee:"Clients ↔ Projet ↔ Ressources → Gamme cohérente",trans:"Gamme choisie → Travail nécessaire → Organisation",next:"branches",label:"🌿 Faire pousser les branches"},
+ branches:{q:"Que faut-il faire ?",em:"🛒 Vente ↔ 🌱 Production ↔ 🧺 Récolte ↔ 👥 Main-d’œuvre",idee:"Une branche bouge → Les autres bougent",trans:"Branches identifiées → Explorer les fonctions",next:"vente",label:"🛒 Explorer la vente",special:["vente","production","recolte","mo"]},
+ vente:{q:"Comment transformer les légumes en revenu ?",em:"Circuit → Client → Prix → Temps → Relation",idee:"Débouché → Volume → Gamme → Calendrier",trans:"Ce que je veux vendre → Ce que je dois produire",next:"production",label:"🌱 Passer à la production"},
+ production:{q:"Comment produire ce dont j’ai besoin ?",em:"Design → Abris → Standardisation → Implantation → Planification → Mécanisation",idee:"Design → Distances → Déplacements → Temps → Coûts",trans:"Produit disponible → Récolter",next:"recolte",label:"🧺 Passer à la récolte"},
+ recolte:{q:"Combien coûte réellement la récolte ?",em:"Temps → €/h → Moment → Outils → Produits",idee:"Temps ↑ → Coût ↑ → Marge ↓",trans:"Travail nécessaire → Temps disponible → Qui le fait ?",next:"mo",label:"👥 Passer à la main-d’œuvre"},
+ mo:{q:"Qui fait le travail ?",em:"Seul → Associés → Salariés → Saisonniers → Stagiaires",idee:"Travail ↔ Temps ↔ Compétences ↔ Personnes",trans:"Plus de personnes + produits → Plus de flux + informations",next:"seve",label:"💧 Faire circuler la sève"},
+ seve:{q:"Qu’est-ce qui circule ?",em:"🥕 Produits ↔ 📦 Matériel ↔ 🧠 Informations",idee:"Déplacements → Manipulations → Temps → Pénibilité → Coût → Supprimer → Simplifier → Fluidifier",trans:"Produire + Récolter + Vendre + Travailler + Circuler → Résultat",next:"fruits",label:"🍎 Faire pousser les fruits"},
+ fruits:{q:"Qu’est-ce que la ferme me donne réellement ?",em:"Revenu → Temps → Santé → Sens → Marge de manœuvre",idee:"CA ≠ Revenu → Revenu + Temps + Santé + Qualité de vie + Sécurité → Résultat global",trans:"Résultat ≠ seulement mes décisions → Ferme ↔ Milieu",next:"animaux",label:"🦊🐝 Révéler l’écosystème"},
+ animaux:{q:"L’arbre était-il vraiment seul ?",em:"Marché → Territoire → Climat → Ressources → Fournisseurs → Producteurs → Réseaux → Règles",idee:"Écosystème → façonne la ferme ↔ Ferme → s’adapte ↔ Ferme → participe",trans:"Système complexe → Résultats variables → Besoin d’observer → Qui pilote ?",next:"jardinier",label:"👨‍🌾 Faire apparaître le jardinier"},
+ jardinier:{q:"Où agir ?",em:"👁️ Observer → 📏 Mesurer → 🎯 Comparer → 🔍 Prioriser → ✂️ Agir → 🔄 Vérifier",idee:"Écart → Facteur limitant → Action → Nouvelle observation",trans:"🌰 Intention initiale ↔ 🍎 Résultats obtenus → 🔄 Adapter",next:null,label:"🔄 Voir le système complet"}
+};
+
 /* ---------- État ---------- */
 const CLE = "arbre-tea-etat";
 let etat = {etats:Object.fromEntries(ORDRE.map(k=>[k,0])), actif:null};
-const canal = ("BroadcastChannel" in window) ? new BroadcastChannel("arbre-tea") : null;
+let canal=null;
+try{ if("BroadcastChannel" in window) canal=new BroadcastChannel("arbre-tea"); }catch(_){ canal=null; }
 
 function charger(){ try{ const v = localStorage.getItem(CLE); if(v){ const e = JSON.parse(v); if(e && e.etats) etat = e; } }catch(_){ } }
 function diffuser(){
@@ -499,7 +542,7 @@ function notesHTML(k){
 }
 
 
-const MODE = new URLSearchParams(location.search).get("vue") || "projection";
+const MODE = new URLSearchParams(location.search).get("vue") || "formateur";
 const EST_STAGIAIRE = MODE === "stagiaire";
 
 function exempleStagiaire(s){
@@ -541,6 +584,16 @@ function afficherStagiaire(){
   }
 }
 
+function revelerDepuisPupitre(k){ changer(()=>{ if(etat.etats[k]===0) etat.etats[k]=1; etat.actif=k; }); }
+function afficherPilotage(k){
+  const el=document.getElementById("f-pilotage"); if(!el) return;
+  if(!k){ el.innerHTML=`<div class="pilot-card"><h2>Départ</h2><div class="flow">🌍 Écosystème → 🐦 Clients potentiels → Opportunité</div></div><button class="transition-btn" data-reveal="oiseaux">🐦 Faire apparaître les oiseaux</button>`; return; }
+  const d=PILOT[k]; if(!d){el.innerHTML="";return;}
+  let special="";
+  if(d.special) special=`<div class="pilot-card"><h2>Révélation libre</h2><div class="reveal-grid">${d.special.map(x=>`<button data-reveal="${x}" class="${etat.etats[x]>0?'on':''}">${esc(P[x].titre.split(' :')[0])}</button>`).join('')}</div></div>`;
+  el.innerHTML=`<div class="pilot-card"><h2>❓ Question</h2><div class="flow">${esc(d.q)}</div></div><div class="pilot-card"><h2>🔎 Faire émerger</h2><div class="flow">${esc(d.em)}</div></div><div class="pilot-card"><h2>🧠 Logique</h2><div class="flow">${esc(d.idee)}</div></div>${special}<div class="pilot-card"><h2>🔗 Transition</h2><div class="flow">${esc(d.trans)}</div></div><button class="transition-btn" data-transition="${d.next||''}">${esc(d.label)}</button>`;
+}
+
 function afficher(){
   if(EST_STAGIAIRE){ afficherStagiaire(); return; }
   ORDRE.forEach(k=>{
@@ -557,6 +610,7 @@ function afficher(){
   const n = k ? etat.etats[k] : 0;
   document.getElementById("f-etat").textContent = etapeTexte() + (k ? (n===1 ? " · à l'écran : la question" : " · à l'écran : les rameaux") : "");
   document.getElementById("f-notes").innerHTML = notesHTML(k);
+  afficherPilotage(k);
   const prochain = ORDRE.find(x=>etat.etats[x]<2);
   document.getElementById("f-suite").textContent = prochain ? ("Prochaine étape : " + (etat.etats[prochain]===0 ? "révéler " : "dérouler ") + P[prochain].titre) : "Tout est révélé.";
   document.getElementById("f-plan").innerHTML = ORDRE.map(x=>`<button data-aller="${x}" class="${etat.etats[x]===2?'vu':''} ${etat.actif===x?'ici':''}">${esc(P[x].titre.split(" :")[0])}</button>`).join("");
@@ -574,18 +628,31 @@ document.querySelectorAll(".part").forEach(g=>{
 document.getElementById("b-suiv").onclick = suivant;
 document.getElementById("b-prec").onclick = precedent;
 document.getElementById("f-suiv").onclick = suivant;
+document.getElementById("f-projecteur").addEventListener("click", ()=>{
+  // L’état courant est déjà synchronisé par diffuser().
+  // Ne rien exécuter ici : le lien natif ouvre la vue projection.
+});
 document.getElementById("f-prec").onclick = precedent;
 document.getElementById("b-tout").onclick = toutReveler;
 document.getElementById("b-zero").onclick = recommencer;
 document.getElementById("b-notes").onclick = ()=>document.getElementById("tiroir").classList.toggle("ouvert");
 document.getElementById("b-ouvrir").onclick = ()=>{
-  const w = window.open(location.pathname + location.search + (location.search ? "&" : "?") + "vue=formateur", "arbre-formateur");
+  const u = new URL(window.location.href); u.search = "?vue=formateur"; u.hash = "";
+  const w = window.open(u.href, "arbre-formateur");
   if(!w){ document.getElementById("tiroir").classList.add("ouvert"); }
 };
 document.getElementById("f-plan").addEventListener("click", e=>{
   const b = e.target.closest("button[data-aller]"); if(!b) return;
   changer(()=>{ const k=b.dataset.aller; if(etat.etats[k]===0) etat.etats[k]=1; etat.actif=k; });
 });
+document.getElementById("f-pilotage").addEventListener("click",e=>{
+  const r=e.target.closest("[data-reveal]"); if(r){revelerDepuisPupitre(r.dataset.reveal);return;}
+  const t=e.target.closest("[data-transition]"); if(!t)return;
+  const next=t.dataset.transition;
+  if(next){revelerDepuisPupitre(next);} else {toutReveler(); etat.actif=null; afficher(); diffuser();}
+});
+document.getElementById("f-details-toggle").onclick=()=>document.getElementById("f-notes").classList.toggle("details-hidden");
+
 document.addEventListener("keydown", e=>{
   if(e.target.closest && e.target.closest(".part")) return;
   if(e.key==="ArrowRight" || e.key===" " || e.key==="PageDown"){ e.preventDefault(); suivant(); }
@@ -594,6 +661,7 @@ document.addEventListener("keydown", e=>{
 });
 
 if(MODE==="formateur") document.body.classList.add("vue-formateur");
+if(MODE==="projection") document.body.classList.add("vue-projection");
 if(EST_STAGIAIRE){
   document.body.classList.add("vue-stagiaire");
   etat={etats:Object.fromEntries(ORDRE.map(k=>[k,2])),actif:null};
