@@ -218,6 +218,21 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const SS={get(k,d){try{const v=sessionStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{sessionStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function newStudentSession(){
+ const id=(crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+"-"+Math.random().toString(36).slice(2));
+ SS.set("student_session_id",id);return id
+}
+function studentSessionId(){return SS.get("student_session_id",null)||newStudentSession()}
+function studentName(){return SS.get("student_name","")}
+function setStudentName(n){SS.set("student_name",n);LS.set("last_prenom",n)}
+function studentSchemaKey(fid){return "schema:"+fid+":"+studentSessionId()}
+function startStudentSession(name,fid){
+ const prevName=studentName(),prevFarm=SS.get("student_farm","");
+ if(prevName!==name||prevFarm!==fid)newStudentSession();
+ setStudentName(name);SS.set("student_farm",fid)
+}
+
 function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("show",v.id===id));$("btnHome").hidden=id==="vAccueil"||id==="vLogin"||id==="vLien";$("btnHelp").hidden=true}
 function ask(label,val=""){return new Promise(res=>{const d=$("dlg");$("dlgLab").textContent=label;$("dlgIn").value=val;d.returnValue="";d.showModal();$("dlgIn").focus();d.onclose=()=>res(d.returnValue==="ok"?$("dlgIn").value.trim():null)})}
 function msg(el,t,cls){$(el).innerHTML=t?'<div class="msg '+(cls||"")+'">'+esc(t)+'</div>':""}
@@ -300,12 +315,12 @@ const LEGEND='<div class="legend">'+["zone","eau","vehicule","recolte","libre","
 /* ---------- ÉLÈVE ---------- */
 let FERMES=[],CUR=null,pollT=null;
 async function loadFermes(){const{data,error}=await sb.from("fermes").select("id,nom,image_url,revele,ordre,created_at,bearing,crop_w,crop_h,mode,lat,lng,zoom,fond").order("ordre").order("created_at");FERMES=error?[]:data;return FERMES}
-async function accueil(){show("vAccueil");$("who").textContent="";$("inPrenom").value=LS.get("prenom","");await loadFermes();
+async function accueil(){show("vAccueil");$("who").textContent="";$("inPrenom").value=LS.get("last_prenom","");await loadFermes();
  $("fermesVide").hidden=!!FERMES.length;
  $("listeFermes").innerHTML=FERMES.map(f=>'<button class="card" data-id="'+f.id+'">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+'</div></button>').join("");
- $("listeFermes").querySelectorAll(".card").forEach(c=>c.onclick=()=>{const p=$("inPrenom").value.trim();if(!p){alert("Écris d'abord ton prénom.");$("inPrenom").focus();return}LS.set("prenom",p);openStudent(FERMES.find(f=>f.id===c.dataset.id))})}
-async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;
- ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get("schema:"+f.id,[]);ED.onChange=()=>{LS.set("schema:"+f.id,ED.items);panelEleve()};ED.refreshPanel=panelEleve;
+ $("listeFermes").querySelectorAll(".card").forEach(c=>c.onclick=()=>{const p=$("inPrenom").value.trim();if(!p){alert("Écris d'abord ton prénom.");$("inPrenom").focus();return}const f=FERMES.find(f=>f.id===c.dataset.id);startStudentSession(p,f.id);openStudent(f)})}
+async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+studentName()+" · "+f.nom;
+ ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get(studentSchemaKey(f.id),[]);ED.onChange=()=>{LS.set(studentSchemaKey(f.id),ED.items);panelEleve()};ED.refreshPanel=panelEleve;
  $("lLogic").innerHTML="";await loadImage(f);buildTools();tip();drawAll();panelEleve();
  clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleve()}},15000)}
 let showLogic=false;
@@ -316,7 +331,7 @@ function panelEleve(){const p=$("panel");
 async function toggleLogic(){showLogic=!showLogic;if(showLogic){const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();$("lLogic").innerHTML=renderLogic((data&&data.logique&&data.logique.items)||[])}else $("lLogic").innerHTML="";panelEleve()}
 function renderLogic(items){return renderItems(items,{color:"#ffd400",fillOp:.12,sw:5,dash:true,fs:24})}
 async function send(){if(!ED.items.length){msg("sendMsg","Ton schéma est vide.","err");return}
- $("bSend").disabled=true;const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:LS.get("prenom","?").slice(0,60),contenu:{items:ED.items,w:IMG.w,h:IMG.h}});
+ $("bSend").disabled=true;const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:(studentName()||"?").slice(0,60),contenu:{items:ED.items,w:IMG.w,h:IMG.h}});
  $("bSend").disabled=false;msg("sendMsg",error?"Envoi impossible : vérifie ta connexion et réessaie.":"✅ Envoyé ! Ton formateur l'a reçu.",error?"err":"ok")}
 
 /* ---------- FORMATEUR ---------- */
@@ -540,9 +555,9 @@ function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.oncli
  if($("bRestore"))$("bRestore").onclick=()=>{if(CM.lastDel){CM.items.splice(CM.lastDel.i,0,CM.lastDel.item);CM.lastDel=null;cmChanged()}};
  root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=CM.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;cmChanged()}})}
 function creditC(){return'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>'}
-async function eleveCarte(f){CUR=f;$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;await cmInit(f);
- CM.exercise1=true;CM.readonly=false;CM.items=LS.get("schema:"+f.id,[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set("schema:"+f.id,CM.items);panelEleveC()};
- cmSetMode("move");panelEleveC();$("btnHelp").hidden=false;if(!LS.get("tour_ok",false))showTour(0);
+async function eleveCarte(f){CUR=f;$("who").textContent="👤 "+studentName()+" · "+f.nom;await cmInit(f);
+ CM.exercise1=true;CM.readonly=false;CM.items=LS.get(studentSchemaKey(f.id),[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set(studentSchemaKey(f.id),CM.items);panelEleveC()};
+ cmSetMode("move");panelEleveC();$("btnHelp").hidden=false;if(!SS.get("tour_ok",false))showTour(0);
  clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleveC()}},15000)}
 function panelEleveC(){const p=$("panelC");
  p.innerHTML='<h3>Mes zones</h3>'+(CM.items.length?"":'<p class="muted">Commence par observer la ferme, puis clique sur « Dessiner une zone ».</p>')+(CM.items.length?itemList(CM.items,true):"")+
@@ -551,7 +566,7 @@ function panelEleveC(){const p=$("panelC");
   (CUR.revele?'<button class="btn" id="bLogicC">'+(showLogic?"🙈 Cacher":"👁️ Voir")+' ce que ton formateur a repéré</button>':'')+'<h3>Fréquence des zones</h3>'+FREQLEG+'<h3>Les couleurs</h3>'+LEGEND+creditC();
  cmWireList(p);$("bSendC").onclick=sendCarte;if($("bLogicC"))$("bLogicC").onclick=async()=>{showLogic=!showLogic;if(showLogic){const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();CM.logic=(data&&data.logique&&data.logique.items)||[]}else CM.logic=null;cmRender();panelEleveC()}}
 async function sendCarte(){if(!CM.items.length){msg("sendMsgC","Tu n'as encore rien dessiné.","err");return}
- $("bSendC").disabled=true;const c=CM.map.getCenter(),{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:LS.get("prenom","?").slice(0,60),contenu:{mode:"carte",items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
+ $("bSendC").disabled=true;const c=CM.map.getCenter(),{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:(studentName()||"?").slice(0,60),contenu:{mode:"carte",items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
  $("bSendC").disabled=false;msg("sendMsgC",error?"L'envoi n'a pas marché. Vérifie ta connexion internet, puis réessaie.":"✅ Bravo ! Ton dessin est envoyé. Tu peux continuer à le modifier et le renvoyer.",error?"err":"ok")}
 async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma logique · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();await cmInit(f);
  CM.exercise1=false;CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("draw");panelLogicC(false)}
@@ -578,8 +593,8 @@ function itemsThumb(items){const pts=[];(items||[]).forEach(it=>{if(it.pts)it.pt
 function copyLink(id){const url=location.origin+location.pathname+"#ferme="+id;const done=()=>alert("Lien copié :\n"+url+"\n\nEnvoie-le à tes stagiaires.");
  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,()=>prompt("Copie ce lien :",url));else prompt("Copie ce lien :",url)}
 async function lienPage(id){await loadFermes();const f=FERMES.find(x=>x.id===id);if(!f){accueil();return}
- show("vLien");$("lienNom").textContent=f.nom;$("lienPrenom").value=LS.get("prenom","");$("who").textContent="";
- $("lienGo").onclick=()=>{const p=$("lienPrenom").value.trim();if(!p){msg("lienMsg","Écris d'abord ton prénom.","err");$("lienPrenom").focus();return}LS.set("prenom",p);openStudent(f)}}
+ show("vLien");$("lienNom").textContent=f.nom;$("lienPrenom").value=LS.get("last_prenom","");$("who").textContent="";
+ $("lienGo").onclick=()=>{const p=$("lienPrenom").value.trim();if(!p){msg("lienMsg","Écris d'abord ton prénom.","err");$("lienPrenom").focus();return}startStudentSession(p,f.id);openStudent(f)}}
 
 
 /* ---------- Visite guidée (3 écrans) ---------- */
@@ -587,7 +602,7 @@ const TOUR=[["🔎","1. Observe la ferme","Zoome et déplace la carte pour repé
 function showTour(i){const t=TOUR[i];$("tour").hidden=false;$("tourBody").innerHTML='<div class="step">Étape '+(i+1)+' sur '+TOUR.length+'</div><div class="big" aria-hidden="true">'+t[0]+'</div><h3>'+esc(t[1])+'</h3><p>'+esc(t[2])+'</p>';
  $("tPrev").disabled=i===0;$("tNext").textContent=i===TOUR.length-1?"✔ C'est parti !":"Suivant ➡";
  $("tPrev").onclick=()=>showTour(i-1);$("tNext").onclick=()=>{if(i===TOUR.length-1)closeTour();else showTour(i+1)};$("tSkip").onclick=closeTour;$("tNext").focus()}
-function closeTour(){$("tour").hidden=true;LS.set("tour_ok",true)}
+function closeTour(){$("tour").hidden=true;SS.set("tour_ok",true)}
 $("btnHelp").onclick=()=>showTour(0);
 
 /* ---------- Navigation ---------- */
