@@ -433,7 +433,7 @@ window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
 
 
 /* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
-const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[]};
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[],exercise1:false};
 function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
 function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
 function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
@@ -461,17 +461,28 @@ function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLay
   if(T&&CM.pending.type==="zone"&&pv.length>2)L.polygon(pv,{color:col,weight:4,fillColor:col,fillOpacity:.2,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);
   else L.polyline(pv,{color:col,weight:5,lineCap:"round",lineJoin:"round",dashArray:CM.pending?"6 5":null,interactive:false}).addTo(CM.g.draft)}
  $("cm").classList.toggle("draw",CM.mode==="draw"&&!CM.readonly&&!CM.pending)}
-function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];if(v.length<2){cmTools();cmTip();cmRender();return}const px=v.map(q=>{const c=CM.map.latLngToContainerPoint({lat:q[1],lng:q[0]});return{x:c.x,y:c.y}});CM.pending={px,pts:v,type:null};cmTools();cmTip();cmSheet();cmRender()}
+function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];
+ if(v.length<(CM.exercise1?3:2)){cmTools();cmTip();cmRender();return}
+ const px=v.map(q=>{const c=CM.map.latLngToContainerPoint({lat:q[1],lng:q[0]});return{x:c.x,y:c.y}});
+ CM.pending={px,pts:v,type:CM.exercise1?"zone":null};cmTools();cmTip();cmSheet();cmRender()}
 function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
 function cmTools(){const t=$("toolsC");
  if(CM.readonly||CM.pending){t.innerHTML="";t.style.display="none";return}
  t.style.display="flex";
- if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ J\'ai fini ce dessin</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Tout annuler</button>';
+ if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ Terminer la zone</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Recommencer</button>';
   $("mDone").onclick=cmVertsDone;$("mUndo").onclick=cmUndo;$("mCancel").onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
+ if(CM.exercise1){
+  t.innerHTML='<button class="btn'+(CM.mode==="draw"?" on":"")+'" id="mDraw">🟪 Dessiner une zone</button><button class="btn'+(CM.mode==="move"?" on":"")+'" id="mMove">✋ Déplacer la carte</button><button class="btn" id="mUndo">↩ Effacer la dernière zone</button>';
+  $("mDraw").onclick=()=>cmSetMode("draw");$("mMove").onclick=()=>cmSetMode("move");$("mUndo").onclick=cmUndo;return
+ }
  t.innerHTML='<button class="btn'+(CM.mode==="draw"&&!CM.noteArmed?" on":"")+'" id="mDraw">✏️ Dessiner</button><button class="btn'+(CM.mode==="move"&&!CM.noteArmed?" on":"")+'" id="mMove">✋ Déplacer la carte</button><button class="btn'+(CM.noteArmed?" on":"")+'" id="mNote">📝 Écrire une note</button><button class="btn" id="mUndo">↩ Retirer le dernier dessin</button>';
  $("mDraw").onclick=()=>cmSetMode("draw");$("mMove").onclick=()=>cmSetMode("move");$("mUndo").onclick=cmUndo;
  $("mNote").onclick=()=>{cmSetMode("move");CM.noteArmed=true;cmTools();cmTip()}}
 function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display=CM.readonly?"none":"flex";
+ if(CM.exercise1){
+  tx.textContent=CM.pending?"Zone dessinée : choisis maintenant sa fréquence de passage.":CM.verts.length?"Continue à poser les coins de la zone, puis clique sur « Terminer la zone ».":CM.mode==="draw"?"🟪 Trace le contour de la zone. Tu peux dessiner à main levée ou cliquer sur ses coins.":"✋ Déplace ou zoome sur la carte, puis clique sur « Dessiner une zone ».";
+  return
+ }
  tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
 async function cmTap(e){if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
  if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
@@ -489,8 +500,28 @@ function cmMove(e){if(!CM.stroke||ACT.size!==1)return;e.preventDefault();const l
 function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;CM.stroke=null;
  let len=0;for(let i=1;i<s.length;i++)len+=Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y);
  if(len<20){cmRender();return}
- const simp=dpSimplify(s,3.5);CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:null};cmTools();cmTip();cmSheet();cmRender()}
+ const simp=dpSimplify(s,3.5);
+ if(CM.exercise1&&simp.length<3){cmRender();return}
+ CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:CM.exercise1?"zone":null};
+ cmTools();cmTip();cmSheet();cmRender()}
 function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
+ if(CM.exercise1){
+  const f=CM.pending.freq||null;sh.hidden=false;
+  sh.innerHTML='<h4>À quelle fréquence penses-tu qu\'on passe dans cette zone ?</h4>'+
+   '<div class="types">'+Object.entries(FREQS).map(([k,v])=>'<button type="button" data-fr="'+k+'" class="'+(String(f)===k?"on":"")+'" style="--c:'+v.c+'"><b>F'+k+'</b><small>'+v.n+'</small></button>').join("")+'</div>'+
+   '<input id="shName" maxlength="80" placeholder="Nom de la zone, si tu la reconnais (facultatif)" autocomplete="off">'+
+   '<div id="shMsg"></div><div class="row"><button class="btn main" id="shOk"'+(f?"":" disabled")+'>✔ Valider cette zone</button><button class="btn" id="shNo">✖ Recommencer</button></div>';
+  sh.querySelectorAll("[data-fr]").forEach(b=>b.onclick=()=>{const n=$("shName")?$("shName").value:"";CM.pending.freq=+b.dataset.fr;cmSheet();$("shName").value=n;cmRender()});
+  $("shNo").onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};
+  $("shOk").onclick=()=>{let pts=CM.pending.pts.slice(),px=CM.pending.px;
+   if(px.length>3&&Math.hypot(px[0].x-px[px.length-1].x,px[0].y-px[px.length-1].y)<25)pts.pop();
+   if(pts.length<3){msg("shMsg","Trace le contour de la zone avec au moins 3 points.","err");return}
+   const nom=$("shName").value.trim(),freq=CM.pending.freq;
+   CM.items.push({t:"zone",nom:nom||"Zone",freq,pts});
+   CM.pending=null;CM.lastDel=null;cmSheet();cmChanged();cmSetMode("move")
+  };
+  return
+ }
  const ty=CM.pending.type;sh.hidden=false;
  sh.innerHTML='<h4>Qu\'est-ce que tu viens de dessiner ?</h4><div class="types">'+CMTYPES.map(c=>'<button type="button" data-ty="'+c[0]+'" class="'+(ty===c[0]?"on":"")+'" style="--c:'+TYPES[c[0]].c+'">'+c[1]+'<small>'+c[2]+'</small></button>').join("")+'</div>'+
   '<input id="shName" maxlength="80" placeholder="Son nom, avec tes mots (facultatif)" autocomplete="off"><div id="shMsg"></div><div class="row"><button class="btn main" id="shOk"'+(ty?"":" disabled")+'>✔ Valider</button><button class="btn" id="shNo">✖ Je recommence</button></div>';
@@ -510,11 +541,11 @@ function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.oncli
  root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=CM.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;cmChanged()}})}
 function creditC(){return'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>'}
 async function eleveCarte(f){CUR=f;$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;await cmInit(f);
- CM.readonly=false;CM.items=LS.get("schema:"+f.id,[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set("schema:"+f.id,CM.items);panelEleveC()};
+ CM.exercise1=true;CM.readonly=false;CM.items=LS.get("schema:"+f.id,[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set("schema:"+f.id,CM.items);panelEleveC()};
  cmSetMode("move");panelEleveC();$("btnHelp").hidden=false;if(!LS.get("tour_ok",false))showTour(0);
  clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleveC()}},15000)}
 function panelEleveC(){const p=$("panelC");
- p.innerHTML='<h3>Mon dessin</h3>'+(CM.items.length?"":'<p class="muted">Rien pour l\'instant. Clique sur « Dessiner » pour commencer.</p>')+(CM.items.length?itemList(CM.items,true):"")+
+ p.innerHTML='<h3>Mes zones</h3>'+(CM.items.length?"":'<p class="muted">Commence par observer la ferme, puis clique sur « Dessiner une zone ».</p>')+(CM.items.length?itemList(CM.items,true):"")+
   (CM.lastDel?'<div class="undo msg">Un dessin a été effacé. <button class="btn small" id="bRestore">↩ Le remettre</button></div>':'')+
   '<button class="btn main" id="bSendC">📤 Envoyer à mon formateur</button><p class="muted">Rien n\'est envoyé tant que tu n\'appuies pas sur ce bouton. Tu peux modifier puis renvoyer.</p><div id="sendMsgC"></div>'+
   (CUR.revele?'<button class="btn" id="bLogicC">'+(showLogic?"🙈 Cacher":"👁️ Voir")+' ce que ton formateur a repéré</button>':'')+'<h3>Fréquence des zones</h3>'+FREQLEG+'<h3>Les couleurs</h3>'+LEGEND+creditC();
@@ -523,11 +554,11 @@ async function sendCarte(){if(!CM.items.length){msg("sendMsgC","Tu n'as encore r
  $("bSendC").disabled=true;const c=CM.map.getCenter(),{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:LS.get("prenom","?").slice(0,60),contenu:{mode:"carte",items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
  $("bSendC").disabled=false;msg("sendMsgC",error?"L'envoi n'a pas marché. Vérifie ta connexion internet, puis réessaie.":"✅ Bravo ! Ton dessin est envoyé. Tu peux continuer à le modifier et le renvoyer.",error?"err":"ok")}
 async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma logique · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();await cmInit(f);
- CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("draw");panelLogicC(false)}
+ CM.exercise1=false;CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("draw");panelLogicC(false)}
 function panelLogicC(dirty){const p=$("panelC");p.innerHTML='<h3>Ma logique</h3><p class="muted">Dessine ta lecture de la ferme, avec les bons termes.</p>'+itemList(CM.items,true)+'<button class="btn main" id="bSaveLC">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsgC"></div><button class="btn" id="bBackC">⬅ Retour</button><h3>Légende</h3>'+LEGEND+creditC();
  cmWireList(p);$("bSaveLC").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:CM.items}}).eq("id",CUR.id);msg("saveMsgC",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBackC").onclick=()=>dash("fermes")}
 async function openRecusCarte(f,ids){CUR=f;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single(),logic=(data&&data.logique&&data.logique.items)||[];await cmInit(f);
- const multi=ids.length>1,all=RECUS.slice();let idx=Math.max(0,all.findIndex(r=>r.id===ids[0])),withLogic=false;CM.readonly=true;CM.onChange=null;cmSetMode("move");
+ CM.exercise1=false;const multi=ids.length>1,all=RECUS.slice();let idx=Math.max(0,all.findIndex(r=>r.id===ids[0])),withLogic=false;CM.readonly=true;CM.onChange=null;cmSetMode("move");
  const draw=()=>{const cur=all[idx];CM.items=multi?[]:filteredItems((cur.contenu||{}).items||[]);CM.overlays=multi?all.map((r,i)=>({items:filteredItems((r.contenu||{}).items),color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null})):[];CM.logic=withLogic?logic:null;cmTools();cmTip();cmRender();
   $("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"tous superposés":cur.auteur);
   const p=$("panelC");p.innerHTML=(multi?'<h3>Tous superposés</h3><div class="legend">'+all.map((r,i)=>'<div><span class="dot" style="background:'+PEOPLE[i%PEOPLE.length]+'"></span>'+esc(r.auteur)+'</div>').join("")+'</div>':'<h3>'+esc(cur.auteur)+'</h3><div class="row"><button class="btn small" id="cPrev">⬅</button><span class="muted">'+(idx+1)+' / '+all.length+'</span><button class="btn small" id="cNext">➡</button></div>'+itemList(filteredItems((cur.contenu||{}).items||[]),false))+
@@ -552,7 +583,7 @@ async function lienPage(id){await loadFermes();const f=FERMES.find(x=>x.id===id)
 
 
 /* ---------- Visite guidée (3 écrans) ---------- */
-const TOUR=[["🔎","1. Regarde la ferme","Zoome avec la molette de la souris (ou deux doigts qui s'écartent sur le pavé). Clique et glisse pour déplacer la carte."],["✏️","2. Dessine ce que tu vois","Clique sur « Dessiner ». Maintiens le clic et trace une ligne ou un contour. Autre façon : clique point par point, puis double-clique pour finir. Ensuite, dis ce que c'est avec tes mots."],["📤","3. Envoie ton dessin","Quand tu as fini, clique sur « Envoyer à mon formateur ». Rien n'est envoyé avant. Tu peux modifier, puis renvoyer."]];
+const TOUR=[["🔎","1. Observe la ferme","Zoome et déplace la carte pour repérer les différents espaces de la ferme."],["🟪","2. Dessine une zone","Clique sur « Dessiner une zone », puis trace son contour. Quand tu as terminé, indique à quelle fréquence tu penses qu'on y passe."],["📤","3. Envoie tes zones","Quand tu as terminé ton analyse, clique sur « Envoyer à mon formateur ». Rien n'est envoyé avant."]];
 function showTour(i){const t=TOUR[i];$("tour").hidden=false;$("tourBody").innerHTML='<div class="step">Étape '+(i+1)+' sur '+TOUR.length+'</div><div class="big" aria-hidden="true">'+t[0]+'</div><h3>'+esc(t[1])+'</h3><p>'+esc(t[2])+'</p>';
  $("tPrev").disabled=i===0;$("tNext").textContent=i===TOUR.length-1?"✔ C'est parti !":"Suivant ➡";
  $("tPrev").onclick=()=>showTour(i-1);$("tNext").onclick=()=>{if(i===TOUR.length-1)closeTour();else showTour(i+1)};$("tSkip").onclick=closeTour;$("tNext").focus()}
