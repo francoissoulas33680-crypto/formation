@@ -323,7 +323,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
 <!-- FORMATEUR : tableau de bord -->
 <section class="view center" id="vDash"><div class="box" style="max-width:1100px">
-<div class="tabs"><button class="btn on" data-tab="fermes">🗺️ Mes fermes</button><button class="btn" data-tab="recus">📨 Schémas reçus</button><button class="btn small" id="btnLogout">Se déconnecter</button></div>
+<div class="tabs"><button class="btn on" data-tab="fermes">🗺️ Mes fermes</button><button class="btn" data-tab="recus">📨 Schémas reçus</button><button class="btn" data-tab="module2">🌳 Module 2</button><button class="btn small" id="btnLogout">Se déconnecter</button></div>
 <div id="tabFermes">
 <h2>Mes fermes</h2>
 <div class="grid" id="dashFermes"></div>
@@ -366,6 +366,20 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   <div id="validationRecusMsg"></div>
 </div>
 <div class="grid" id="mosaique"></div>
+</div>
+<div id="tabModule2" hidden>
+  <div class="moduleHero"><h2>🌳 Module 2 — La ferme comme système vivant</h2><p><b>Pupitre formateur :</b> prépare et conduis la présentation. Les notes restent de ton côté.</p></div>
+  <div class="row" style="margin-bottom:12px">
+    <button class="btn main" id="btnOpenProjection">📽️ Ouvrir la projection</button>
+    <button class="btn" id="btnRefreshModule2Access">🔄 Actualiser les accès</button>
+  </div>
+  <div class="box" style="padding:14px;margin-bottom:14px">
+    <h3 style="margin-top:0">🔐 Accès stagiaires au Module 2</h3>
+    <p class="muted">Le Module 2 reste verrouillé pour chaque stagiaire jusqu’à ton autorisation.</p>
+    <div id="module2AccessList"><p class="muted">Chargement…</p></div>
+    <div id="module2AccessMsg"></div>
+  </div>
+  <iframe id="trainerTreeFrame" title="Pupitre formateur — arbre de la ferme" src="./arbre-ferme-tea.html?vue=formateur" style="width:100%;height:1120px;border:0;border-radius:16px;background:transparent"></iframe>
 </div>
 </div></section>
 
@@ -619,6 +633,16 @@ async function studentDash(){
 
  const officialValidations={};
  if(!validationError)(validationRows||[]).forEach(v=>officialValidations[v.exercise]=!!v.validated);
+
+ // Module 2 : accès explicite donné par le formateur.
+ let module2Unlocked=false;
+ const {data:moduleAccessRows,error:moduleAccessError}=await sb.from("module_access")
+  .select("module,unlocked")
+  .eq("user_id",u.id)
+  .eq("module","module2")
+  .limit(1);
+ if(!moduleAccessError && moduleAccessRows && moduleAccessRows.length) module2Unlocked=!!moduleAccessRows[0].unlocked;
+ applyStudentModule2Access(module2Unlocked, moduleAccessError);
 
  STUDENT_VALID_SIG=validationError
   ?"validation-table-error"
@@ -915,7 +939,54 @@ async function isTrainer(){
 }
 async function dash(tab){clearInterval(pollT);if(!await isTrainer()){show("vLogin");return}show("vDash");const{data:u}=await sb.auth.getUser();$("who").textContent="🧑‍🌾 "+(u&&u.user?u.user.email:"");
  await loadFermes();renderDashFermes();fillSel();setTab(tab||"fermes")}
-function setTab(t){document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));$("tabFermes").hidden=t!=="fermes";$("tabRecus").hidden=t!=="recus";if(t==="recus")loadRecus()}
+function setTab(t){
+ document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+ $("tabFermes").hidden=t!=="fermes";
+ $("tabRecus").hidden=t!=="recus";
+ $("tabModule2").hidden=t!=="module2";
+ if(t==="recus")loadRecus();
+ if(t==="module2")loadModule2Access();
+}
+function applyStudentModule2Access(unlocked,err){
+ const btn=document.querySelector('[data-student-module="2"]');
+ const pane=$("studentModule2");
+ if(!btn||!pane)return;
+ btn.dataset.unlocked=unlocked?"1":"0";
+ btn.classList.toggle("locked",!unlocked);
+ btn.innerHTML=unlocked
+  ?'<b>🌳 Module 2</b><span>La ferme comme système vivant</span>'
+  :'<b>🔒 Module 2</b><span>En attente de validation du formateur</span>';
+ if(!unlocked){
+  pane.hidden=true;
+  try{if(sessionStorage.getItem("tea-student-module")==="2")sessionStorage.setItem("tea-student-module","1")}catch(_){}
+ }
+ if(err) console.warn("module_access non accessible",err);
+}
+async function loadModule2Access(){
+ const box=$("module2AccessList");if(!box)return;
+ box.innerHTML='<p class="muted">Chargement…</p>';
+ const {data:rows,error}=await sb.from("schemas").select("user_id,auteur,created_at").not("user_id","is",null).order("created_at",{ascending:false});
+ if(error){box.innerHTML='<div class="msg err">Impossible de charger les stagiaires : '+esc(error.message)+'</div>';return}
+ const students=new Map();(rows||[]).forEach(r=>{if(r.user_id&&!students.has(r.user_id))students.set(r.user_id,{id:r.user_id,name:r.auteur||"Stagiaire"})});
+ const ids=[...students.keys()];let access=new Map();
+ if(ids.length){
+  const {data:a,error:ae}=await sb.from("module_access").select("user_id,module,unlocked").eq("module","module2").in("user_id",ids);
+  if(ae){box.innerHTML='<div class="msg err">Table module_access non configurée. Exécute le SQL V34 fourni.</div>';return}
+  (a||[]).forEach(x=>access.set(x.user_id,!!x.unlocked));
+ }
+ if(!ids.length){box.innerHTML='<p class="muted">Aucun stagiaire identifié pour le moment.</p>';return}
+ box.innerHTML=[...students.values()].map(st=>'<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:9px 0"><div><b>'+esc(st.name)+'</b><div class="muted" style="font-size:12px">'+esc(st.id.slice(0,8))+'…</div></div><button class="btn small '+(access.get(st.id)?'on':'')+'" data-module2-user="'+esc(st.id)+'" data-unlocked="'+(access.get(st.id)?'1':'0')+'">'+(access.get(st.id)?'🔓 Module 2 ouvert':'🔒 Ouvrir le Module 2')+'</button></div>').join('');
+ box.querySelectorAll('[data-module2-user]').forEach(b=>b.onclick=async()=>{
+  const uid=b.dataset.module2User,nv=b.dataset.unlocked!=="1";b.disabled=true;
+  const {data:me}=await sb.auth.getUser();
+  const payload={user_id:uid,module:"module2",unlocked:nv,unlocked_at:nv?new Date().toISOString():null,unlocked_by:me&&me.user?me.user.id:null,updated_at:new Date().toISOString()};
+  const {error:e}=await sb.from("module_access").upsert(payload,{onConflict:"user_id,module"});
+  b.disabled=false;
+  if(e){msg("module2AccessMsg","Erreur : "+e.message,"err");return}
+  msg("module2AccessMsg",nv?"✅ Module 2 ouvert pour ce stagiaire.":"🔒 Module 2 reverrouillé pour ce stagiaire.","ok");
+  loadModule2Access();
+ });
+}
 function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+(f.mode==='carte'?' 🗺️':'')+'</div><div class="s row"><button class="btn small" data-link="'+f.id+'">🔗 Lien</button><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button>'+(f.mode==='carte'?'<button class="btn small" data-ex3guide="'+f.id+'">🎯 Ex.3 · repères</button><button class="btn small" data-ex3demo="'+f.id+'">🎬 Ex.3 · démo</button><button class="btn small" data-ex4demo="'+f.id+'">🎬 Ex.4 · démo</button>':'')+'<button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
  $("dashFermes").querySelectorAll("[data-logic]").forEach(b=>b.onclick=()=>editLogicAny(FERMES.find(f=>f.id===b.dataset.logic)));
  $("dashFermes").querySelectorAll("[data-ex3guide]").forEach(b=>b.onclick=()=>setupEx3Guide(FERMES.find(f=>f.id===b.dataset.ex3guide)));
@@ -2351,6 +2422,8 @@ $("mapSearchInput").addEventListener("keydown",e=>{if(e.key==="Enter")freeMapSea
 $("btnStudentLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;if($("selExercise"))$("selExercise").onchange=loadRecus;wireBulkValidation();
+if($("btnOpenProjection"))$("btnOpenProjection").onclick=()=>window.open("./arbre-ferme-tea.html?vue=projection","arbre-projection");
+if($("btnRefreshModule2Access"))$("btnRefreshModule2Access").onclick=loadModule2Access;
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
 async function finishStudentAuthIfNeeded(){
@@ -2406,6 +2479,12 @@ route().catch(e=>{console.error(e);show("vAccueil");msg("studentLoginMsg","Erreu
   const m1=document.getElementById("studentModule1"), m2=document.getElementById("studentModule2");
   function ouvrirModule(n){
     const deux=String(n)==="2";
+    const b2=tabs.querySelector('[data-student-module="2"]');
+    if(deux && (!b2 || b2.dataset.unlocked!=="1")){
+      m1.hidden=false; m2.hidden=true;
+      tabs.querySelectorAll("[data-student-module]").forEach(b=>b.classList.toggle("on",b.dataset.studentModule==="1"));
+      return;
+    }
     m1.hidden=deux; m2.hidden=!deux;
     tabs.querySelectorAll("[data-student-module]").forEach(b=>b.classList.toggle("on",b.dataset.studentModule===String(n)));
     try{ sessionStorage.setItem("tea-student-module",String(n)); }catch(_){}
