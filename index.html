@@ -185,6 +185,14 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
  .mapSearchActions .btn{flex:1 1 150px}
 }
 
+
+/* ===== Navigation stagiaire Modules 1 / 2 ===== */
+.moduleTabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+.moduleTab{min-height:76px;border:1px solid var(--border);border-radius:14px;background:var(--panel);color:var(--text);padding:12px 14px;text-align:left;cursor:pointer}
+.moduleTab b,.moduleTab span{display:block}.moduleTab b{font-size:1.05rem}.moduleTab span{margin-top:5px;color:var(--muted);font-size:.9rem}
+.moduleTab.on{outline:2px solid var(--accent);background:var(--accentSoft)}
+@media(max-width:620px){.moduleTabs{grid-template-columns:1fr}.moduleTab{min-height:64px}#studentTreeFrame{height:1180px!important}}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -211,27 +219,32 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <button class="btn small" id="btnStudentLogout">Se déconnecter</button>
 </div>
 <div class="msg ok"><b>Ta progression est enregistrée.</b><br>Sur cet appareil, ton accès reste ouvert tant que tu ne choisis pas « Se déconnecter ». Sur un nouvel appareil, il suffit de refaire la connexion par e-mail.</div>
-<div class="moduleHero"><h3>🔎 Module 1 — Analyse de ferme</h3><p>Apprendre à lire une ferme comme un système organisé avant de chercher à la modifier.</p></div>
-<div class="exerciseStrip">
- <div class="exMini active"><b>1 · Organisation</b><small>Zones et fréquences</small></div>
- <div class="exMini active"><b>2 · Eau</b><small>Source, réseau, relief</small></div>
- <div class="exMini active"><b>3 · Déplacements</b><small>Trajets et spaghetti</small></div>
- <div class="exMini active"><b>4 · Charges</b><small>Portage et manutention</small></div>
- <div class="exMini" id="labMini"><b>🔓 Autonomie</b><small>Laboratoire de diagnostic</small></div>
+<div class="moduleTabs" id="studentModuleTabs">
+  <button class="moduleTab on" type="button" data-student-module="1"><b>🛰️ Module 1</b><span>Lire une ferme vue du ciel</span></button>
+  <button class="moduleTab" type="button" data-student-module="2"><b>🌳 Module 2</b><span>La ferme comme système vivant</span></button>
 </div>
-<h3>Choisis une ferme pour travailler</h3>
-<div class="grid" id="studentFarms"></div>
-<div id="studentLab" style="margin-top:20px"></div>
-<div id="studentDiagnostics"></div>
-<div class="moduleHero" style="margin-top:24px">
-  <h3>🌳 Module 2 — La ferme diversifiée : un système vivant</h3>
-  <p>Construire une représentation globale de la ferme : projet, clients, agronomie, production, travail, logistique, résultats, contexte et pilotage.</p>
-  <div class="row" style="margin-top:12px">
-    <a class="btn main" href="./arbre-ferme-tea.html">🌳 Ouvrir l’arbre de la ferme</a>
+<div id="studentModule1">
+  <div class="moduleHero"><h3>🔎 Module 1 — Analyse de ferme</h3><p>Apprendre à lire une ferme comme un système organisé avant de chercher à la modifier.</p></div>
+  <div class="exerciseStrip">
+   <div class="exMini active"><b>1 · Organisation</b><small>Zones et fréquences</small></div>
+   <div class="exMini active"><b>2 · Eau</b><small>Source, réseau, relief</small></div>
+   <div class="exMini active"><b>3 · Déplacements</b><small>Trajets et spaghetti</small></div>
+   <div class="exMini active"><b>4 · Charges</b><small>Portage et manutention</small></div>
+   <div class="exMini" id="labMini"><b>🔓 Autonomie</b><small>Laboratoire de diagnostic</small></div>
   </div>
+  <h3>Choisis une ferme pour travailler</h3>
+  <div class="grid" id="studentFarms"></div>
+  <div id="studentLab" style="margin-top:20px"></div>
+  <div id="studentDiagnostics"></div>
+  <h3>Mon historique de formation</h3>
+  <div id="studentHistory"><p class="muted">Chargement…</p></div>
 </div>
-<h3>Mon historique de formation</h3>
-<div id="studentHistory"><p class="muted">Chargement…</p></div>
+<div id="studentModule2" hidden>
+  <div class="moduleHero"><h3>🌳 Module 2 — La ferme diversifiée : un système vivant</h3>
+    <p>Retrouve l’arbre construit ensemble. Clique sur ses différentes parties pour revoir la métaphore, les repères, les exemples et les sources.</p>
+  </div>
+  <iframe id="studentTreeFrame" title="Arbre de la ferme diversifiée" src="./arbre-ferme-tea.html?vue=stagiaire" style="width:100%;height:1050px;border:0;border-radius:16px;background:transparent"></iframe>
+</div>
 </div></section>
 
 <!-- STAGIAIRE : créer un diagnostic autonome -->
@@ -2384,4 +2397,25 @@ if(sb)sb.auth.onAuthStateChange((event,session)=>{
 });
 if(!(history.state&&history.state.teaApp))history.replaceState({teaApp:true,teaView:document.querySelector(".view.show")?.id||"vAccueil",teaWho:$("who")?$("who").textContent:""},"",location.href);
 route().catch(e=>{console.error(e);show("vAccueil");msg("studentLoginMsg","Erreur au démarrage : "+(e.message||e),"err")});
-</script></body></html>
+</script><script>
+
+/* Navigation de l'espace stagiaire entre les modules */
+(function(){
+  const tabs=document.getElementById("studentModuleTabs");
+  if(!tabs) return;
+  const m1=document.getElementById("studentModule1"), m2=document.getElementById("studentModule2");
+  function ouvrirModule(n){
+    const deux=String(n)==="2";
+    m1.hidden=deux; m2.hidden=!deux;
+    tabs.querySelectorAll("[data-student-module]").forEach(b=>b.classList.toggle("on",b.dataset.studentModule===String(n)));
+    try{ sessionStorage.setItem("tea-student-module",String(n)); }catch(_){}
+  }
+  tabs.addEventListener("click",e=>{
+    const b=e.target.closest("[data-student-module]"); if(b) ouvrirModule(b.dataset.studentModule);
+  });
+  let initial="1"; try{initial=sessionStorage.getItem("tea-student-module")||"1"}catch(_){}
+  ouvrirModule(initial);
+})();
+
+</script>
+</body></html>

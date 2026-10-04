@@ -92,6 +92,29 @@ body.vue-formateur #formateur{display:block}
   #projection{grid-template-columns:1fr;height:auto}
   #scene{max-height:60vh}
 }
+
+/* ===== Mode stagiaire : arbre de consultation ===== */
+body.vue-stagiaire #barre,
+body.vue-stagiaire #tiroir,
+body.vue-stagiaire #formateur { display:none !important; }
+body.vue-stagiaire #scene { min-height:auto; padding-bottom:24px; }
+body.vue-stagiaire #panneau { max-height:none; overflow:visible; }
+body.vue-stagiaire .part { cursor:pointer; }
+body.vue-stagiaire .student-sheet{
+  margin-top:14px;padding:14px 16px;border:1px solid var(--ligne);
+  border-radius:14px;background:var(--fond2);
+}
+body.vue-stagiaire .student-sheet h2{font-size:1rem;margin:12px 0 6px}
+body.vue-stagiaire .student-sheet ul{margin:6px 0 8px;padding-left:20px}
+body.vue-stagiaire .student-sheet li{margin:5px 0}
+body.vue-stagiaire .student-transition{
+  margin:14px 0 4px;padding:12px 14px;border-left:4px solid var(--vert);
+  border-radius:8px;background:rgba(98,212,155,.10);font-style:italic;
+}
+body.vue-stagiaire .student-help{
+  text-align:center;margin:8px auto 14px;color:var(--texte2);font-size:.92rem;
+}
+
 </style>
 </head>
 <body>
@@ -256,7 +279,7 @@ body.vue-formateur #formateur{display:block}
 
 <script>
 /* ---------- Contenu ---------- */
-const ORDRE = ["oiseaux","racines","sol","ciel","tronc","branches","vente","production","recolte","mo","seve","fruits","animaux","jardinier"];
+const ORDRE = ["racines","oiseaux","sol","ciel","tronc","branches","vente","production","recolte","mo","seve","fruits","animaux","jardinier"];
 
 const P = {
   intro:{
@@ -267,17 +290,17 @@ const P = {
     question_f:"De quoi un arbre a-t-il besoin pour vivre et donner des fruits ?",
     exemple:[],
     sources:[["s","Synthèse : carte co-construite pour la formation TEA"]],
-    transition:"Commencer par le début de toute ferme : les oiseaux."
+    transition:"La graine représente l’envie de créer sa ferme. En germant, elle développe d’abord ses racines : le projet personnel du maraîcher."
   },
   oiseaux:{
-    titre:"Oiseaux : les clients", role:"Ce sont eux qui sèment la graine.",
+    titre:"Oiseaux : les clients", role:"Ils viennent autour de l’arbre, le font vivre et participent à la dissémination de ce qu’il produit.",
     question:"Pourquoi un arbre pousse-t-il à cet endroit précis ?",
     rameaux:[["Où ?","Mon territoire : ville ou campagne ? jardins ? touristes ? concurrents ?"],["Qui ?","Pour qui l'alimentation a-t-elle du sens ?"],["Quelles attentes ?","Pourquoi viendraient-ils chez moi plutôt qu'au supermarché ?"],["Quelle relation ?","Comment un passant devient-il un fidèle ?"]],
     dire:["On s'installe là où est le marché. Produire ce que l'on vend, plutôt que vendre ce que l'on produit.","Les nouveaux clients sont moins militants qu'avant, mais sensibles au local.","Ils viennent pour la fraîcheur, les produits introuvables ailleurs, le conseil, la relation humaine. Et ils ont peu de temps pour cuisiner.","Du primo-acheteur au prescripteur : 5 étapes de relation.","Chaque année, 10 à 15 % des clients partent (déménagement, enfants qui partent...). Il faut les remplacer."],
     exemple:["Le maraîcher au journal : il lisait son journal derrière l'étal. Il l'a posé, a souri : ses ventes ont nettement augmenté.","Les 3 poules et les 300 œufs : 3 poules décoratives, 300 œufs achetés au voisin et vendus par jour. Les clients croyaient que tout venait de ces 3 poules. Ce qui est évident pour nous ne l'est pas pour le client.","Un mail « les fraises sont arrivées » attire une foule. Le même mail avec des rutabagas, beaucoup moins."],
     alerte:"Phrase choc de Charles : « Le maraîcher ne nourrit pas le monde. Il apporte du sens à l'alimentation. » À faire réagir, surtout ceux qui veulent « nourrir les gens ».",
     sources:[["c","Livret ch. 1 : structuration du raisonnement ; ch. 2 : définir une cible, percevoir les attentes, communication ciblée ; ch. 3 : habitudes de consommation"],["m","Guide MSV : choisir ses débouchés"],["s","Métaphore de l'arbre : François"]],
-    transition:"La graine représente l’envie de créer sa ferme. En germant, elle développe ses racines : le projet personnel du maraîcher."
+    transition:"Une fois le projet enraciné, la ferme ne se construit pas seule : elle doit rencontrer celles et ceux pour qui elle produira."
   },
   racines:{
     titre:"Racines : le projet personnel", role:"Ce qui tient l'arbre debout dans la tempête.",
@@ -286,7 +309,7 @@ const P = {
     dire:["L'épanouissement personnel est la finalité première de la stratégie. Sans lui, on s'épuise.","Dans les 7 clés de la réussite du Guide MSV, les compétences techniques sont peu présentes.","Les 2 premières clés : la motivation et l'alignement."],
     exemple:["Charles : un couple ne voulait pas travailler en juillet-août. Mâche l'hiver, plants de tomates au printemps, dernier plant vendu le 15 juin, départ en camping-car le 1er juillet. Modèle réduit, mais rentable."],
     sources:[["c","Livret ch. 1 : 4 questions (heures, vacances, salaire, seul ou à plusieurs)"],["m","Guide MSV 2022 : les 7 clés de la réussite"],["r","Approche globale (Bonneviale, Marshall) : le projet donne le sens"],["r","Thèse Dumont 2017 : revenu, temps, pénibilité, santé"]],
-    transition:"Les racines plongent dans un sol. Ce sol, on peut le construire."
+    transition:"Le projet et les clients donnent une direction. Mais l’arbre doit maintenant s’ancrer dans un sol réel."
   },
   sol:{
     titre:"Sol : l'agronomie", role:"Ce qui nourrit l'arbre. On le construit année après année.",
@@ -475,7 +498,51 @@ function notesHTML(k){
   return h;
 }
 
+
+const MODE = new URLSearchParams(location.search).get("vue") || "projection";
+const EST_STAGIAIRE = MODE === "stagiaire";
+
+function exempleStagiaire(s){
+  return String(s)
+    .replace(/^Charles\s*:\s*/i,"")
+    .replace(/\bCharles Souillot\b/gi,"un maraîcher")
+    .replace(/\bCharles\b/gi,"un maraîcher")
+    .replace(/\bKevin Morel\b/gi,"une étude");
+}
+function sourcesHTML(d){
+  return `<ul>${(d.sources||[]).map(s=>`<li>${esc(s[1])}</li>`).join("")}</ul>`;
+}
+function ficheStagiaire(k){
+  const d = P[k];
+  let h = `<h1>${esc(d.titre)}</h1><p class="role">${esc(d.role)}</p>`;
+  h += `<div class="student-sheet">`;
+  if(d.rameaux?.length){
+    h += `<h2>À retenir</h2><ul>` + d.rameaux.map(r=>`<li><strong>${esc(r[0])}</strong> — ${esc(r[1])}</li>`).join("") + `</ul>`;
+  }
+  if(d.exemple?.length){
+    h += `<h2>Exemples et repères concrets</h2><ul>` + d.exemple.map(x=>`<li>${esc(exempleStagiaire(x))}</li>`).join("") + `</ul>`;
+  }
+  if(d.transition) h += `<div class="student-transition">${esc(d.transition)}</div>`;
+  h += `<h2>Sources bibliographiques</h2>${sourcesHTML(d)}</div>`;
+  return h;
+}
+function afficherStagiaire(){
+  ORDRE.forEach(k=>{
+    const g=document.querySelector(`.part[data-part="${k}"]`);
+    if(g){ g.classList.remove("cache"); g.classList.toggle("actif",etat.actif===k); }
+  });
+  const el=document.getElementById("panneau");
+  if(!etat.actif){
+    el.innerHTML=`<h1>${esc(P.intro.titre)}</h1><p class="role">${esc(P.intro.role)}</p>
+      <p class="student-help">Clique sur une partie de l’arbre pour retrouver ce qui a été vu en formation.</p>
+      <div class="student-transition">${esc(P.intro.transition)}</div>`;
+  }else{
+    el.innerHTML=ficheStagiaire(etat.actif);
+  }
+}
+
 function afficher(){
+  if(EST_STAGIAIRE){ afficherStagiaire(); return; }
   ORDRE.forEach(k=>{
     const g = document.querySelector(`.part[data-part="${k}"]`);
     g.classList.toggle("cache", etat.etats[k]===0);
@@ -497,8 +564,12 @@ function afficher(){
 
 /* ---------- Commandes ---------- */
 document.querySelectorAll(".part").forEach(g=>{
-  g.addEventListener("click", ()=>cliquer(g.dataset.part));
-  g.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); cliquer(g.dataset.part); } });
+  const choisir=()=>{
+    if(EST_STAGIAIRE){ etat.actif=g.dataset.part; afficherStagiaire(); }
+    else cliquer(g.dataset.part);
+  };
+  g.addEventListener("click", choisir);
+  g.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); choisir(); } });
 });
 document.getElementById("b-suiv").onclick = suivant;
 document.getElementById("b-prec").onclick = precedent;
@@ -522,8 +593,13 @@ document.addEventListener("keydown", e=>{
   else if(e.key==="n" || e.key==="N"){ document.getElementById("tiroir").classList.toggle("ouvert"); }
 });
 
-if(new URLSearchParams(location.search).get("vue")==="formateur") document.body.classList.add("vue-formateur");
-charger();
+if(MODE==="formateur") document.body.classList.add("vue-formateur");
+if(EST_STAGIAIRE){
+  document.body.classList.add("vue-stagiaire");
+  etat={etats:Object.fromEntries(ORDRE.map(k=>[k,2])),actif:null};
+}else{
+  charger();
+}
 afficher();
 </script>
 </body>
