@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>L'arbre de la ferme diversifiée</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fond:#EEF2E6; --encre:#1F3A2B; --doux:#5B6E5F; --carte:#FFFFFF; --trait:#C9D3BF;
+  --ciel:#CFE3EC; --feuille:#5E8C3A; --feuille2:#7FA855; --tronc:#7A4E2D; --sol:#8A5A36;
+  --seve:#2F6DB5; --fruit:#B8322A; --cache:#B9C2B0; --accent:#2F6DB5;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --fond:#17221B; --encre:#E6EEDF; --doux:#A9B8A8; --carte:#1F2D24; --trait:#33463A;
+  --ciel:#2A4250; --feuille:#5E8C3A; --feuille2:#7FA855; --tronc:#9A6A45; --sol:#6B4529;
+  --seve:#6FA4E8; --fruit:#E0574C; --cache:#3E4E43; --accent:#6FA4E8; } }
+:root[data-theme="dark"]{
+  --fond:#17221B; --encre:#E6EEDF; --doux:#A9B8A8; --carte:#1F2D24; --trait:#33463A;
+  --ciel:#2A4250; --feuille:#5E8C3A; --feuille2:#7FA855; --tronc:#9A6A45; --sol:#6B4529;
+  --seve:#6FA4E8; --fruit:#E0574C; --cache:#3E4E43; --accent:#6FA4E8; }
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--fond);color:var(--encre);font-family:"Atkinson Hyperlegible",Verdana,Arial,sans-serif;font-size:18px;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.part:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+/* ===== Projection ===== */
+#projection{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:24px;height:100%;padding:20px 24px 70px}
+#scene{width:100%;height:100%;max-height:calc(100vh - 100px)}
+#panneau{align-self:center;background:var(--carte);border:2px solid var(--trait);border-radius:20px;padding:28px 30px;max-height:calc(100vh - 110px);overflow:auto}
+#panneau h1{font-size:clamp(28px,3.2vw,46px);line-height:1.15;margin:0 0 6px}
+#panneau .role{font-size:clamp(18px,1.6vw,24px);color:var(--doux);margin:0 0 20px}
+#panneau .question{font-size:clamp(24px,2.4vw,36px);line-height:1.3;margin:0;border-left:6px solid var(--accent);padding-left:16px}
+#panneau ul{list-style:none;padding:0;margin:8px 0 0}
+#panneau li{font-size:clamp(19px,1.7vw,26px);padding:10px 0;border-bottom:1px solid var(--trait);display:flex;gap:12px;align-items:baseline}
+#panneau li b{min-width:1.6em}
+#panneau li span.q{display:block;color:var(--doux);font-size:.8em}
+
+.part{cursor:pointer}
+.part .forme{transition:opacity .4s, filter .4s}
+.part .nom{font-weight:700;font-size:26px;fill:var(--encre);paint-order:stroke;stroke:var(--fond);stroke-width:6px;stroke-linejoin:round;transition:opacity .4s}
+.part .badge{opacity:0;transition:opacity .3s}
+.part.cache .forme{filter:grayscale(1);opacity:.28}
+.part.cache .nom{opacity:0}
+.part.cache .badge{opacity:1}
+.part.actif .forme{filter:drop-shadow(0 0 7px var(--accent))}
+.badge circle{fill:var(--carte);stroke:var(--doux);stroke-width:2}
+.badge text{font-size:26px;font-weight:700;fill:var(--doux)}
+@media (prefers-reduced-motion: no-preference){
+  .seve-flux{stroke-dasharray:10 10;animation:flux 1.6s linear infinite}
+  @keyframes flux{to{stroke-dashoffset:-40}}
+}
+
+#barre{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--fond);border-top:1px solid var(--trait);font-size:15px}
+#barre button{background:var(--carte);border:1px solid var(--trait);border-radius:10px;padding:7px 12px}
+#barre .etape{margin-left:auto;color:var(--doux)}
+
+/* Notes sur le même écran */
+#tiroir{position:fixed;left:16px;right:16px;bottom:62px;max-height:45vh;overflow:auto;background:var(--carte);border:2px solid var(--accent);border-radius:16px;padding:18px 22px;display:none;font-size:17px}
+#tiroir.ouvert{display:block}
+
+/* ===== Vue formateur ===== */
+#formateur{display:none;max-width:1100px;margin:0 auto;padding:20px 24px 40px}
+body.vue-formateur #projection, body.vue-formateur #barre, body.vue-formateur #tiroir{display:none}
+body.vue-formateur #formateur{display:block}
+.f-tete{display:flex;gap:12px;align-items:center;flex-wrap:wrap;position:sticky;top:env(safe-area-inset-top,0px);background:var(--fond);padding:10px 0;border-bottom:2px solid var(--trait);z-index:2}
+.f-tete h1{font-size:30px;margin:0 auto 0 0}
+.f-tete button{background:var(--carte);border:2px solid var(--trait);border-radius:12px;padding:10px 16px;font-size:18px}
+.f-tete button.fort{background:var(--accent);color:#fff;border-color:var(--accent)}
+.f-etat{color:var(--doux);margin:10px 0 0}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:16px}
+.bloc{background:var(--carte);border:1px solid var(--trait);border-radius:14px;padding:16px 18px}
+.bloc h2{font-size:19px;margin:0 0 8px}
+.bloc ul{margin:0;padding-left:20px}
+.bloc li{margin:4px 0}
+.bloc.dire{grid-column:1/-1;border-left:6px solid var(--accent)}
+.bloc.dire li{font-size:21px}
+.src{display:inline-block;font-size:13px;font-weight:700;border-radius:6px;padding:1px 7px;margin-right:6px;border:1px solid}
+.src.c{color:#2E7D32;border-color:#2E7D32}.src.m{color:#8A5A36;border-color:#8A5A36}.src.r{color:#2F6DB5;border-color:#2F6DB5}.src.s{color:#7B4FA0;border-color:#7B4FA0}.src.p{color:#B06A10;border-color:#B06A10}.src.e{color:#5B6E5F;border-color:#5B6E5F}
+.suite{margin-top:16px;color:var(--doux)}
+.plan{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.plan button{background:var(--carte);border:1px solid var(--trait);border-radius:999px;padding:4px 12px;font-size:15px}
+.plan button.vu{border-color:var(--accent)}
+.plan button.ici{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+@media (max-width:820px){
+  #projection{grid-template-columns:1fr;height:auto}
+  #scene{max-height:60vh}
+}
+</style>
+</head>
+<body>
+
+<!-- ======== PROJECTION ======== -->
+<main id="projection">
+  <svg id="scene" viewBox="0 0 1000 720" role="img" aria-label="Arbre de la ferme diversifiée">
+    <!-- Ciel -->
+    <g class="part cache" data-part="ciel" tabindex="0" role="button" aria-label="Ciel">
+      <g class="forme">
+        <rect x="10" y="10" width="980" height="95" rx="18" fill="var(--ciel)"/>
+        <g fill="var(--seve)" opacity=".7"><path d="M300 55 q6 16 0 22 q-6-6 0-22z"/><path d="M330 45 q6 16 0 22 q-6-6 0-22z"/><path d="M660 50 q6 16 0 22 q-6-6 0-22z"/><path d="M690 40 q6 16 0 22 q-6-6 0-22z"/></g>
+        <circle cx="900" cy="58" r="26" fill="#E9B949"/>
+      </g>
+      <text class="nom" x="500" y="68" text-anchor="middle">Ciel : eau et climat</text>
+      <g class="badge"><circle cx="500" cy="58" r="22"/><text x="500" y="67" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Oiseaux -->
+    <g class="part cache" data-part="oiseaux" tabindex="0" role="button" aria-label="Oiseaux">
+      <g class="forme" fill="none" stroke="var(--encre)" stroke-width="5" stroke-linecap="round">
+        <path d="M70 160 q20-22 40 0 q20-22 40 0"/>
+        <path d="M150 210 q15-17 30 0 q15-17 30 0"/>
+        <path d="M60 240 q12-14 24 0 q12-14 24 0"/>
+      </g>
+      <text class="nom" x="40" y="135">Oiseaux : clients</text>
+      <g class="badge"><circle cx="135" cy="200" r="22"/><text x="135" y="209" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Animaux -->
+    <g class="part cache" data-part="animaux" tabindex="0" role="button" aria-label="Animaux">
+      <g class="forme" fill="#C96F2B">
+        <path d="M850 230 l20-30 l10 26 l26 0 l10-26 l20 30 q8 30-30 45 q-48-12-56-45z"/>
+        <path d="M900 275 q50 5 60 35 q-30 10-60-10z" opacity=".85"/>
+        <circle cx="878" cy="238" r="4" fill="var(--encre)"/><circle cx="912" cy="238" r="4" fill="var(--encre)"/>
+      </g>
+      <text class="nom" x="960" y="345" text-anchor="end">Animaux : contexte</text>
+      <g class="badge"><circle cx="900" cy="250" r="22"/><text x="900" y="259" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Branches + feuillage -->
+    <g class="part cache" data-part="branches" tabindex="0" role="button" aria-label="Branches">
+      <g class="forme">
+        <ellipse cx="500" cy="285" rx="300" ry="160" fill="var(--feuille)"/>
+        <ellipse cx="370" cy="250" rx="150" ry="105" fill="var(--feuille2)"/>
+        <ellipse cx="640" cy="245" rx="150" ry="100" fill="var(--feuille2)"/>
+        <g stroke="var(--tronc)" stroke-width="12" stroke-linecap="round" fill="none">
+          <path d="M490 430 Q450 360 330 300"/><path d="M510 430 Q560 350 680 300"/>
+          <path d="M495 430 Q470 300 420 220"/><path d="M505 430 Q540 300 590 220"/>
+        </g>
+      </g>
+      <g class="badge"><circle cx="500" cy="260" r="22"/><text x="500" y="269" text-anchor="middle">?</text></g>
+    </g>
+
+    <g class="part cache" data-part="vente" tabindex="0" role="button" aria-label="Vente">
+      <g class="forme"><circle cx="345" cy="292" r="1" fill="none"/></g>
+      <text class="nom" x="345" y="300" text-anchor="middle">Vente</text>
+      <g class="badge"><circle cx="345" cy="292" r="16"/><text x="345" y="300" text-anchor="middle" style="font-size:20px">?</text></g>
+    </g>
+    <g class="part cache" data-part="production" tabindex="0" role="button" aria-label="Production">
+      <g class="forme"><circle cx="655" cy="292" r="1" fill="none"/></g>
+      <text class="nom" x="655" y="300" text-anchor="middle">Production</text>
+      <g class="badge"><circle cx="655" cy="292" r="16"/><text x="655" y="300" text-anchor="middle" style="font-size:20px">?</text></g>
+    </g>
+    <g class="part cache" data-part="recolte" tabindex="0" role="button" aria-label="Récolte">
+      <g class="forme"><circle cx="400" cy="192" r="1" fill="none"/></g>
+      <text class="nom" x="400" y="200" text-anchor="middle">Récolte</text>
+      <g class="badge"><circle cx="400" cy="192" r="16"/><text x="400" y="200" text-anchor="middle" style="font-size:20px">?</text></g>
+    </g>
+    <g class="part cache" data-part="mo" tabindex="0" role="button" aria-label="Main-d'œuvre">
+      <g class="forme"><circle cx="615" cy="192" r="1" fill="none"/></g>
+      <text class="nom" x="615" y="200" text-anchor="middle">Main-d'œuvre</text>
+      <g class="badge"><circle cx="615" cy="192" r="16"/><text x="615" y="200" text-anchor="middle" style="font-size:20px">?</text></g>
+    </g>
+    <!-- Fruits -->
+    <g class="part cache" data-part="fruits" tabindex="0" role="button" aria-label="Fruits">
+      <g class="forme" fill="var(--fruit)">
+        <circle cx="250" cy="340" r="15"/><circle cx="350" cy="370" r="13"/><circle cx="460" cy="160" r="14"/>
+        <circle cx="560" cy="350" r="15"/><circle cx="760" cy="335" r="13"/><circle cx="680" cy="380" r="12"/>
+      </g>
+      <text class="nom" x="500" y="400" text-anchor="middle">Fruits : revenu, temps, santé, sens</text>
+      <g class="badge"><circle cx="560" cy="350" r="22"/><text x="560" y="359" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Tronc -->
+    <g class="part cache" data-part="tronc" tabindex="0" role="button" aria-label="Tronc">
+      <g class="forme"><path d="M455 420 Q470 500 448 580 L552 580 Q530 500 545 420 Z" fill="var(--tronc)"/></g>
+      <text class="nom" x="575" y="500">Tronc : gamme</text>
+      <g class="badge"><circle cx="500" cy="500" r="22"/><text x="500" y="509" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Sève -->
+    <g class="part cache" data-part="seve" tabindex="0" role="button" aria-label="Sève">
+      <g class="forme"><path class="seve-flux" d="M500 600 L500 430" stroke="var(--seve)" stroke-width="9" stroke-linecap="round" fill="none"/></g>
+      <text class="nom" x="575" y="545">Sève : logistique</text>
+      <g class="badge"><circle cx="500" cy="545" r="20"/><text x="500" y="554" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Sol -->
+    <g class="part cache" data-part="sol" tabindex="0" role="button" aria-label="Sol">
+      <g class="forme"><rect x="10" y="585" width="980" height="125" rx="18" fill="var(--sol)"/>
+        <g fill="#E9D6B8" opacity=".5"><circle cx="120" cy="640" r="4"/><circle cx="220" cy="680" r="3"/><circle cx="820" cy="650" r="4"/><circle cx="900" cy="690" r="3"/></g>
+      </g>
+      <text class="nom" x="40" y="690" style="fill:#FFF7EA;stroke:var(--sol)">Sol : agronomie</text>
+      <g class="badge"><circle cx="150" cy="650" r="22"/><text x="150" y="659" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Racines -->
+    <g class="part cache" data-part="racines" tabindex="0" role="button" aria-label="Racines">
+      <g class="forme" stroke="#F1C27D" stroke-width="7" stroke-linecap="round" fill="none">
+        <path d="M470 585 Q420 630 340 650 Q300 660 280 690"/>
+        <path d="M490 585 Q470 650 430 700"/>
+        <path d="M510 585 Q530 650 575 700"/>
+        <path d="M530 585 Q590 625 670 645 Q710 655 730 690"/>
+      </g>
+      <text class="nom" x="960" y="690" text-anchor="end" style="fill:#FFF7EA;stroke:var(--sol)">Racines : projet</text>
+      <g class="badge"><circle cx="500" cy="650" r="22"/><text x="500" y="659" text-anchor="middle">?</text></g>
+    </g>
+
+    <!-- Jardinier -->
+    <g class="part cache" data-part="jardinier" tabindex="0" role="button" aria-label="Jardinier">
+      <g class="forme">
+        <circle cx="160" cy="430" r="22" fill="#E2B48A"/>
+        <path d="M128 422 h64 l-10-16 h-44z" fill="#C9A227"/>
+        <rect x="140" y="455" width="40" height="80" rx="12" fill="var(--seve)"/>
+        <path d="M145 535 l-8 45 M175 535 l8 45" stroke="var(--encre)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M180 470 l45 30" stroke="#E2B48A" stroke-width="9" stroke-linecap="round"/>
+        <path d="M215 495 l40 -10 l10 20 l-35 12z" fill="#7C8B8F"/>
+      </g>
+      <text class="nom" x="60" y="380">Jardinier : pilotage</text>
+      <g class="badge"><circle cx="160" cy="490" r="22"/><text x="160" y="499" text-anchor="middle">?</text></g>
+    </g>
+  </svg>
+
+  <section id="panneau" aria-live="polite"></section>
+</main>
+
+<div id="tiroir" aria-live="polite"></div>
+
+<nav id="barre" aria-label="Commandes">
+  <button id="b-prec" title="Flèche gauche">Précédent</button>
+  <button id="b-suiv" title="Flèche droite ou espace">Suivant</button>
+  <button id="b-notes" title="Touche N">Mes notes</button>
+  <button id="b-ouvrir">Ouvrir la vue formateur</button>
+  <button id="b-tout">Tout révéler</button>
+  <button id="b-zero">Recommencer</button>
+  <span class="etape" id="etape"></span>
+</nav>
+
+<!-- ======== VUE FORMATEUR ======== -->
+<section id="formateur" aria-live="polite">
+  <div class="f-tete">
+    <h1 id="f-titre">Vue formateur</h1>
+    <button id="f-prec">Précédent</button>
+    <button id="f-suiv" class="fort">Suivant</button>
+  </div>
+  <p class="f-etat" id="f-etat"></p>
+  <div class="plan" id="f-plan"></div>
+  <div class="notes" id="f-notes"></div>
+  <p class="suite" id="f-suite"></p>
+</section>
+
+<script>
+/* ---------- Contenu ---------- */
+const ORDRE = ["oiseaux","racines","sol","ciel","tronc","branches","vente","production","recolte","mo","seve","fruits","animaux","jardinier"];
+
+const P = {
+  intro:{
+    titre:"La ferme diversifiée : un système vivant",
+    role:"Une ferme commence comme une graine : une envie, une idée, un projet. Pour germer, elle doit trouver les bonnes conditions. Elle développe alors ses racines : le projet personnel du maraîcher, ses objectifs, ses besoins et ses contraintes. Puis viennent le sol, l’eau, le tronc, les branches et enfin les fruits. Comme une ferme, un arbre est un système : aucune partie ne fonctionne réellement seule.",
+    question:"De quoi un arbre a-t-il besoin pour vivre et donner des fruits ?",
+    dire:["Projeter l'arbre vide. Ne rien nommer.","Laisser les stagiaires proposer les parties de l'arbre.","Écrire leurs idées au tableau avant de révéler."],
+    question_f:"De quoi un arbre a-t-il besoin pour vivre et donner des fruits ?",
+    exemple:[],
+    sources:[["s","Synthèse : carte co-construite pour la formation TEA"]],
+    transition:"Commencer par le début de toute ferme : les oiseaux."
+  },
+  oiseaux:{
+    titre:"Oiseaux : les clients", role:"Ce sont eux qui sèment la graine.",
+    question:"Pourquoi un arbre pousse-t-il à cet endroit précis ?",
+    rameaux:[["Où ?","Mon territoire : ville ou campagne ? jardins ? touristes ? concurrents ?"],["Qui ?","Pour qui l'alimentation a-t-elle du sens ?"],["Quelles attentes ?","Pourquoi viendraient-ils chez moi plutôt qu'au supermarché ?"],["Quelle relation ?","Comment un passant devient-il un fidèle ?"]],
+    dire:["On s'installe là où est le marché. Produire ce que l'on vend, plutôt que vendre ce que l'on produit.","Les nouveaux clients sont moins militants qu'avant, mais sensibles au local.","Ils viennent pour la fraîcheur, les produits introuvables ailleurs, le conseil, la relation humaine. Et ils ont peu de temps pour cuisiner.","Du primo-acheteur au prescripteur : 5 étapes de relation.","Chaque année, 10 à 15 % des clients partent (déménagement, enfants qui partent...). Il faut les remplacer."],
+    exemple:["Le maraîcher au journal : il lisait son journal derrière l'étal. Il l'a posé, a souri : ses ventes ont nettement augmenté.","Les 3 poules et les 300 œufs : 3 poules décoratives, 300 œufs achetés au voisin et vendus par jour. Les clients croyaient que tout venait de ces 3 poules. Ce qui est évident pour nous ne l'est pas pour le client.","Un mail « les fraises sont arrivées » attire une foule. Le même mail avec des rutabagas, beaucoup moins."],
+    alerte:"Phrase choc de Charles : « Le maraîcher ne nourrit pas le monde. Il apporte du sens à l'alimentation. » À faire réagir, surtout ceux qui veulent « nourrir les gens ».",
+    sources:[["c","Livret ch. 1 : structuration du raisonnement ; ch. 2 : définir une cible, percevoir les attentes, communication ciblée ; ch. 3 : habitudes de consommation"],["m","Guide MSV : choisir ses débouchés"],["s","Métaphore de l'arbre : François"]],
+    transition:"La graine représente l’envie de créer sa ferme. En germant, elle développe ses racines : le projet personnel du maraîcher."
+  },
+  racines:{
+    titre:"Racines : le projet personnel", role:"Ce qui tient l'arbre debout dans la tempête.",
+    question:"Pourquoi voulez-vous devenir maraîcher ? Qu'attendez-vous de ce métier ?",
+    rameaux:[["Motivation","Pourquoi je veux devenir maraîcher ?"],["Alignement","Ma vie perso et mon projet pro vont-ils ensemble ?"],["Temps","Combien d'heures par semaine ? Quelles vacances ?"],["Revenu","Quel salaire je vise ?"],["Seul ou à plusieurs","Associés, salariés, entourage ?"],["Santé","Comment vieillir avec ma ferme sans me casser ?"],["Compétences","Que sais-je faire ? Que dois-je apprendre ?"]],
+    dire:["L'épanouissement personnel est la finalité première de la stratégie. Sans lui, on s'épuise.","Dans les 7 clés de la réussite du Guide MSV, les compétences techniques sont peu présentes.","Les 2 premières clés : la motivation et l'alignement."],
+    exemple:["Charles : un couple ne voulait pas travailler en juillet-août. Mâche l'hiver, plants de tomates au printemps, dernier plant vendu le 15 juin, départ en camping-car le 1er juillet. Modèle réduit, mais rentable."],
+    sources:[["c","Livret ch. 1 : 4 questions (heures, vacances, salaire, seul ou à plusieurs)"],["m","Guide MSV 2022 : les 7 clés de la réussite"],["r","Approche globale (Bonneviale, Marshall) : le projet donne le sens"],["r","Thèse Dumont 2017 : revenu, temps, pénibilité, santé"]],
+    transition:"Les racines plongent dans un sol. Ce sol, on peut le construire."
+  },
+  sol:{
+    titre:"Sol : l'agronomie", role:"Ce qui nourrit l'arbre. On le construit année après année.",
+    question:"Qu'est-ce que la fertilité pour vous ?",
+    rameaux:[["Physique","D'où vient mon sol ? Comment est-il construit ? (roche mère, texture, structure, eau utile)"],["Chimique","Que retient-il ? (complexe argilo-humique, calcium, magnésium, potassium, pH)"],["Biologique","Qui y vit ? Comment le nourrir ? (microbes, faune, racines, mycorhizes, biodiversité)"],["Lire, au centre","Les outils pour lire chaque coin : test bêche, bocal, VESS, eau/alcool, analyse, acide, forme d'humus, vers de terre"]],
+    dire:["C'est un triangle : physique, chimique, biologique. Lire son sol est au centre.","Les êtres vivants sont le moteur principal de la formation du sol (Gobat).","Hérody : on ne change pas la génétique d'un sol, on la gère au mieux.","Le terrain d'abord, le labo confirme."],
+    exemple:["Brainstorm : « Qui fabrique le sol : la roche, le climat ou les êtres vivants ? » Puis révéler : les vivants.","Gobat : avec bactéries + protozoaires, la plante absorbe au moins 3 fois plus d'azote qu'avec les bactéries seules."],
+    sources:[["r","Gobat, Aragno, Matthey, Le sol vivant (2010) : ch. 1 à 4, 6, 17, 18"],["m","Guide MSV 2022 : diagnostic, fertilité, biodiversité"],["p","Kinsey, Hands-On Agronomy : équilibre des cations, CEC"],["p","Méthode Hérody (résumé, à recouper avec le document 2003)"],["s","Triangle de la fertilité : module agronomie de François"]],
+    alerte:"Débat des courants, dans « nourrir » : MSV nourrit la vie, Kinsey rééquilibre la chimie, Hérody comprend avant d'agir. Gobat sert d'arbitre universitaire.",
+    transition:"Un sol, même fertile, ne donne rien sans eau."
+  },
+  ciel:{
+    titre:"Ciel : l'eau et le climat", role:"Ce que le ciel apporte... ou refuse.",
+    question:"Que se passe-t-il si l'eau manque en juillet ?",
+    rameaux:[["Ressource","D'où vient mon eau ? (forage, réseau, pluie, bassin)"],["Besoins","Combien d'eau me faut-il ?"],["Irrigation","Comment la distribuer ? (goutte-à-goutte, aspersion)"],["Climat","Gel, sécheresse, chaleur, vent : que vais-je subir ?"],["Se protéger","Serres, voiles, haies : comment m'abriter ?"]],
+    dire:["Une culture a besoin d'environ 1 000 mm d'eau par an, soit 20 mm par semaine.","L'irrigation fait passer d'un revenu qui rembourse les charges à un revenu qui paie un salaire.","80 % du chiffre d'affaires se fait sur 20 % de la surface, surtout sous abri. Viser 10 à 20 % couvert.","Le ciel apporte l'eau, le sol la retient (eau utile).","Rappeler l'exercice « chemin de l'eau » du module 1."],
+    exemple:["Charles : réseau enterré, une sortie par serre et par carré. Les problèmes d'irrigation sont la 2e cause d'échec des cultures.","Kinsey : un sol bien nourri réduit les effets des aléas climatiques."],
+    alerte:"Volumes d'eau : le Guide MSV donne environ 3 500 m³/ha en plein champ + 1 300 m³ pour 1 000 m² de serre ; Charles donne 1 500 à 2 000 m³ pour 1 ha dont 10 % sous abri, en Bretagne. Le climat local change tout : et chez nous, dans la Vienne ?",
+    sources:[["m","Guide MSV 2022 : ordres de grandeur, irrigation, abris"],["c","Livret ch. 4 : stratégie de production"],["p","Kinsey, Hands-On Agronomy"],["r","Gobat, Le sol vivant : eau utile"]],
+    transition:"Avec un sol et de l'eau, l'arbre peut monter. Il lui faut un tronc."
+  },
+  tronc:{
+    titre:"Tronc : la gamme", role:"Ce qui relie les clients à la production.",
+    question:"Faut-il produire tous les légumes, toute l'année ?",
+    rameaux:[["Pour qui ?","Paniers, marché ou vente à la ferme : ma gamme change-t-elle ?"],["Quoi ?","Légumes phares, secondaires ou trésors ?"],["Profondeur","Combien de produits je tire d'un seul légume ?"],["Quand ?","Quel produit star à chaque saison ?"],["Combien ?","Diversité cultivée ou diversité consommée ?"]],
+    dire:["Chez Charles, la gamme est la moelle épinière : elle relie la vente et la production.","Environ 15 légumes font 70 à 80 % du chiffre d'affaires. Garder 2 à 4 légumes atypiques, bien accompagnés.","Une carotte = 8 produits (botte, lavée, couleur, apéro, jus...). La profondeur compte plus que le nombre.","Un produit star à chaque saison creuse (fraise au printemps, asperge, endive et mesclun en hiver) fait revenir les clients : on gagne sa vie sur 10 mois au lieu de 5 mois d'été.","Ne cultiver que ce que les clients achètent vraiment. Un légume vendu à moitié, c'est la moitié du travail perdue. Règle de Charles : chaque culture vendue à au moins 80 %."],
+    exemple:["Une ferme passe de 60 à 36 légumes : 120 % du chiffre d'affaires et 3 mois de travail économisés.","Le fenouil vendu avec du thym, le miel du voisin et une recette : ventes en hausse.","Ail frais et tomate : environ 30 € par m² chacun, mais l'ail demande beaucoup moins de travail.","Le couple qui part en camping-car du 1er juillet au 25 août."],
+    alerte:"Diversité : richesse ou piège ? Morel décrit des microfermes à 30-80 légumes, la diversité étant revendiquée (clients, autonomie, biodiversité, plaisir). Charles conseille de réduire la gamme pour la rendre efficace et lisible.",
+    sources:[["c","Livret ch. 1, 2 et 3 ; vidéo VIII-5 Développer une gamme cohérente (+ transcription)"],["r","Morel et Léger : légumes clés et complémentaires"],["m","Guide MSV : cultures clés du marché"]],
+    transition:"Du tronc partent les branches : les grands pôles de travail."
+  },
+  branches:{
+    titre:"Branches : les pôles de travail", role:"Là où passe le temps du maraîcher.",
+    question:"À votre avis, où passe le plus de temps sur une ferme ?",
+    rameaux:[["Vente","Où, combien de temps, quel objectif, comment se faire connaître"],["Production","Faire pousser les légumes"],["Récolte","Souvent 30 à 40 % du temps"],["Main-d'œuvre","Associés, salariés, organisation"]],
+    dire:["Récolte, logistique et vente = 50 à 60 % du temps. La production est minoritaire.","Beaucoup s'installent pour produire et passent leur temps en post-récolte.","Un euro investi en post-production est souvent plus rentable qu'en production."],
+    exemple:["Récolter à 30 €/h : 20 h pour un marché de 600 €. À 100 €/h : 6 h."],
+    sources:[["c","Livret ch. 1 : répartition du temps de travail, études de cas"],["e","Chambre d'agriculture de la Loire : production 36 %, récolte et préparation 35 %, vente 30 % du temps"]],
+    transition:"Regardons chaque branche, en commençant par la vente."
+  },
+  vente:{
+    titre:"Branche Vente", role:"Transformer les légumes en revenu.",
+    question:"Marché, vente à la ferme, paniers, magasins : lequel vous attire ? Pourquoi ?",
+    rameaux:[["Où vendre ?","Marché, ferme, paniers, magasins : lequel me va ?"],["Combien de temps ?","Quelle part de ma semaine je passe à vendre ?"],["Quel objectif ?","Combien dois-je vendre à chaque vente ?"],["Se faire connaître ?","Comment les clients me trouvent et me reconnaissent ?"]],
+    dire:["Le test des 3 questions de Charles : je m'y sens bien ? ma ferme le permet ? c'est rentable ? Aller voir un marché en février, pas seulement en juin.","Si je vends 10 % de mon temps, 1 heure de vente doit payer 10 heures de travail. Bon équilibre : 10 à 20 % du temps.","40 000 € par an / 50 semaines = 800 € à vendre par semaine. Mieux vaut 1 ou 2 bonnes ventes que 4 marchés à 100 €.","Sans image, le client ne compare que le prix.","Les chiffres de Charles et ceux des études se rejoignent : la vente seule = environ 16 % du temps. Avec préparation et transport : jusqu'à 30 %."],
+    exemple:["Un maraîcher en traction animale l'écrivait sur une petite feuille A4. Avec une bâche photo, sa clientèle a été multipliée par 2 ou 3.","Le maraîcher au journal : il l'a posé, a souri, ses ventes ont augmenté."],
+    alerte:"Un seul gros marché ou plusieurs petits ? Charles : trop de lieux de vente dilue les ventes. Navarrete et Morel : les circuits façonnent toute la ferme. « Choisir où vendre, c'est déjà choisir sa ferme. »",
+    sources:[["c","Livret ch. 1 et 2 : poids de la vente, schéma en 3 étapes, communication"],["m","Guide MSV : commercialisation, objectif de 800 € par semaine"],["r","Navarrete (INRA) : circuits et diversité des systèmes maraîchers bio"],["r","Morel et Léger 2016 : choix stratégiques de 14 microfermes"],["e","Guide circuits courts : vente 16 % en moyenne, commercialisation 14 à 30 %"],["e","Chambre d'agriculture BFC : préparation + vente = 25 % du temps"]],
+    transition:"Pour vendre, il faut produire. Passons à la production."
+  },
+  production:{
+    titre:"Branche Production", role:"Faire pousser les légumes.",
+    question:"Si vous aviez 30 000 € pour démarrer, dans quoi investiriez-vous en premier ?",
+    rameaux:[["Abris","Combien de serres ? Où ?"],["Design / standardiser","Comment organiser planches, serres, bâtiments et circulations pour travailler simplement ?"],["Semer, planter, désherber","Comment gagner du temps à chaque geste ?"],["Planifier","Comment gérer 200 séries par an ?"],["Mécaniser ?","Tracteur ou pas ?"]],
+    dire:["Sous abri : 20 à 30 €/m², dehors : 2 à 10 €/m². 2 à 2,5 cultures par an sous abri, contre 1 à 1,5 dehors.","L'ordre des investissements selon Charles : 1. abris, 2. irrigation, 3. désherbage, 4. motorisation, 5. confort. Chaque investissement doit financer le suivant.","Même longueur de planches et mêmes écartements : mêmes bâches, voiles, goutte-à-goutte.","Désherber tôt : 15 minutes à la bonne semaine, 30 minutes une semaine plus tard, 2 heures si on attend encore.","Morel et Léger : regrouper les cultures par famille, saison, besoin en eau ou en fertilité. Les 12 fermes étudiées le font."],
+    exemple:["Guide MSV, « si c'était à refaire » : 3 fermes disent qu'elles homogénéiseraient tout de suite leurs planches. D'autres : « moins de diversification au démarrage », « démarrer moins vite », « ne pas s'installer tout seul ».","Morel : un semoir manuel permet jusqu'à 12 rangs sur une planche de 80 cm, contre 3 en maraîchage motorisé.","Morel (modèle MERLIN) : dans les scénarios viables, 29 à 31 % de la surface est sous serre en systèmes manuel et biointensif, 19 % en système mécanisé. Plus que les 10-20 % souvent conseillés."],
+    alerte:"Tracteur : liberté ou piège ? Morel décrit des microfermes à haute intensité, à la main. Charles fait de la motorisation un levier de confort et de logistique (3 niveaux, penser à 4-5 ans).",
+    sources:[["c","Livret ch. 4 : stratégie de production ; vidéos IV-1 à IV-12 (+ transcriptions)"],["m","Guide MSV 2022 : installation, abris, revenu horaire par légume, « si c'était à refaire »"],["r","Thèse Morel 2016, article 3 (MERLIN) et article 4 (Morel et Léger 2015, planification)"],["r","Morel et Senil 2018 : design d'une microferme"]],
+    transition:"Une fois produits, les légumes doivent être récoltés."
+  },
+  recolte:{
+    titre:"Branche Récolte", role:"Souvent 30 à 40 % du temps de travail.",
+    question:"Combien d'heures pour récolter un marché de 1 000 € ?",
+    rameaux:[["Combien de temps ?","Quelle part de la semaine passe à récolter ?"],["Combien par heure ?","Combien je gagne en une heure de récolte ?"],["Quand ?","Pourquoi récolter la veille ou le jour de la vente ?"],["Avec quoi ?","Main, chariot ou machine ?"],["Quels légumes ?","Quels légumes coûtent le plus en récolte ?"]],
+    dire:["La récolte prend souvent 30 à 40 % du temps de travail.","Le calcul : € par heure de récolte = valeur de vente des légumes récoltés / heures passées à récolter.","Repère de Charles, observé sur les fermes efficaces : 60 à 100 € par heure de récolte. En dessous de 60-70 €, l'organisation est à revoir.","Guide MSV : viser au moins 50 €/h pour payer l'implantation, le suivi, la vente et l'administratif. Ce sont 2 repères différents : un minimum (MSV) et un niveau d'efficacité (Charles).","Pour progresser : préparer les chantiers, créer des zones de récolte, réduire les charges portées."],
+    exemple:["Marché de 1 000 € : à 50 €/h, 20 heures de récolte. À 100 €/h, 10 heures.","Haricots (Guide MSV) : 2 kg récoltés en 1 heure x 8 €/kg = 16 €/h seulement.","Agrobio Bretagne : de 20 à 120 bottes de radis par heure selon les maraîchers. Jusqu'à 6 fois plus rapide pour la même tâche.","Investissement en escalier (pommes de terre, Charles) : fourche 20 €, lame souleveuse 4-5 000 €, arracheuse à tapis 15 000 €, arracheuse par les fanes 25 000 €. À chaque marche, il faut plus de surface.","Thèse Morel : une microferme a retiré haricots et petits pois de ses paniers, car ses clients en avaient au jardin et leur récolte prend beaucoup de temps."],
+    sources:[["c","Livret ch. 1 et 5 ; vidéos I-5, V-4 et VIII-7 (+ transcriptions)"],["m","Guide MSV : ordres de grandeur, rentabilité des itinéraires, conservation"],["r","Thèse Morel 2016 : charge de travail par culture, cas d'une microferme"],["e","Agrobio Bretagne : temps de travail en maraîchage"],["e","Chambre d'agriculture de la Loire : récolte, tri et préparation = 35 % du temps"]],
+    transition:"Qui fait tout ce travail ? La main-d'œuvre."
+  },
+  mo:{
+    titre:"Branche Main-d'œuvre", role:"Associés, salariés, stagiaires, bénévoles.",
+    question:"Combien de temps passeriez-vous pour choisir un salarié ? Et pour acheter un outil à 2 500 € ?",
+    rameaux:[["Seul ou à plusieurs ?","Associé, salarié, stagiaire, bénévole ?"],["Pourquoi embaucher ?","Pour produire plus ou pour souffler ?"],["Bien recruter","Fiche de poste, puis entretien d'embauche"],["Organiser","Comment le salarié sait quoi faire sans me demander ?"],["Faire grandir","Comment garder un bon salarié ?"]],
+    dire:["Embaucher, c'est changer de métier : devenir manager. Déléguer, accepter que ce soit fait différemment.","Deux objectifs : économique (produire et vendre plus) et humain (vacances, charge mentale, pénibilité).","Fiche de poste d'abord : pourquoi embaucher, quelles tâches prioritaires. Ne pas déléguer seulement ce qu'on n'aime pas.","Procédures orales, visuelles, écrites. Un grand tableau visible de tous. Préparer les chantiers la veille.","Réunion d'équipe chaque semaine, entretien annuel, petits projets confiés.","Souvent, le problème vient du système, pas du salarié."],
+    exemple:["L'épandeur et le saisonnier : 3 jours pour acheter un épandeur à 2 500 €, et 5 minutes pour embaucher un saisonnier à 12 000 €.","Les fraises trop lentes : le problème venait du rang du milieu inaccessible. Écart normal entre salarié et patron : environ 10 %.","Les vannes : procédure trop compliquée. Solution : codes couleurs sur les vannes et petit livret.","Deux associés ont structuré leur ferme avec des procédures claires : ils partent maintenant en vacances ensemble, même l'été.","Thèse Morel : sur 14 microfermes, 3 seulement ont des salariés. Les stagiaires apportent jusqu'à 33 % du travail."],
+    alerte:"La main-d'œuvre gratuite est-elle vraiment gratuite ? Morel : stagiaires et bénévoles demandent de l'énergie pour former sans cesse, avec beaucoup de turnover. Charles : un salarié formé et autonome est un vrai poste à construire. Lien avec la formation : tableaux et procédures visuelles aident aussi les personnes dys et TDAH.",
+    sources:[["c","Livret ch. 7 : introduction et accompagnement de la main-d'œuvre"],["r","Thèse Morel 2016, articles 2 et 5 : main-d'œuvre, stagiaires, bénévoles"],["m","Guide MSV : « si c'était à refaire », ne pas s'installer seul"]],
+    transition:"Pour que les branches vivent, il faut que la sève circule."
+  },
+  seve:{
+    titre:"Sève : les flux et la logistique", role:"Faire circuler les produits, les moyens et les informations avec le moins de reprises inutiles possible.",
+    question:"Entre la récolte et le départ chez le client, combien de fois déplacez-vous, posez-vous et reprenez-vous une même caisse ?",
+    rameaux:[["Faire circuler","Comment le légume va-t-il du champ au client ?"],["Porter moins","Combien de fois prend-on, pose-t-on et reprend-on la même caisse ?"],["Préparer / stocker","Où laver, trier, conditionner et conserver sans revenir en arrière ?"],["Faire circuler l'information","Comment chacun sait-il quoi récolter, laver et préparer ?"],["Dimensionner / évoluer","Cette organisation fonctionnera-t-elle encore avec plus de volume ou plus de personnes ?"]],
+    dire:["La logistique est le trait d'union entre production et vente.","Marche en avant : le produit avance du sale vers le propre et vers l'expédition sans croisements ni retours inutiles.","20 tonnes portées 20 fois = 400 tonnes manipulées par an : poids × reprises × répétition.","Le produit circule ET l'information circule : les commandes et consignes ne doivent pas rester dans la tête d'une seule personne.","Une bonne logistique ne cherche pas seulement à faire plus vite. Elle cherche d'abord à supprimer ce qui n'a pas besoin d'être fait."],
+    exemple:["Diagramme spaghetti : tracer le trajet réel d'une salade du champ au véhicule, puis chercher un déplacement à supprimer.","Chariot, micro-palette, standardisation des caisses et rampe : des outils simples peuvent supprimer des ports et des reprises.","Une zone de préparation organisée en marche en avant : arrivée sale → lavage/parage → conditionnement → stockage propre → expédition."],
+    alerte:"Un trajet long n'est pas forcément mauvais : interroger surtout les retours en arrière, croisements, attentes et reprises inutiles.",
+    sources:[["c","Charles Souillot, livret ch. 5 et vidéos V-1 à V-5 : marche en avant, flux, charges portées, information"],["r","Ben Hartman, The Lean Farm / The Lean Micro Farm : supprimer les gaspillages et raccourcir les flux"],["s","Module 1 TEA : diagramme spaghetti et exercice des charges portées"]],
+    transition:"Quand les flux sont organisés, on peut regarder ce que l'ensemble de la ferme produit réellement : ses fruits."
+  },
+  fruits:{
+    titre:"Fruits : les résultats", role:"Ce que la ferme donne réellement au maraîcher.",
+    question:"À quoi reconnaît-on qu'une ferme fonctionne bien ?",
+    rameaux:[["Revenu","Est-ce que la ferme permet de vivre ?"],["Temps","Combien d'heures faut-il pour obtenir ce revenu ?"],["Santé","Peut-on travailler comme cela pendant 10, 20 ou 30 ans ?"],["Sens / qualité de vie","Cette ferme correspond-elle à la vie que je voulais ?"],["Solidité","Le système peut-il encaisser une mauvaise année ou un changement ?"]],
+    dire:["Chiffre d'affaires et revenu ne sont pas la même chose.","Le revenu seul ne suffit pas : il faut le mettre en face du temps nécessaire pour le produire.","La santé et la pénibilité font partie du résultat du système, pas seulement du confort.","La réussite d'une ferme ne peut pas être jugée uniquement par l'économie : viabilité et vivabilité doivent être regardées ensemble.","Question centrale : les fruits que produit ma ferme correspondent-ils aux racines de mon projet ?"],
+    exemple:["Deux fermes peuvent avoir des chiffres d'affaires différents et pourtant répondre différemment aux objectifs de revenu, temps, santé et qualité de vie de leurs maraîchers."],
+    alerte:"Ne pas chercher un modèle unique de ferme réussie : le résultat doit être comparé au projet personnel et professionnel.",
+    sources:[["r","Kevin Morel, thèse 2016 : viabilité sociale et économique des microfermes"],["r","Antoinette Dumont 2017 : revenu, sécurité, temps de travail, pénibilité, santé, marge de manœuvre"],["m","Guide MSV 2022 : alignement projet personnel/professionnel, CA, marge, temps et revenu horaire"],["c","Charles Souillot, livret ch. 1 : projet, revenu, temps et évolution de la ferme"]],
+    transition:"Les fruits dépendent aussi de ce qui se passe autour de l'arbre."
+  },
+  animaux:{
+    titre:"Environnement : le contexte", role:"Ce qui agit sur la ferme sans être totalement maîtrisable.",
+    question:"Deux fermes identiques dans deux territoires différents auront-elles les mêmes résultats ?",
+    rameaux:[["Marché","Y a-t-il suffisamment de clients pour ce que je veux vendre ?"],["Territoire","Qu'est-ce que ma localisation permet ou contraint ?"],["Climat / ressources","À quels aléas et ressources suis-je exposé ?"],["Écosystème humain","Avec qui puis-je travailler plutôt que rester seul ?"],["Cadre extérieur","Quelles règles et évolutions peuvent modifier mon système ?"]],
+    dire:["Vente = ce que je décide de faire. Marché = ce qui existe autour de moi.","Une ferme n'est pas seulement une surface cultivée : elle appartient à un territoire.","Je ne maîtrise pas tout, mais je peux observer, anticiper, choisir et m'adapter.","Réseaux, voisins, autres producteurs, fournisseurs, collectivités et partenaires peuvent devenir des ressources.","Question utile : qu'est-ce que je maîtrise, qu'est-ce que je peux influencer et à quoi dois-je m'adapter ?"],
+    exemple:["Le Guide MSV recommande d'étudier avant l'installation la localisation, le foncier, le climat, l'eau, le bâti, les débouchés et les synergies locales.","Un même mode de vente n'a pas le même potentiel selon la densité de population, l'accessibilité et l'offre déjà présente."],
+    alerte:"Le contexte n'est ni à ignorer ni une excuse à tous les problèmes : distinguer ce qui est maîtrisable, influençable et subi.",
+    sources:[["m","Guide MSV 2022 : choix du terrain, débouchés, territoire et acteurs locaux"],["r","Kevin Morel, thèse 2016 : diversité des systèmes et trajectoires de microfermes"],["c","Charles Souillot, livret ch. 1 : réflexion en contexte"]],
+    transition:"Face à un système complexe et à un environnement qui change, quelqu'un doit observer et décider : le jardinier."
+  },
+  jardinier:{
+    titre:"Jardinier : le pilotage", role:"Observer l'ensemble du système, choisir la priorité et vérifier l'effet des décisions.",
+    question:"Maintenant que l'arbre est complet : comment le maraîcher sait-il où intervenir ?",
+    rameaux:[["Observer","Que se passe-t-il réellement ?"],["Mesurer","Comment puis-je l'objectiver ?"],["Comparer","Où voulais-je aller et où suis-je ?"],["Prioriser","Qu'est-ce qui limite aujourd'hui le système ?"],["Agir puis vérifier","Mon changement améliore-t-il réellement la ferme ?"]],
+    dire:["Ne pas commencer par la solution : commencer par comprendre le problème.","Un chiffre n'est intéressant que s'il aide à prendre une décision.","Il n'existe pas de bon chiffre sans objectif auquel le comparer.","Le facteur limitant se déplace avec l'évolution de la ferme : vente, production, logistique, main-d'œuvre...","Piloter une ferme, ce n'est pas tout améliorer. C'est savoir quoi améliorer maintenant.","Boucle : observer → mesurer → comparer → prioriser → agir → vérifier → observer de nouveau."],
+    exemple:["12 déplacements observés → une modification d'organisation en supprime 3 → on mesure de nouveau.","Produire davantage n'est pas la priorité si le facteur limitant est déjà la vente."],
+    alerte:"Éviter l'indicateur pour l'indicateur et l'investissement par envie : mesurer seulement ce qui aide à choisir et intervenir sur le facteur limitant.",
+    sources:[["r","Approche globale de l'exploitation (Bonneviale, Marshall) : projet, opérations, décision et information"],["c","Charles Souillot, livrets ch. 1 et 6 : facteurs limitants et pilotage"],["m","Guide MSV 2022 : planification, bilan, objectifs, CA, marge, temps et revenu horaire"],["r","Ben Hartman, Lean Farm : observer les flux, supprimer les gaspillages et améliorer par itérations"]],
+    transition:"Fin du parcours : racines → système → fruits → observation → décision. Demander : quelle partie de votre arbre serait aujourd'hui la plus fragile ?"
+  }
+};
+
+/* ---------- État ---------- */
+const CLE = "arbre-tea-etat";
+let etat = {etats:Object.fromEntries(ORDRE.map(k=>[k,0])), actif:null};
+const canal = ("BroadcastChannel" in window) ? new BroadcastChannel("arbre-tea") : null;
+
+function charger(){ try{ const v = localStorage.getItem(CLE); if(v){ const e = JSON.parse(v); if(e && e.etats) etat = e; } }catch(_){ } }
+function diffuser(){
+  try{ localStorage.setItem(CLE, JSON.stringify(etat)); }catch(_){ }
+  try{ canal && canal.postMessage(etat); }catch(_){ }
+}
+function recevoir(e){ if(e && e.etats){ etat = e; afficher(); } }
+if(canal) canal.onmessage = ev => recevoir(ev.data);
+window.addEventListener("storage", ev => { if(ev.key===CLE && ev.newValue){ try{ recevoir(JSON.parse(ev.newValue)); }catch(_){ } } });
+
+function changer(fn){ fn(); afficher(); diffuser(); }
+
+function suivant(){ changer(()=>{
+  for(const k of ORDRE){ if(etat.etats[k]<2){ etat.etats[k]++; etat.actif=k; return; } }
+});}
+function precedent(){ changer(()=>{
+  for(let i=ORDRE.length-1;i>=0;i--){ const k=ORDRE[i];
+    if(etat.etats[k]>0){ etat.etats[k]--;
+      if(etat.etats[k]>0){ etat.actif=k; }
+      else { const avant = ORDRE.slice(0,i).reverse().find(x=>etat.etats[x]>0); etat.actif = avant||null; }
+      return; } }
+});}
+function cliquer(k){ changer(()=>{ if(etat.etats[k]<2 && (etat.actif===k || etat.etats[k]===0)) etat.etats[k]++; etat.actif=k; }); }
+function toutReveler(){ changer(()=>{ ORDRE.forEach(k=>etat.etats[k]=2); etat.actif=null; }); }
+function recommencer(){ changer(()=>{ ORDRE.forEach(k=>etat.etats[k]=0); etat.actif=null; }); }
+
+/* ---------- Affichage ---------- */
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ETIQ = {c:"Charles",m:"Guide MSV",r:"Recherche",p:"Praticien",e:"Étude",s:"Synthèse"};
+
+function etapeTexte(){
+  const fait = ORDRE.reduce((n,k)=>n+etat.etats[k],0);
+  return "Étape " + fait + " sur " + (ORDRE.length*2);
+}
+
+function afficherPanneau(){
+  const k = etat.actif, el = document.getElementById("panneau");
+  if(!k){
+    const tout = ORDRE.every(x=>etat.etats[x]===2);
+    if(tout){ el.innerHTML = `<h1>L'arbre entier</h1><p class="role">Toutes les parties sont reliées.</p><p class="question">Quelle partie est la plus fragile dans votre projet ?</p>`; }
+    else { el.innerHTML = `<h1>${esc(P.intro.titre)}</h1><p class="role">${esc(P.intro.role)}</p><p class="question">${esc(P.intro.question)}</p>`; }
+    return;
+  }
+  const d = P[k], n = etat.etats[k];
+  let h = `<h1>${esc(d.titre)}</h1><p class="role">${esc(d.role)}</p>`;
+  if(n===1){ h += `<p class="question">${esc(d.question)}</p>`; }
+  else { h += `<ul>` + d.rameaux.map(r=>`<li><div><strong>${esc(r[0])}</strong><span class="q">${esc(r[1])}</span></div></li>`).join("") + `</ul>`; }
+  el.innerHTML = h;
+}
+
+function notesHTML(k){
+  const d = k ? P[k] : P.intro, n = k ? etat.etats[k] : 0;
+  const li = a => a.map(x=>`<li>${esc(x)}</li>`).join("");
+  let h = `<div class="bloc dire"><h2>À dire</h2><ul>${li(d.dire)}</ul></div>`;
+  h += `<div class="bloc"><h2>Question pour le brainstorm</h2><p>${esc(d.question)}</p>${k && n===1 ? "<p><em>Laisser chercher avant de dérouler les rameaux.</em></p>" : ""}</div>`;
+  if(d.exemple && d.exemple.length) h += `<div class="bloc"><h2>Exemple à raconter</h2><ul>${li(d.exemple)}</ul></div>`;
+  if(d.alerte) h += `<div class="bloc"><h2>À débattre</h2><p>${esc(d.alerte)}</p></div>`;
+  if(k) h += `<div class="bloc"><h2>Les rameaux</h2><ul>${li(d.rameaux.map(r=>r[0]+" : "+r[1]))}</ul></div>`;
+  h += `<div class="bloc"><h2>Sources</h2><ul>${d.sources.map(s=>`<li><span class="src ${s[0]}">${ETIQ[s[0]]}</span>${esc(s[1])}</li>`).join("")}</ul></div>`;
+  h += `<div class="bloc"><h2>Transition</h2><p>${esc(d.transition)}</p></div>`;
+  return h;
+}
+
+function afficher(){
+  ORDRE.forEach(k=>{
+    const g = document.querySelector(`.part[data-part="${k}"]`);
+    g.classList.toggle("cache", etat.etats[k]===0);
+    g.classList.toggle("actif", etat.actif===k);
+  });
+  afficherPanneau();
+  document.getElementById("etape").textContent = etapeTexte();
+  document.getElementById("tiroir").innerHTML = notesHTML(etat.actif);
+
+  const k = etat.actif;
+  document.getElementById("f-titre").textContent = k ? P[k].titre : P.intro.titre;
+  const n = k ? etat.etats[k] : 0;
+  document.getElementById("f-etat").textContent = etapeTexte() + (k ? (n===1 ? " · à l'écran : la question" : " · à l'écran : les rameaux") : "");
+  document.getElementById("f-notes").innerHTML = notesHTML(k);
+  const prochain = ORDRE.find(x=>etat.etats[x]<2);
+  document.getElementById("f-suite").textContent = prochain ? ("Prochaine étape : " + (etat.etats[prochain]===0 ? "révéler " : "dérouler ") + P[prochain].titre) : "Tout est révélé.";
+  document.getElementById("f-plan").innerHTML = ORDRE.map(x=>`<button data-aller="${x}" class="${etat.etats[x]===2?'vu':''} ${etat.actif===x?'ici':''}">${esc(P[x].titre.split(" :")[0])}</button>`).join("");
+}
+
+/* ---------- Commandes ---------- */
+document.querySelectorAll(".part").forEach(g=>{
+  g.addEventListener("click", ()=>cliquer(g.dataset.part));
+  g.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); cliquer(g.dataset.part); } });
+});
+document.getElementById("b-suiv").onclick = suivant;
+document.getElementById("b-prec").onclick = precedent;
+document.getElementById("f-suiv").onclick = suivant;
+document.getElementById("f-prec").onclick = precedent;
+document.getElementById("b-tout").onclick = toutReveler;
+document.getElementById("b-zero").onclick = recommencer;
+document.getElementById("b-notes").onclick = ()=>document.getElementById("tiroir").classList.toggle("ouvert");
+document.getElementById("b-ouvrir").onclick = ()=>{
+  const w = window.open(location.pathname + location.search + (location.search ? "&" : "?") + "vue=formateur", "arbre-formateur");
+  if(!w){ document.getElementById("tiroir").classList.add("ouvert"); }
+};
+document.getElementById("f-plan").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-aller]"); if(!b) return;
+  changer(()=>{ const k=b.dataset.aller; if(etat.etats[k]===0) etat.etats[k]=1; etat.actif=k; });
+});
+document.addEventListener("keydown", e=>{
+  if(e.target.closest && e.target.closest(".part")) return;
+  if(e.key==="ArrowRight" || e.key===" " || e.key==="PageDown"){ e.preventDefault(); suivant(); }
+  else if(e.key==="ArrowLeft" || e.key==="PageUp"){ e.preventDefault(); precedent(); }
+  else if(e.key==="n" || e.key==="N"){ document.getElementById("tiroir").classList.toggle("ouvert"); }
+});
+
+if(new URLSearchParams(location.search).get("vue")==="formateur") document.body.classList.add("vue-formateur");
+charger();
+afficher();
+</script>
+</body>
+</html>
