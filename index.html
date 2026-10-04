@@ -126,6 +126,14 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 
 .portageHelp{border:2px dashed #c43d20;border-radius:10px;padding:9px 10px;background:#fff8f5}
 
+
+.carryList{margin:10px 0;padding:10px;border:1px solid #d8ddd9;border-radius:10px;background:#fff}
+.carryRow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #ecefed}
+.carryRow:last-of-type{border-bottom:0}
+.carryRow label{display:flex;align-items:center;gap:5px;font-weight:800}
+.carryCount{width:64px!important;min-width:64px!important;padding:7px!important;text-align:center}
+@media(max-width:600px){.carryRow{grid-template-columns:1fr auto}.carryRow>b{grid-column:1/-1;text-align:right}}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -989,15 +997,37 @@ function ex4NearestOnTrace(i,latlng){
 }
 function ex4Ranges(i){
  const s=(CM.ex4States||[])[i]||{};
- return (Array.isArray(s.carryRanges)?s.carryRanges:[]).map(r=>[Math.min(+r[0]||0,+r[1]||0),Math.max(+r[0]||0,+r[1]||0)])
+ return (Array.isArray(s.carryRanges)?s.carryRanges:[]).map(r=>{
+  if(Array.isArray(r))return {a:Math.min(+r[0]||0,+r[1]||0),b:Math.max(+r[0]||0,+r[1]||0),count:1};
+  const a=+r.a||0,b=+r.b||0,count=Math.max(1,Math.round(+r.count||1));
+  return {a:Math.min(a,b),b:Math.max(a,b),count}
+ })
 }
-function ex4SelectedDistance(i){return ex4Ranges(i).reduce((sum,r)=>sum+Math.max(0,r[1]-r[0]),0)}
+function ex4SelectedDistance(i){return ex4Ranges(i).reduce((sum,r)=>sum+Math.max(0,r.b-r.a)*r.count,0)}
 function ex4AddRange(i,a,b){
  if(!CM.ex4States[i])CM.ex4States[i]=ex4BlankState();
  const lo=Math.min(a,b),hi=Math.max(a,b);
  if(hi-lo<1)return;
- CM.ex4States[i].carryRanges=[...(CM.ex4States[i].carryRanges||[]),[lo,hi]];
+ CM.ex4States[i].carryRanges=[...(CM.ex4States[i].carryRanges||[]),{a:lo,b:hi,count:1}];
  ex4Save()
+}
+function ex4SetRangeCount(i,idx,val){
+ if(!CM.ex4States[i])return;
+ const ranges=ex4Ranges(i);if(!ranges[idx])return;
+ ranges[idx].count=Math.max(1,Math.min(999,Math.round(+val||1)));
+ CM.ex4States[i].carryRanges=ranges;
+ ex4Save();ex4Refresh()
+}
+function ex4RangesHtml(i){
+ const ranges=ex4Ranges(i);if(!ranges.length)return "";
+ return '<div class="carryList"><b>Portions de portage</b>'+
+  ranges.map((r,idx)=>{
+   const d=Math.max(0,r.b-r.a),tot=d*r.count;
+   return '<div class="carryRow"><span><b>Portion '+(idx+1)+'</b><br><small>'+Math.round(d)+' m par passage</small></span>'+
+    '<label>× <input class="carryCount" data-carry-count="'+idx+'" type="number" min="1" max="999" step="1" value="'+r.count+'" aria-label="Nombre de passages avec charge"></label>'+
+    '<b>'+Math.round(tot)+' m</b></div>'
+  }).join("")+
+  '<div class="muted">× = nombre de passages réellement effectués avec une charge sur cette portion.</div></div>'
 }
 function ex4UndoRange(i){
  if(!CM.ex4States[i])return;
@@ -1044,7 +1074,7 @@ function drawEx4Portage(){
  L.polyline(r.pts,{color:"#66736d",weight:7,opacity:.82,lineCap:"round",lineJoin:"round",interactive:false}).addTo(CM.g.items);
  const ranges=ex4Ranges(i);
  ex4Pieces(i).forEach(p=>{
-  if(ranges.some(rr=>p.mid>=rr[0]&&p.mid<=rr[1])){
+  if(ranges.some(rr=>p.mid>=rr.a&&p.mid<=rr.b)){
    L.polyline([p.a,p.b],{color:"#c43d20",weight:10,opacity:1,lineCap:"round",interactive:false}).addTo(CM.g.items)
   }
  });
@@ -1071,13 +1101,13 @@ function ex4MetricBox(i){
  return '<div class="kpis">'+
   '<div class="kpi"><b>'+Math.round(x.manipCount)+'</b><small>manipulations / récolte</small></div>'+
   '<div class="kpi"><b>'+Math.round(x.kgPerHarvest)+' kg</b><small>manipulés / récolte</small></div>'+
-  '<div class="kpi"><b>'+Math.round(x.carryPerHarvest)+' m</b><small>portage sélectionné</small></div>'+
+  '<div class="kpi"><b>'+Math.round(x.carryPerHarvest)+' m</b><small>portage cumulé / récolte</small></div>'+
   '<div class="kpi"><b>'+Math.round(x.annualKg/100)/10+' t</b><small>manipulées / an</small></div>'+
  '</div>'+
  (x.harvests?'<div class="msg"><b>Projection annuelle</b><br>'+Math.round(x.harvests)+' récoltes estimées · '+Math.round(x.annualCarry/100)/10+' km de portage cumulé.</div>':'')
 }
 function ex4Comparison(){
- return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m de portage · '+Math.round(x.annualKg/100)/10+' t manipulées/an</div>'}).join("")+'</div>'
+ return '<div class="compareCards">'+[0,1,2,3].map(i=>{const x=ex4Metrics(i);return '<div class="msg"><b>'+EX4_STATES[i].title+'</b><br>'+Math.round(x.kgPerHarvest)+' kg manipulés/récolte · '+Math.round(x.carryPerHarvest)+' m de portage cumulé · '+Math.round(x.annualKg/100)/10+' t manipulées/an</div>'}).join("")+'</div>'
 }
 
 function ex4DemoRouteDistance(k){
@@ -1149,10 +1179,11 @@ function panelEx4Demo(dirty){
   '<div class="row"><button class="btn'+(CM.ex4DemoAction==="draw"?' on':'')+'" id="demo4Draw">✏️ '+(trace?'Retracer':'Tracer')+' ce trajet</button>'+
   '<button class="btn'+(CM.ex4DemoAction==="select"?' on':'')+'" id="demo4Carry" '+(!trace?'disabled':'')+'>📦 Montrer le portage</button>'+
   '<button class="btn" id="demo4Move">✋ Déplacer</button></div>'+
-  (trace?'<div class="kpis"><div class="kpi"><b>'+Math.round(routeDist)+' m</b><small>trajet total</small></div><div class="kpi"><b>'+Math.round(portDist)+' m</b><small>portage sélectionné</small></div><div class="kpi"><b>'+ranges.length+'</b><small>portion(s) portée(s)</small></div></div>':
+  (trace?'<div class="kpis"><div class="kpi"><b>'+Math.round(routeDist)+' m</b><small>trajet total</small></div><div class="kpi"><b>'+Math.round(portDist)+' m</b><small>portage cumulé</small></div><div class="kpi"><b>'+ranges.length+'</b><small>portion(s) portée(s)</small></div></div>'+
+   (ranges.length?ex4RangesHtml(i):''):
    '<div class="msg err"><b>Commence par tracer ce trajet devant le groupe.</b><br>Tu pourras ensuite montrer uniquement les portions où les caisses étaient portées.</div>')+
   (CM.ex4DemoAction==="select"&&trace?'<div id="ex4MapMsg" class="msg '+(CM.ex4PickStart!==null?'ok':'')+'">'+
-    (CM.ex4PickStart!==null?'<b>Début du portage choisi ✅</b><br>Clique sur la fin de cette portion.':'<b>1er clic = début · 2e clic = fin</b><br>La portion devient rouge automatiquement.')+'</div>':'')+
+    (CM.ex4PickStart!==null?'<b>Début du portage choisi ✅</b><br>Clique sur la fin de cette portion.':'<b>1er clic = début · 2e clic = fin</b><br>La portion devient rouge. Indique ensuite combien de passages avec charge ont réellement eu lieu.')+'</div>':'')+
   '<div class="calcbox"><h4>Données de la démonstration</h4>'+
    (i===0?'<label class="f">Nombre de caisses<input id="d4Crates" type="number" min="0" step="1" value="'+esc(CM.ex4Base.crates)+'" placeholder="Valeur ou estimation"></label>'+
    '<label class="f">Poids moyen d’une caisse (kg)<input id="d4Weight" type="number" min="0" step="0.1" value="'+esc(CM.ex4Base.weight)+'" placeholder="Valeur ou estimation"></label>'+
@@ -1175,6 +1206,7 @@ function panelEx4Demo(dirty){
  $("demo4Move").onclick=()=>{CM.ex4DemoAction="move";CM.ex4PickStart=null;cmSetMode("move");panelEx4Demo(true)};
  if($("d4Undo"))$("d4Undo").onclick=()=>ex4UndoRange(i);
  if($("d4Clear"))$("d4Clear").onclick=()=>ex4ClearRanges(i);
+ p.querySelectorAll("[data-carry-count]").forEach(inp=>inp.onchange=()=>ex4SetRangeCount(i,+inp.dataset.carryCount,inp.value));
 
  ["d4Crates","d4Weight","d4Weeks","d4PerWeek"].forEach(id=>{if($(id))$(id).onchange=()=>{
   CM.ex4Base={crates:$("d4Crates").value,weight:$("d4Weight").value,weeks:$("d4Weeks").value,perWeek:$("d4PerWeek").value};CM.ex4DemoDirty=true;panelEx4Demo(true)
@@ -1210,7 +1242,7 @@ function panelEleveEx4(){
  if(i<4){
   const trace=ex4SourceTrace(i),dist=ex4SelectedDistance(i),ranges=ex4Ranges(i);
   body+=(trace?
-   '<div class="msg ok"><b>Trajet repris automatiquement : '+ex4TraceLabel(i)+'</b><br><b>1er clic sur le trajet = début du portage.<br>2e clic = fin du portage.</b><br>La portion devient rouge et les mètres sont calculés automatiquement. Répète l’opération s’il y a plusieurs périodes de portage.</div>':
+   '<div class="msg ok"><b>Trajet repris automatiquement : '+ex4TraceLabel(i)+'</b><br><b>1er clic sur le trajet = début du portage.<br>2e clic = fin du portage.</b><br>La portion devient rouge. Indique ensuite combien de fois cette portion est parcourue avec une charge : les mètres de portage se cumulent automatiquement.</div>':
    '<div class="msg err"><b>Trajet introuvable.</b><br>Il faut d’abord tracer le '+ex4TraceLabel(i)+' dans l’exercice 3.</div>');
   if(i===0)body+='<div class="calcbox"><h4>Base commune pour les 4 états</h4>'+
    '<label class="f">Combien de caisses pour cette récolte ?<input id="ex4Crates" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4Base.crates)+'" placeholder="Votre estimation"></label>'+
@@ -1219,8 +1251,9 @@ function panelEleveEx4(){
    '<label class="f">Combien de récoltes par semaine ?<input id="ex4PerWeek" type="number" min="0" step="0.1" inputmode="decimal" value="'+esc(CM.ex4Base.perWeek)+'" placeholder="Votre estimation"></label></div>';
   body+='<div class="calcbox"><h4>'+st.question+'</h4>'+
    '<div id="ex4MapMsg" class="msg '+(CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined?'ok':'')+'">'+
-    (CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined?'<b>Début choisi ✅</b><br>Clique maintenant sur la fin de cette portion de portage.':'<b>'+Math.round(dist)+' m de portage sélectionnés</b><br>'+ranges.length+' portion(s) enregistrée(s).')+
+    (CM.ex4PickStart!==null&&CM.ex4PickStart!==undefined?'<b>Début choisi ✅</b><br>Clique maintenant sur la fin de cette portion de portage.':'<b>'+Math.round(dist)+' m de portage cumulé</b><br>'+ranges.length+' portion(s) enregistrée(s). Indique combien de fois chacune est parcourue avec une charge.')+
    '</div>'+
+   (ranges.length?ex4RangesHtml(i):'')+
    '<div class="row"><button class="btn small" id="ex4UndoCarry" '+(!ranges.length?'disabled':'')+'>↩ Retirer la dernière portion</button><button class="btn small" id="ex4ClearCarry" '+(!ranges.length&&CM.ex4PickStart===null?'disabled':'')+'>🧹 Tout effacer</button></div>'+
    '<label class="f">Combien de fois chaque caisse est-elle soulevée / reposée ?<input id="ex4Manips" type="number" min="0" step="1" inputmode="decimal" value="'+esc(CM.ex4States[i].manips)+'" placeholder="Votre estimation"></label>'+
    '<label class="f">'+(i<3?'Quelle amélioration proposeriez-vous maintenant ?':'Qu’est-ce qui a été principalement amélioré ?')+'<textarea id="ex4Proposal" rows="3" placeholder="Votre réflexion…">'+esc(CM.ex4States[i].proposal)+'</textarea></label>'+
@@ -1243,6 +1276,7 @@ function panelEleveEx4(){
  if($("ex4Proposal"))$("ex4Proposal").oninput=()=>{CM.ex4States[i].proposal=$("ex4Proposal").value;ex4Save()};
  if($("ex4UndoCarry"))$("ex4UndoCarry").onclick=()=>ex4UndoRange(i);
  if($("ex4ClearCarry"))$("ex4ClearCarry").onclick=()=>ex4ClearRanges(i);
+ p.querySelectorAll("[data-carry-count]").forEach(inp=>inp.onchange=()=>ex4SetRangeCount(i,+inp.dataset.carryCount,inp.value));
  $("ex4Prev").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step--;cmRender();panelEleveEx4()};
  $("ex4Next").onclick=()=>{CM.ex4PickStart=null;CM.ex4Step++;cmRender();panelEleveEx4()};
  $("ex4Send").onclick=sendEx4;
