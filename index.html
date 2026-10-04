@@ -378,8 +378,8 @@ async function sendStudentMagicLink(farmId=null,fromDirect=false){
  msg(msgId,error?("Impossible d'envoyer le lien : "+error.message):"✅ Lien envoyé. Ouvre ton e-mail et clique dessus. Ensuite, tu resteras connecté sur cet appareil tant que tu ne te déconnectes pas.",error?"err":"ok")
 }
 async function studentDash(){
- const{data}=await sb.auth.getSession();
- const u=STUDENT_USER||(data&&data.session&&data.session.user)||await getCurrentUser();if(!u){return accueil()}
+ const{data:sessionData}=await sb.auth.getSession();
+ const u=STUDENT_USER||(sessionData&&sessionData.session&&sessionData.session.user)||await getCurrentUser();if(!u){return accueil()}
  STUDENT_USER=u;show("vEleveDash");
  const prenom=(u.user_metadata&&u.user_metadata.prenom)||studentName()||"";
  $("who").textContent="👤 "+(prenom||u.email);
