@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lire une ferme vue du ciel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7f4;--paper:#fff;--ink:#14201a;--muted:#55635b;--line:#d3dbd5;--shade:#14201a;--accent:#2e7d4f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1411;--paper:#18211c;--ink:#eef3ef;--muted:#a9b7ae;--line:#33423a;--shade:#000;--accent:#56b57c}}
+:root[data-theme="dark"]{--bg:#0e1411;--paper:#18211c;--ink:#eef3ef;--muted:#a9b7ae;--line:#33423a;--shade:#000;--accent:#56b57c}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;height:100%;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font-family:Lexend,"Segoe UI",Arial,sans-serif;font-size:17px;line-height:1.4}
+button,input,select{font:inherit}
+[hidden]{display:none!important}
+header{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 16px;border-bottom:2px solid var(--line);background:var(--paper)}
+header h1{margin:0;font-size:20px;font-weight:700;flex:1;min-width:200px}
+.who{color:var(--muted);font-size:15px}
+.btn{border:2px solid var(--shade);background:var(--paper);color:var(--ink);border-radius:12px;padding:11px 18px;font-size:17px;cursor:pointer;box-shadow:3px 3px 0 var(--shade)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shade)}
+.btn.main{background:var(--accent);color:#fff}
+.btn.on{background:var(--ink);color:var(--paper)}
+.btn.small{padding:7px 12px;font-size:15px;box-shadow:2px 2px 0 var(--shade)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn:focus-visible,.card:focus-visible{outline:3px solid #1f6fd1;outline-offset:2px}
+.view{flex:1;min-height:0;display:none}
+.view.show{display:flex}
+.center{flex-direction:column;align-items:center;overflow:auto;padding:24px 16px}
+.box{width:100%;max-width:720px;display:flex;flex-direction:column;gap:16px}
+.box h2{margin:0;font-size:24px}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:600}
+label.f input,label.f select{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.card{border:2px solid var(--shade);border-radius:14px;background:var(--paper);overflow:hidden;cursor:pointer;box-shadow:4px 4px 0 var(--shade);text-align:left;padding:0;color:var(--ink)}
+.card img,.card svg{display:block;width:100%;height:150px;object-fit:cover;background:#ccd}
+.card .t{padding:10px 12px;font-weight:600}
+.card .s{padding:0 12px 10px;color:var(--muted);font-size:14px}
+.work{flex-direction:row}
+#stage{flex:1;position:relative;min-width:0;background:#cfd8d2}
+svg.map{width:100%;height:100%;display:block;touch-action:none;user-select:none;cursor:crosshair}
+svg.map.pan{cursor:grab}
+.tools{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.tools .btn{pointer-events:auto;font-size:15px;padding:7px 11px}
+.tip{position:absolute;left:10px;top:10px;right:10px;pointer-events:none;display:flex}
+.tip span{background:var(--paper);border:2px solid var(--shade);border-radius:10px;padding:6px 12px;font-size:15px;max-width:100%}
+aside{width:320px;flex:none;border-left:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;min-height:0}
+aside .in{padding:14px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:12px}
+aside h3{margin:0;font-size:18px}
+ul.items{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+ul.items li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+ul.items li .n{flex:1;min-width:0;overflow-wrap:anywhere}
+ul.items li button{border:0;background:none;cursor:pointer;font-size:18px;color:var(--ink)}
+.dot{width:14px;height:14px;border-radius:4px;flex:none;border:1.5px solid var(--shade)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.muted{color:var(--muted);font-size:15px}
+.msg{padding:10px 12px;border-radius:10px;border:2px solid var(--shade);background:#fff6cc;color:#14201a}
+.msg.ok{background:#d9f5e1}.msg.err{background:#ffd9d4}
+dialog{border:2px solid var(--shade);border-radius:14px;padding:18px;background:var(--paper);color:var(--ink);box-shadow:5px 5px 0 var(--shade);max-width:92vw;width:420px}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.legend{display:flex;flex-direction:column;gap:6px}
+.legend div{display:flex;gap:8px;align-items:center;font-size:15px}
+.row input{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);flex:1;min-width:200px}
+#stageC{flex:1;position:relative;min-width:0;background:#cfd8d2}
+#cm{position:absolute;inset:0}
+#stageC .tools .btn{font-size:18px;padding:12px 18px;min-height:48px}
+#stageC .tip span{font-size:17px;padding:9px 14px}
+#tour{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.tourbox{background:var(--paper);color:var(--ink);border:3px solid var(--shade);border-radius:18px;box-shadow:6px 6px 0 var(--shade);max-width:580px;width:100%;padding:24px;display:flex;flex-direction:column;gap:14px}
+.tourbox .big{font-size:60px;line-height:1}.tourbox h3{font-size:27px;margin:0}.tourbox p{font-size:19px;margin:0;line-height:1.5}.tourbox .step{color:var(--muted);font-size:15px}
+.undo{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#cm.draw{cursor:crosshair}
+#cm.draw.leaflet-container{touch-action:none!important}
+#sheetC{position:absolute;left:10px;right:10px;bottom:10px;z-index:1100;background:var(--paper);border:2px solid var(--shade);border-radius:14px;box-shadow:4px 4px 0 var(--shade);padding:12px 14px;display:flex;flex-direction:column;gap:10px;max-height:70%;overflow:auto}
+#sheetC h4{margin:0;font-size:18px}
+.types{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.types button{font:inherit;text-align:left;border:2px solid var(--shade);border-radius:12px;background:var(--paper);color:var(--ink);padding:8px 10px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.types button small{color:var(--muted);font-size:13px}
+.types button.on{background:var(--c);color:#fff}.types button.on small{color:#fff;opacity:.9}
+#sheetC input{padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit}
+#stageC .tools,#stageC .tip{z-index:1000}
+.lbl{background:none;border:0}
+.lbl span{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:#fff;border:2px solid var(--c);border-radius:999px;padding:3px 10px;font:600 14px Lexend,Arial,sans-serif;color:#14201a;pointer-events:none;box-shadow:2px 2px 0 #14201a}
+#mbWrap{position:relative}
+#frame{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:900}
+#mb{height:min(60vh,460px);border:2px solid var(--shade);border-radius:12px;overflow:hidden;background:#cfd8d2}
+.sep2{border:0;border-top:2px dashed var(--line);margin:8px 0}
+@media (max-width:820px){.work{flex-direction:column}aside{width:auto;border-left:0;border-top:2px solid var(--line);max-height:38%}}
+</style></head><body>
+<header>
+<h1>🛰️ Lire une ferme vue du ciel</h1>
+<span class="who" id="who"></span>
+<button class="btn small" id="btnHelp" hidden>❓ Aide</button><button class="btn small" id="btnHome" hidden>🏠 Accueil</button>
+</header>
+
+<!-- ÉLÈVE : accueil -->
+<section class="view center" id="vAccueil"><div class="box">
+<h2>Bienvenue 👋</h2>
+<label class="f">Ton prénom<input id="inPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
+<h3 style="margin:0">Choisis une ferme</h3>
+<div class="grid" id="listeFermes"></div>
+<p class="muted" id="fermesVide" hidden>Aucune ferme pour l'instant. Ton formateur va en ajouter.</p>
+<p class="muted"><a href="#formateur" style="color:var(--muted)">Espace formateur</a></p>
+</div></section>
+
+<!-- Zone de travail commune -->
+<section class="view work" id="vTravail">
+<div id="stage">
+<svg class="map" id="map" aria-label="Vue satellite de la ferme"><g id="lImg"></g><g id="lLogic"></g><g id="lItems"></g><g id="lDraft"></g></svg>
+<div class="tip" id="tip"><span id="tipTxt"></span></div>
+<div class="tools" id="tools"></div>
+</div>
+<aside><div class="in" id="panel"></div></aside>
+</section>
+
+<!-- Carte vivante (IGN) -->
+<section class="view work" id="vCarte">
+<div id="stageC"><div id="cm"></div><div class="tip" id="tipC"><span id="tipCTxt"></span></div><div class="tools" id="toolsC"></div><div id="sheetC" hidden></div></div>
+<aside><div class="in" id="panelC"></div></aside>
+</section>
+
+<!-- Lien direct vers une ferme -->
+<section class="view center" id="vLien"><div class="box">
+<h2 id="lienNom">Ferme</h2>
+<p class="muted">Tu vas voir la ferme vue du ciel. Tu pourras y dessiner, puis envoyer ton schéma à ton formateur.</p>
+<label class="f">Ton prénom<input id="lienPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
+<button class="btn main" id="lienGo">Commencer</button>
+<div id="lienMsg"></div>
+</div></section>
+
+<!-- FORMATEUR : connexion -->
+<section class="view center" id="vLogin"><div class="box">
+<h2>🔑 Espace formateur</h2>
+<label class="f">Adresse mail<input id="inMail" type="email" autocomplete="email"></label>
+<label class="f">Mot de passe<input id="inPass" type="password" autocomplete="current-password"></label>
+<div class="row"><button class="btn main" id="btnLogin">Se connecter</button><button class="btn" id="btnSignup">Créer mon accès (1re fois)</button></div>
+<div id="loginMsg"></div>
+</div></section>
+
+<!-- FORMATEUR : tableau de bord -->
+<section class="view center" id="vDash"><div class="box" style="max-width:1100px">
+<div class="tabs"><button class="btn on" data-tab="fermes">🗺️ Mes fermes</button><button class="btn" data-tab="recus">📨 Schémas reçus</button><button class="btn small" id="btnLogout">Se déconnecter</button></div>
+<div id="tabFermes">
+<h2>Mes fermes</h2>
+<div class="grid" id="dashFermes"></div>
+<h3>➕ Ajouter une ferme</h3>
+<label class="f">Nom de la ferme<input id="inNomFerme" maxlength="120" placeholder="ex. Notre ferme, Ferme A…"></label>
+<h3 style="margin:8px 0 0">🛰️ Option A : chercher sur la carte aérienne (IGN, France)</h3>
+<div class="row"><input id="inAdr" placeholder="Adresse, commune ou lieu-dit" autocomplete="off"><button class="btn" id="btnSearch">🔎 Chercher</button></div>
+<div id="mbWrap" hidden><div id="mb"></div><svg id="frame" aria-hidden="true"></svg></div>
+<div class="row" id="rotRow" hidden>
+<button class="btn small" id="rotL" aria-label="Pivoter à gauche">↺ −15°</button>
+<input type="range" id="rotAng" min="0" max="359" value="0" aria-label="Orientation" style="flex:1;min-width:140px">
+<button class="btn small" id="rotR" aria-label="Pivoter à droite">↻ +15°</button>
+<button class="btn small" id="rotN">🧭 Nord en haut</button>
+<span class="muted" id="rotTxt"></span>
+</div>
+<p class="muted" id="rotHelp" hidden>Le cadre jaune montre ce que verront les stagiaires. La flèche indique le <b>haut</b> du schéma. Fais tourner le cadre pour que la ferme soit bien orientée, puis zoome pour la faire entrer dans le cadre.</p>
+<div class="row" id="useRow" hidden>
+<button class="btn main" id="btnLive">🗺️ Créer une carte vivante (lien direct)</button>
+<button class="btn" id="btnUseView">📸 Utiliser comme image fixe (avec rotation)</button>
+</div>
+<p class="muted" id="useHelp" hidden>« Carte vivante » : les stagiaires dessinent sur la vraie carte, avec zoom libre (nord en haut). « Image fixe » : une photo figée, que tu peux faire pivoter.</p>
+<div id="mbMsg"></div>
+<hr class="sep2">
+<h3 style="margin:0">📁 Option B : envoyer une image</h3>
+<label class="f">Vue satellite (image)<input id="inImg" type="file" accept="image/*"></label>
+<button class="btn" id="btnAddFerme">Ajouter avec cette image</button>
+<div id="addMsg"></div>
+</div>
+<div id="tabRecus" hidden>
+<h2>Schémas reçus</h2>
+<label class="f">Ferme<select id="selFerme"></select></label>
+<div class="row"><button class="btn small" id="btnRefresh">🔄 Actualiser</button><span class="muted" id="nbRecus"></span></div>
+<div class="grid" id="mosaique"></div>
+</div>
+</div></section>
+
+<div id="tour" hidden><div class="tourbox"><div id="tourBody"></div><div class="row"><button class="btn" id="tPrev">⬅ Précédent</button><button class="btn main" id="tNext">Suivant ➡</button><button class="btn small" id="tSkip">Passer</button></div></div></div>
+<dialog id="dlg"><form method="dialog" style="display:flex;flex-direction:column;gap:12px">
+<label class="f"><span id="dlgLab">Nom</span><input id="dlgIn" maxlength="80"></label>
+<div class="row"><button class="btn main" value="ok">Valider</button><button class="btn" value="cancel">Annuler</button></div>
+</form></dialog>
+
+<script>
+/* ====== RÉGLAGES ====== */
+const SUPA_URL="https://tiotnrdfxphgachhalam.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRpb3RucmRmeHBoZ2FjaGhhbGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTk1MDQsImV4cCI6MjEwNjYzNTUwNH0.DwdZtqeMOVOgBkqCV4VMO-d2DFvMBTJ2iniDhImy9tw";
+const TYPES={zone:{n:"Zone",e:"🟪",c:"#7b3fc4"},eau:{n:"Irrigation",e:"💧",c:"#1f6fd1"},vehicule:{n:"Véhicules",e:"🚐",c:"#e0680a"},recolte:{n:"Récolte à pied",e:"🧺",c:"#23913a"},libre:{n:"Tracé libre",e:"✏️",c:"#4d5963"},note:{n:"Note",e:"📝",c:"#c99a00"}};
+const FREQS={
+  1:{n:"Plusieurs fois par jour",c:"#c62828"},
+  2:{n:"Tous les jours ou presque",c:"#ef6c00"},
+  3:{n:"Plusieurs fois par semaine",c:"#d4a900"},
+  4:{n:"Occasionnellement",c:"#6aa84f"},
+  5:{n:"Très rarement / peu d'intervention",c:"#38761d"}
+};
+function freqColor(it){return it&&it.t==="zone"&&it.freq&&FREQS[it.freq]?FREQS[it.freq].c:null}
+function freqLabel(it){return it&&it.t==="zone"&&it.freq&&FREQS[it.freq]?" · F"+it.freq+" — "+FREQS[it.freq].n:""}
+async function askFreq(){
+ return new Promise(res=>{
+  const d=$("dlg"),inp=$("dlgIn");
+  $("dlgLab").textContent="À quelle fréquence penses-tu qu'on passe ici ?";
+  inp.style.display="none";
+  const wrap=document.createElement("div");wrap.className="types";wrap.id="freqChoices";
+  wrap.innerHTML=Object.entries(FREQS).map(([k,v])=>'<button type="button" data-freq="'+k+'" style="--c:'+v.c+';border-color:'+v.c+'"><b>Zone '+k+'</b><small>'+esc(v.n)+'</small></button>').join("");
+  inp.parentElement.insertBefore(wrap,inp);
+  d.returnValue="";d.showModal();
+  wrap.querySelectorAll("[data-freq]").forEach(b=>b.onclick=()=>{d.returnValue=b.dataset.freq;d.close()});
+  d.onclose=()=>{wrap.remove();inp.style.display="";res(d.returnValue&&d.returnValue!=="cancel"?+d.returnValue:null)}
+ })
+}
+
+const PEOPLE=["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#9a6324","#469990","#800000"];
+/* ====================== */
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("show",v.id===id));$("btnHome").hidden=id==="vAccueil"||id==="vLogin"||id==="vLien";$("btnHelp").hidden=true}
+function ask(label,val=""){return new Promise(res=>{const d=$("dlg");$("dlgLab").textContent=label;$("dlgIn").value=val;d.returnValue="";d.showModal();$("dlgIn").focus();d.onclose=()=>res(d.returnValue==="ok"?$("dlgIn").value.trim():null)})}
+function msg(el,t,cls){$(el).innerHTML=t?'<div class="msg '+(cls||"")+'">'+esc(t)+'</div>':""}
+
+/* ---------- Carte : affichage, zoom, déplacement ---------- */
+const svg=$("map");let IMG={w:1000,h:700},vb={x:0,y:0,w:1000,h:700},tapCb=null,dblCb=null;
+function applyVB(){svg.setAttribute("viewBox",vb.x+" "+vb.y+" "+vb.w+" "+vb.h)}
+function fitVB(b){const W=svg.clientWidth||1,H=svg.clientHeight||1,ar=W/H;let w=b.w,h=b.h;if(w/h<ar)w=h*ar;else h=w/ar;return{x:b.x+b.w/2-w/2,y:b.y+b.h/2-h/2,w,h}}
+function home(){vb=fitVB({x:0,y:0,w:IMG.w,h:IMG.h});applyVB()}
+function zoomAt(f,cx,cy){const nw=Math.min(IMG.w*4,Math.max(IMG.w/20,vb.w*f)),k=nw/vb.w;vb.x=cx-(cx-vb.x)*k;vb.y=cy-(cy-vb.y)*k;vb.w=nw;vb.h*=k;applyVB();drawAll()}
+function toW(cx,cy){const p=svg.createSVGPoint();p.x=cx;p.y=cy;return p.matrixTransform(svg.getScreenCTM().inverse())}
+const ptr=new Map();let moved=0,pinch=null,lastTap=0,lastPos={x:-99,y:-99};
+svg.addEventListener("pointerdown",e=>{svg.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=0;if(ptr.size===2){const[a,b]=[...ptr.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),w:vb.w}}});
+svg.addEventListener("pointermove",e=>{if(!ptr.has(e.pointerId))return;const p=ptr.get(e.pointerId),c={x:e.clientX,y:e.clientY};
+ if(ptr.size===1){const d=Math.abs(c.x-p.x)+Math.abs(c.y-p.y);moved+=d;if(moved>6){const a=toW(p.x,p.y),b=toW(c.x,c.y);vb.x+=a.x-b.x;vb.y+=a.y-b.y;applyVB()}}
+ ptr.set(e.pointerId,c);
+ if(ptr.size===2&&pinch){const[a,b]=[...ptr.values()],d=Math.hypot(a.x-b.x,a.y-b.y),m=toW((a.x+b.x)/2,(a.y+b.y)/2);zoomAt((pinch.w*pinch.d/d)/vb.w,m.x,m.y);moved=99}});
+function pUp(e){ptr.delete(e.pointerId);if(ptr.size<2)pinch=null}
+svg.addEventListener("pointerup",e=>{const was=moved;pUp(e);if(was<=6&&ptr.size===0){const w=toW(e.clientX,e.clientY),now=Date.now();if(now-lastTap<350&&Math.hypot(e.clientX-lastPos.x,e.clientY-lastPos.y)<25&&dblCb){dblCb();lastTap=0;return}lastTap=now;lastPos={x:e.clientX,y:e.clientY};if(tapCb)tapCb(w.x,w.y)}});
+svg.addEventListener("pointercancel",pUp);
+svg.addEventListener("wheel",e=>{e.preventDefault();const m=toW(e.clientX,e.clientY);zoomAt(Math.pow(1.0015,e.deltaY),m.x,m.y)},{passive:false});
+window.addEventListener("resize",()=>{vb=fitVB(vb);applyVB()});
+function bgSVG(f,iw,ih,cw,ch){const url=f&&f.image_url;if(url&&!iw){const m=/WIDTH=(\d+)&HEIGHT=(\d+)/.exec(url);if(m){iw=+m[1];ih=+m[2]}}if(!url)return'<rect width="'+(cw||iw)+'" height="'+(ch||ih)+'" fill="#b9c8be"/>';
+ if(f.bearing&&f.crop_w&&f.crop_h){const id="clp"+Math.round(cw);return'<clipPath id="'+id+'"><rect width="'+f.crop_w+'" height="'+f.crop_h+'"/></clipPath><g clip-path="url(#'+id+')"><image href="'+esc(url)+'" width="'+iw+'" height="'+ih+'" transform="translate('+f.crop_w/2+' '+f.crop_h/2+') rotate('+(-f.bearing)+') translate('+(-iw/2)+' '+(-ih/2)+')"/></g>'}
+ return'<image href="'+esc(url)+'" x="0" y="0" width="'+iw+'" height="'+ih+'"/>'}
+function loadImage(f){const url=f&&f.image_url;return new Promise(res=>{if(!url){IMG={w:1000,h:700};$("lImg").innerHTML='<rect width="1000" height="700" fill="#b9c8be"/>';home();return res()}
+ const im=new Image();im.onload=()=>{const rot=f.bearing&&f.crop_w&&f.crop_h;IMG=rot?{w:f.crop_w,h:f.crop_h}:{w:im.naturalWidth,h:im.naturalHeight};$("lImg").innerHTML=bgSVG(f,im.naturalWidth,im.naturalHeight,IMG.w,IMG.h);home();res()};
+ im.onerror=()=>{IMG={w:1000,h:700};$("lImg").innerHTML='<rect width="1000" height="700" fill="#b9c8be"/><text x="500" y="350" text-anchor="middle" font-size="30">Image introuvable</text>';home();res()};im.src=url})}
+
+/* ---------- Dessin des éléments ---------- */
+const U=()=>Math.max(IMG.w,IMG.h)/1000;
+function label(x,y,t,color,fs,style){const w=t.length*fs*.58+fs*1.2,h=fs*1.7;
+ return '<g'+(style?' opacity="'+style+'"':'')+'><rect x="'+(x-w/2)+'" y="'+(y-h/2)+'" width="'+w+'" height="'+h+'" rx="'+h/2+'" fill="#fff" stroke="'+color+'" stroke-width="'+fs*.15+'"/><text x="'+x+'" y="'+(y+fs*.35)+'" text-anchor="middle" font-family="Lexend,Arial" font-weight="600" font-size="'+fs+'" fill="#14201a">'+esc(t)+'</text></g>'}
+function centroid(pts){let x=0,y=0;pts.forEach(p=>{x+=p[0];y+=p[1]});return[x/pts.length,y/pts.length]}
+function renderItems(items,o={}){const u=U(),fs=(o.fs||22)*u;let s="";
+ (items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre,col=o.color||freqColor(it)||T.c,pts=it.pts||[];
+  if(it.t==="zone"&&pts.length>2){s+='<polygon points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="'+col+'" fill-opacity="'+(o.fillOp??.22)+'" stroke="'+col+'" stroke-width="'+(o.sw||3)+'" vector-effect="non-scaling-stroke"'+(o.dash?' stroke-dasharray="8 6"':'')+'/>';}
+  if(it.t==="trace"&&pts.length>1){s+='<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+col+'" stroke-width="'+(o.sw||4)+'" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"'+(it.k==="vehicule"?' stroke-dasharray="14 8"':it.k==="recolte"?' stroke-dasharray="2 8"':'')+'/>';}
+  if(o.labels!==false){if(it.t==="zone"&&pts.length>2){const c=centroid(pts);s+=label(c[0],c[1],it.nom||"?",col,fs)}
+   if(it.t==="trace"&&pts.length>1){const i2=Math.floor(pts.length/2),a1=pts[i2-1]||pts[0],b1=pts[i2],m=pts.length%2?b1:[(a1[0]+b1[0])/2,(a1[1]+b1[1])/2];s+=label(m[0],m[1],(T.e+" ")+(it.nom||T.n),col,fs*.85)}
+   if(it.t==="note")s+=label(it.x,it.y,"📝 "+(it.txt||""),col,fs*.9)}});
+ return s}
+function itemsSVG(items,w,h,f,o){let bg='';if(f&&f.image_url){if(f.bearing&&f.crop_w){bg=bgSVG(f,0,0,w,h)}else bg='<image href="'+esc(f.image_url)+'" width="'+w+'" height="'+h+'"/>'}return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid slice">'+bg+renderItems(items,o)+'</svg>'}
+
+/* ---------- Éditeur ---------- */
+const ED={items:[],tool:null,draft:[],onChange:null,readonly:false};
+const TOOLBTN=[["pan","✋ Déplacer"],["zone","🟪 Zone"],["eau","💧 Irrigation"],["vehicule","🚐 Véhicules"],["recolte","🧺 Récolte"],["libre","✏️ Libre"],["note","📝 Note"]];
+function buildTools(){if(ED.readonly){$("tools").innerHTML='<button class="btn" onclick="zoomBtn(.7)">＋</button><button class="btn" onclick="zoomBtn(1/.7)">－</button><button class="btn" onclick="home()">⤢ Tout voir</button>';return}
+ $("tools").innerHTML=TOOLBTN.map(t=>'<button class="btn'+(ED.tool===t[0]||(!ED.tool&&t[0]==="pan")?" on":"")+'" data-tool="'+t[0]+'">'+t[1]+'</button>').join("")+
+ (ED.draft.length?'<button class="btn main" id="bFin">✔ Terminer</button>':'')+
+ '<button class="btn" id="bUndo">↩ Annuler</button><button class="btn" onclick="zoomBtn(.7)">＋</button><button class="btn" onclick="zoomBtn(1/.7)">－</button><button class="btn" onclick="home()">⤢</button>';
+ $("tools").querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{ED.tool=b.dataset.tool==="pan"?null:b.dataset.tool;ED.draft=[];buildTools();drawAll();tip()});
+ if($("bFin"))$("bFin").onclick=finish;$("bUndo").onclick=undo}
+function zoomBtn(f){zoomAt(f,vb.x+vb.w/2,vb.y+vb.h/2)}
+function tip(){const t=ED.tool;$("tip").style.display=ED.readonly?"none":"flex";
+ $("tipTxt").textContent=!t?"Glisse pour te déplacer, pince ou molette pour zoomer. Choisis un outil en bas.":t==="note"?"Touche la carte là où tu veux écrire une note.":t==="zone"?"Touche la carte pour poser les coins de la zone, puis ✔ Terminer.":"Touche la carte pour tracer le chemin, point par point, puis ✔ Terminer."}
+async function finish(){const t=ED.tool,pts=ED.draft;if(!t)return;
+ if(t==="zone"&&pts.length<3){alert("Une zone a besoin d'au moins 3 points.");return}
+ if(t!=="zone"&&pts.length<2){alert("Un tracé a besoin d'au moins 2 points.");return}
+ let nom="",freq=null;if(t==="zone"){freq=await askFreq();if(freq===null)return;nom=await ask("Comment appelles-tu cette zone ?");if(nom===null)return}
+ else if(t==="libre"){nom=await ask("Que représente ce tracé ?");if(nom===null)return}
+ ED.items.push(t==="zone"?{t:"zone",nom:nom||"?",freq,pts}:{t:"trace",k:t,nom,pts});ED.draft=[];changed()}
+function undo(){if(ED.draft.length){ED.draft.pop()}else{ED.items.pop();changed();return}buildTools();drawAll()}
+function changed(){buildTools();drawAll();if(ED.onChange)ED.onChange()}
+tapCb=async(x,y)=>{if(ED.readonly||!ED.tool)return;x=Math.round(x);y=Math.round(y);
+ if(ED.tool==="note"){const txt=await ask("Ta note :");if(txt){ED.items.push({t:"note",x,y,txt});changed()}return}
+ ED.draft.push([x,y]);buildTools();drawAll()};
+dblCb=()=>{if(ED.draft.length)finish()};
+function drawAll(){$("lItems").innerHTML=ED.overlay?ED.overlay():renderItems(ED.items);
+ const d=ED.draft,u=U();let s="";if(d.length){const T=TYPES[ED.tool];s+=(ED.tool==="zone"&&d.length>2?'<polygon points="'+d.map(p=>p.join(",")).join(" ")+'" fill="'+T.c+'" fill-opacity=".15" stroke="none"/>':'')+'<polyline points="'+d.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+T.c+'" stroke-width="4" stroke-dasharray="6 5" vector-effect="non-scaling-stroke"/>'+d.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+6*u*(vb.w/IMG.w)+'" fill="#fff" stroke="'+T.c+'" stroke-width="3" vector-effect="non-scaling-stroke"/>').join("")}
+ $("lDraft").innerHTML=s}
+function itemList(items,onDel){if(!items.length)return'<p class="muted">Rien pour l\'instant.</p>';
+ return'<ul class="items">'+items.map((it,i)=>{const T=TYPES[it.t==="trace"?it.k:it.t],fc=freqColor(it)||T.c;return'<li><span class="dot" style="background:'+fc+'"></span><span class="n">'+T.e+" "+esc(it.t==="note"?it.txt:(it.nom||T.n))+esc(freqLabel(it))+'</span>'+(onDel?'<button aria-label="Renommer" data-ren="'+i+'">✏️</button><button aria-label="Supprimer" data-del="'+i+'">🗑️</button>':'')+'</li>'}).join("")+'</ul>'}
+function wireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{ED.items.splice(+b.dataset.del,1);changed();ED.refreshPanel&&ED.refreshPanel()});
+ root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=ED.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;changed();ED.refreshPanel&&ED.refreshPanel()}})}
+function credit(){return CUR&&CUR.image_url&&CUR.image_url.includes('geopf.fr')?'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>':''}
+const FREQLEG='<div class="legend">'+Object.entries(FREQS).map(([k,v])=>'<div><span class="dot" style="background:'+v.c+'"></span>F'+k+' — '+v.n+'</div>').join("")+'</div>';
+const LEGEND='<div class="legend">'+["zone","eau","vehicule","recolte","libre","note"].map(k=>'<div><span class="dot" style="background:'+TYPES[k].c+'"></span>'+TYPES[k].e+" "+TYPES[k].n+'</div>').join("")+'</div>';
+
+/* ---------- ÉLÈVE ---------- */
+let FERMES=[],CUR=null,pollT=null;
+async function loadFermes(){const{data,error}=await sb.from("fermes").select("id,nom,image_url,revele,ordre,created_at,bearing,crop_w,crop_h,mode,lat,lng,zoom,fond").order("ordre").order("created_at");FERMES=error?[]:data;return FERMES}
+async function accueil(){show("vAccueil");$("who").textContent="";$("inPrenom").value=LS.get("prenom","");await loadFermes();
+ $("fermesVide").hidden=!!FERMES.length;
+ $("listeFermes").innerHTML=FERMES.map(f=>'<button class="card" data-id="'+f.id+'">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+'</div></button>').join("");
+ $("listeFermes").querySelectorAll(".card").forEach(c=>c.onclick=()=>{const p=$("inPrenom").value.trim();if(!p){alert("Écris d'abord ton prénom.");$("inPrenom").focus();return}LS.set("prenom",p);openStudent(FERMES.find(f=>f.id===c.dataset.id))})}
+async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;
+ ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get("schema:"+f.id,[]);ED.onChange=()=>{LS.set("schema:"+f.id,ED.items);panelEleve()};ED.refreshPanel=panelEleve;
+ $("lLogic").innerHTML="";await loadImage(f);buildTools();tip();drawAll();panelEleve();
+ clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleve()}},15000)}
+let showLogic=false;
+function panelEleve(){const p=$("panel");
+ p.innerHTML='<h3>Mon schéma</h3>'+itemList(ED.items,true)+'<button class="btn main" id="bSend">📤 Envoyer mon schéma</button><div id="sendMsg"></div>'+
+ (CUR.revele?'<button class="btn" id="bLogic">'+(showLogic?"🙈 Cacher":"👁️ Voir")+' la logique du formateur</button>':'')+'<h3>Fréquence des zones</h3>'+FREQLEG+'<h3>Légende</h3>'+LEGEND+credit();
+ wireList(p);$("bSend").onclick=send;if($("bLogic"))$("bLogic").onclick=toggleLogic}
+async function toggleLogic(){showLogic=!showLogic;if(showLogic){const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();$("lLogic").innerHTML=renderLogic((data&&data.logique&&data.logique.items)||[])}else $("lLogic").innerHTML="";panelEleve()}
+function renderLogic(items){return renderItems(items,{color:"#ffd400",fillOp:.12,sw:5,dash:true,fs:24})}
+async function send(){if(!ED.items.length){msg("sendMsg","Ton schéma est vide.","err");return}
+ $("bSend").disabled=true;const{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:LS.get("prenom","?").slice(0,60),contenu:{items:ED.items,w:IMG.w,h:IMG.h}});
+ $("bSend").disabled=false;msg("sendMsg",error?"Envoi impossible : vérifie ta connexion et réessaie.":"✅ Envoyé ! Ton formateur l'a reçu.",error?"err":"ok")}
+
+/* ---------- FORMATEUR ---------- */
+async function login(){const{error}=await sb.auth.signInWithPassword({email:$("inMail").value.trim(),password:$("inPass").value});if(error)msg("loginMsg","Connexion refusée : "+error.message,"err");else dash()}
+async function signup(){const{error}=await sb.auth.signUp({email:$("inMail").value.trim(),password:$("inPass").value});msg("loginMsg",error?"Erreur : "+error.message:"Compte créé. Ouvre le mail de confirmation, clique le lien, puis reviens te connecter ici.",error?"err":"ok")}
+async function isTrainer(){const{data}=await sb.auth.getSession();return!!(data&&data.session)}
+async function dash(tab){clearInterval(pollT);if(!await isTrainer()){show("vLogin");return}show("vDash");const{data:u}=await sb.auth.getUser();$("who").textContent="🧑‍🌾 "+(u&&u.user?u.user.email:"");
+ await loadFermes();renderDashFermes();fillSel();setTab(tab||"fermes")}
+function setTab(t){document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));$("tabFermes").hidden=t!=="fermes";$("tabRecus").hidden=t!=="recus";if(t==="recus")loadRecus()}
+function renderDashFermes(){$("dashFermes").innerHTML=FERMES.map(f=>'<div class="card" style="cursor:default">'+(f.image_url?'<img alt="" src="'+esc(f.image_url)+'">':'<svg></svg>')+'<div class="t">'+esc(f.nom)+(f.mode==='carte'?' 🗺️':'')+'</div><div class="s row"><button class="btn small" data-link="'+f.id+'">🔗 Lien</button><button class="btn small" data-logic="'+f.id+'">✏️ Ma logique</button><button class="btn small'+(f.revele?" on":"")+'" data-rev="'+f.id+'">'+(f.revele?"🔓 Révélée":"🔒 Cachée")+'</button><button class="btn small" data-delf="'+f.id+'">🗑️</button></div></div>').join("")||'<p class="muted">Aucune ferme. Ajoutes-en une ci-dessous.</p>';
+ $("dashFermes").querySelectorAll("[data-logic]").forEach(b=>b.onclick=()=>editLogicAny(FERMES.find(f=>f.id===b.dataset.logic)));
+ $("dashFermes").querySelectorAll("[data-link]").forEach(b=>b.onclick=()=>copyLink(b.dataset.link));
+ $("dashFermes").querySelectorAll("[data-rev]").forEach(b=>b.onclick=async()=>{const f=FERMES.find(x=>x.id===b.dataset.rev);const{error}=await sb.from("fermes").update({revele:!f.revele}).eq("id",f.id);if(!error){f.revele=!f.revele;renderDashFermes()}});
+ $("dashFermes").querySelectorAll("[data-delf]").forEach(b=>b.onclick=async()=>{if(!confirm("Supprimer cette ferme et tous ses schémas reçus ?"))return;await sb.from("fermes").delete().eq("id",b.dataset.delf);dash("fermes")})}
+async function addFerme(){const nom=$("inNomFerme").value.trim(),file=$("inImg").files[0];if(!nom||!file){msg("addMsg","Il faut un nom et une image.","err");return}
+ msg("addMsg","Envoi en cours…");const path=Date.now()+"-"+file.name.replace(/[^a-z0-9.\-_]/gi,"_");
+ const up=await sb.storage.from("vues").upload(path,file);if(up.error){msg("addMsg","Image refusée : "+up.error.message,"err");return}
+ const url=sb.storage.from("vues").getPublicUrl(path).data.publicUrl;
+ const{error}=await sb.from("fermes").insert({nom,image_url:url,ordre:FERMES.length});if(error){msg("addMsg","Erreur : "+error.message,"err");return}
+ $("inNomFerme").value="";$("inImg").value="";msg("addMsg","✅ Ferme ajoutée.","ok");await loadFermes();renderDashFermes();fillSel()}
+async function editLogic(f){CUR=f;show("vTravail");$("who").textContent="🧑‍🌾 Ma logique · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();
+ ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=(data&&data.logique&&data.logique.items)||[];ED.onChange=()=>{panelLogic(true)};ED.refreshPanel=()=>panelLogic(true);
+ $("lLogic").innerHTML="";await loadImage(f);buildTools();tip();drawAll();panelLogic(false)}
+function panelLogic(dirty){const p=$("panel");p.innerHTML='<h3>Ma logique</h3><p class="muted">Dessine ta lecture de la ferme, avec les bons termes.</p>'+itemList(ED.items,true)+'<button class="btn main" id="bSaveL">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsg"></div><button class="btn" id="bBack">⬅ Retour</button><h3>Légende</h3>'+LEGEND;
+ wireList(p);$("bSaveL").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:ED.items,w:IMG.w,h:IMG.h}}).eq("id",CUR.id);msg("saveMsg",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBack").onclick=()=>dash("fermes")}
+function fillSel(){const s=$("selFerme"),v=s.value;s.innerHTML=FERMES.map(f=>'<option value="'+f.id+'">'+esc(f.nom)+'</option>').join("");if(v)s.value=v}
+let RECUS=[];
+async function loadRecus(){const fid=$("selFerme").value;if(!fid){$("mosaique").innerHTML="";return}const f=FERMES.find(x=>x.id===fid);
+ const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");RECUS=error?[]:data;
+ $("nbRecus").textContent=RECUS.length+" schéma(s) reçu(s)"+(RECUS.length?" · touche un schéma pour l'ouvrir":"");
+ $("mosaique").innerHTML=(RECUS.length?'<button class="card" id="allSup"><div style="height:150px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#e9ece6">🗂️</div><div class="t">Tous superposés</div><div class="s">Chaque prénom a sa couleur</div></button>':'')+
+ RECUS.map(r=>{const c=r.contenu||{};return'<button class="card" data-r="'+r.id+'">'+(f.mode==='carte'?itemsThumb(c.items):itemsSVG(c.items,c.w||1000,c.h||700,f,{fs:30}))+'<div class="t">'+esc(r.auteur)+'</div><div class="s">'+new Date(r.created_at).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+'</div></button>'}).join("");
+ $("mosaique").querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>openRecusAny(f,[b.dataset.r]));if($("allSup"))$("allSup").onclick=()=>openRecusAny(f,RECUS.map(r=>r.id))}
+let RECUS_FREQ_FILTER="all";
+function freqFilterBar(){
+ return '<div><h3 style="margin-top:8px">Fréquence des zones</h3><div class="row">'+
+ '<button class="btn small'+(RECUS_FREQ_FILTER==="all"?" on":"")+'" data-ff="all">Toutes</button>'+
+ Object.keys(FREQS).map(k=>'<button class="btn small'+(String(RECUS_FREQ_FILTER)===k?" on":"")+'" data-ff="'+k+'">F'+k+'</button>').join("")+
+ '</div><p class="muted">F1 = passages les plus fréquents · F5 = très peu d’intervention.</p></div>'
+}
+function filteredItems(items){
+ if(RECUS_FREQ_FILTER==="all")return items||[];
+ const f=+RECUS_FREQ_FILTER;
+ return (items||[]).filter(it=>it.t==="zone"&&it.freq===f)
+}
+function wireFreqFilter(root,redraw){
+ root.querySelectorAll("[data-ff]").forEach(b=>b.onclick=()=>{RECUS_FREQ_FILTER=b.dataset.ff;redraw()})
+}
+async function openRecus(f,ids){CUR=f;show("vTravail");const sel=RECUS.filter(r=>ids.includes(r.id)),multi=sel.length>1;let idx=0,withLogic=false,logic=[];
+ const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();logic=(data&&data.logique&&data.logique.items)||[];
+ ED.readonly=true;ED.tool=null;ED.draft=[];await loadImage(f);buildTools();tip();
+ const draw=()=>{ED.overlay=()=>multi?sel.map((r,i)=>renderItems(filteredItems((r.contenu||{}).items),{color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null,fillOp:.12,labels:true})).join(""):renderItems(filteredItems((sel[idx].contenu||{}).items));
+  $("lLogic").innerHTML=withLogic?renderLogic(logic):"";drawAll();$("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"tous superposés":sel[idx].auteur);
+  const p=$("panel");p.innerHTML=(multi?'<h3>Tous superposés</h3><div class="legend">'+sel.map((r,i)=>'<div><span class="dot" style="background:'+PEOPLE[i%PEOPLE.length]+'"></span>'+esc(r.auteur)+'</div>').join("")+'</div>'
+   :'<h3>'+esc(sel[idx].auteur)+'</h3><div class="row"><button class="btn small" id="bPrev">⬅</button><span class="muted">'+(idx+1)+' / '+sel.length+'</span><button class="btn small" id="bNext">➡</button></div>'+itemList(filteredItems((sel[idx].contenu||{}).items),false))+
+   freqFilterBar()+'<button class="btn'+(withLogic?" on":"")+'" id="bWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button><button class="btn" id="bBk">⬅ Retour aux schémas</button>'+(multi?'':'<button class="btn small" id="bDelR">🗑️ Supprimer ce schéma</button>');
+  wireFreqFilter(p,draw);$("bWL").onclick=()=>{withLogic=!withLogic;draw()};$("bBk").onclick=()=>{ED.overlay=null;dash("recus")};
+  if(!multi){$("bPrev").disabled=idx===0;$("bNext").disabled=idx===sel.length-1;$("bPrev").onclick=()=>{idx--;draw()};$("bNext").onclick=()=>{idx++;draw()};
+   $("bDelR").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",sel[idx].id);ED.overlay=null;dash("recus")}}};
+ if(!multi){idx=0;const all=RECUS;sel.length=0;all.forEach(r=>sel.push(r));idx=all.findIndex(r=>r.id===ids[0])}
+ draw()}
+
+
+/* ---------- IGN : chercher et cadrer la ferme (photos aériennes, gratuit) ---------- */
+let MB=null,leafReady=null;
+const IGN_TILES="https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&FORMAT=image/jpeg";
+function loadLeaflet(){if(window.L)return Promise.resolve();if(leafReady)return leafReady;leafReady=new Promise((res,rej)=>{const l=document.createElement("link");l.rel="stylesheet";l.href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(l);const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js";s.onload=res;s.onerror=()=>{leafReady=null;rej(new Error("La carte ne se charge pas (vérifie ta connexion)"))};document.head.appendChild(s)});return leafReady}
+async function geocode(q){const urls=["https://data.geopf.fr/geocodage/search?limit=1&q="+encodeURIComponent(q),"https://api-adresse.data.gouv.fr/search/?limit=1&q="+encodeURIComponent(q)];
+ for(const u of urls){try{const r=await fetch(u);if(!r.ok)continue;const d=await r.json(),f=d.features&&d.features[0];if(f&&f.geometry&&f.geometry.coordinates){const pr=f.properties||{};return{lng:f.geometry.coordinates[0],lat:f.geometry.coordinates[1],label:pr.label||pr.fulltext||q}}}catch(e){}}
+ return null}
+function merc(lat,lng){const R=6378137,rad=Math.PI/180;return[R*lng*rad,R*Math.log(Math.tan(Math.PI/4+lat*rad/2))]}
+function frameDims(W,H,deg){const t=deg*Math.PI/180,c=Math.abs(Math.cos(t)),s=Math.abs(Math.sin(t)),ex=c*W+s*H,ey=s*W+c*H,k=Math.min(.9*W/ex,.9*H/ey);return{fw:k*W,fh:k*H}}
+function drawFrame(){const W=$("mb").clientWidth,H=$("mb").clientHeight;if(!W||!H)return;const deg=+$("rotAng").value,t=deg*Math.PI/180,{fw,fh}=frameDims(W,H,deg),cx=W/2,cy=H/2,co=Math.cos(t),si=Math.sin(t);
+ const pts=[[-fw/2,-fh/2],[fw/2,-fh/2],[fw/2,fh/2],[-fw/2,fh/2]].map(([x,y])=>[cx+x*co-y*si,cy+x*si+y*co]),P=pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
+ const u=[si,-co],pp=[co,si],M=[cx+u[0]*fh/2,cy+u[1]*fh/2],tip=[M[0]+u[0]*58,M[1]+u[1]*58],b1=[M[0]+u[0]*4+pp[0]*13,M[1]+u[1]*4+pp[1]*13],b2=[M[0]+u[0]*4-pp[0]*13,M[1]+u[1]*4-pp[1]*13];
+ $("frame").setAttribute("viewBox","0 0 "+W+" "+H);
+ $("frame").innerHTML='<path fill-rule="evenodd" fill="rgba(0,0,0,.42)" d="M0 0H'+W+'V'+H+'H0Z M'+pts.map(p=>p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" L")+' Z"/><polygon points="'+P+'" fill="none" stroke="#ffd400" stroke-width="3"/><polygon points="'+[tip,b1,b2].map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ")+'" fill="#ffd400" stroke="#14201a" stroke-width="2"/>'+
+  '<text x="'+(tip[0]+u[0]*16).toFixed(1)+'" y="'+(tip[1]+u[1]*16+5).toFixed(1)+'" text-anchor="middle" font-family="Lexend,Arial" font-weight="700" font-size="15" fill="#ffd400" stroke="#14201a" stroke-width="3" paint-order="stroke">HAUT</text>';
+ $("rotTxt").textContent=deg===0?"Nord en haut":"Rotation "+deg+"°"}
+function setAng(v){v=((Math.round(v)%360)+360)%360;$("rotAng").value=v;drawFrame()}
+function captureParams(forceDeg){const W=$("mb").clientWidth,H=$("mb").clientHeight,deg=forceDeg===undefined?+$("rotAng").value:forceDeg,t=deg*Math.PI/180,{fw,fh}=frameDims(W,H,deg),z=MB.getZoom(),res=156543.03392804097/Math.pow(2,z),c=MB.getCenter(),m=merc(c.lat,c.lng),
+ hx=(fw*Math.abs(Math.cos(t))+fh*Math.abs(Math.sin(t)))/2,hy=(fw*Math.abs(Math.sin(t))+fh*Math.abs(Math.cos(t)))/2,s=Math.min(2,1600/(2*Math.max(hx,hy))),iw=Math.round(2*hx*s),ih=Math.round(2*hy*s);
+ const bbox=[m[0]-hx*res,m[1]-hy*res,m[0]+hx*res,m[1]+hy*res].map(n=>n.toFixed(2)).join(",");
+ return{url:"https://data.geopf.fr/wms-r?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=ORTHOIMAGERY.ORTHOPHOTOS&STYLES=&FORMAT=image/jpeg&CRS=EPSG:3857&BBOX="+bbox+"&WIDTH="+iw+"&HEIGHT="+ih,bearing:deg,crop_w:+(fw*s).toFixed(1),crop_h:+(fh*s).toFixed(1)}}
+async function mbSearch(){const q=$("inAdr").value.trim();if(!q){msg("mbMsg","Écris une adresse, une commune ou un lieu-dit.","err");return}
+ msg("mbMsg","Recherche en cours…");
+ try{await loadLeaflet();const g=await geocode(q);if(!g){msg("mbMsg","Aucun résultat. Essaie avec la commune, ou un autre mot.","err");return}
+  $("mbWrap").hidden=false;$("rotRow").hidden=false;$("rotHelp").hidden=false;$("useRow").hidden=false;$("useHelp").hidden=false;
+  if(!MB){MB=L.map("mb",{zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:21}).setView([g.lat,g.lng],17);L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(MB)}
+  else{MB.setView([g.lat,g.lng],17)}
+  setTimeout(()=>{MB.invalidateSize();drawFrame()},60);
+  msg("mbMsg","✅ Trouvé : "+g.label+". Déplace et zoome, tourne le cadre si besoin, puis clique sur « Utiliser cette vue ».","ok")
+ }catch(e){msg("mbMsg","Erreur : "+e.message,"err")}}
+async function mbUse(){const nom=$("inNomFerme").value.trim();
+ if(!nom){msg("mbMsg","Donne d'abord un nom à la ferme (case plus haut).","err");return}
+ if(!MB){msg("mbMsg","Cherche d'abord un lieu.","err");return}
+ const cp=captureParams();msg("mbMsg","Vérification de l'image…");
+ const ok=await new Promise(res=>{const im=new Image();im.onload=()=>res(true);im.onerror=()=>res(false);im.src=cp.url});
+ if(!ok){msg("mbMsg","L'IGN n'a pas fourni l'image. Réessaie, ou cadre une zone un peu plus petite.","err");return}
+ const{error}=await sb.from("fermes").insert({nom,image_url:cp.url,bearing:cp.bearing,crop_w:cp.crop_w,crop_h:cp.crop_h,ordre:FERMES.length});
+ if(error){msg("mbMsg","Erreur : "+error.message,"err");return}
+ $("inNomFerme").value="";msg("mbMsg","✅ Ferme ajoutée avec cette vue aérienne.","ok");await loadFermes();renderDashFermes();fillSel()}
+async function mbLive(){const nom=$("inNomFerme").value.trim();
+ if(!nom){msg("mbMsg","Donne d'abord un nom à la ferme (case plus haut).","err");return}
+ if(!MB){msg("mbMsg","Cherche d'abord un lieu.","err");return}
+ const c=MB.getCenter(),z=Math.round(MB.getZoom()*2)/2,cp=captureParams(0);
+ const{error}=await sb.from("fermes").insert({nom,image_url:cp.url,bearing:0,mode:"carte",lat:+c.lat.toFixed(6),lng:+c.lng.toFixed(6),zoom:z,fond:"ign",ordre:FERMES.length});
+ if(error){msg("mbMsg","Erreur : "+error.message,"err");return}
+ $("inNomFerme").value="";msg("mbMsg","✅ Carte vivante créée. Clique sur « 🔗 Lien » dans « Mes fermes » pour copier le lien à envoyer.","ok");await loadFermes();renderDashFermes();fillSel()}
+$("btnLive").onclick=mbLive;
+$("btnSearch").onclick=mbSearch;$("btnUseView").onclick=mbUse;$("inAdr").addEventListener("keydown",e=>{if(e.key==="Enter")mbSearch()});
+$("rotAng").addEventListener("input",drawFrame);$("rotL").onclick=()=>setAng(+$("rotAng").value-15);$("rotR").onclick=()=>setAng(+$("rotAng").value+15);$("rotN").onclick=()=>setAng(0);
+window.addEventListener("resize",()=>{if(MB){MB.invalidateSize();drawFrame()}});
+
+
+/* ---------- Carte vivante : les stagiaires dessinent sur la vraie carte ---------- */
+const CM={map:null,items:[],mode:"draw",stroke:null,verts:[],lastDel:null,pending:null,noteArmed:false,g:{},f:null,readonly:true,onChange:null,logic:null,overlays:[]};
+function openStudent(f){return f.mode==="carte"?eleveCarte(f):eleve(f)}
+function editLogicAny(f){return f.mode==="carte"?editLogicCarte(f):editLogic(f)}
+function openRecusAny(f,ids){return f.mode==="carte"?openRecusCarte(f,ids):openRecus(f,ids)}
+async function cmInit(f){show("vCarte");await loadLeaflet();
+ if(!CM.map){CM.map=L.map("cm",{zoomControl:false,zoomSnap:0,zoomDelta:.5,wheelPxPerZoomLevel:160,wheelDebounceTime:30,zoomAnimation:true,maxZoom:21,doubleClickZoom:false});
+  L.control.zoom({position:"topright"}).addTo(CM.map);
+  L.tileLayer(IGN_TILES,{attribution:"Photographies aériennes © IGN",maxNativeZoom:19,maxZoom:21}).addTo(CM.map);
+  ["over","logic","items","draft"].forEach(k=>CM.g[k]=L.layerGroup().addTo(CM.map));
+  CM.map.on("click",cmTap);CM.map.on("dblclick",()=>{if(CM.verts.length>=2){CM.verts.pop();cmVertsDone()}});const el=$("cm");el.addEventListener("pointerdown",cmDown,true);window.addEventListener("pointermove",cmMove,{passive:false});window.addEventListener("pointerup",cmUp);window.addEventListener("pointercancel",e=>{ACT.delete(e.pointerId);CM.stroke=null});
+  window.addEventListener("resize",()=>CM.map&&CM.map.invalidateSize())}
+ CM.f=f;CM.mode="draw";CM.stroke=null;CM.verts=[];CM.lastDel=null;CM.pending=null;CM.noteArmed=false;ACT.clear();$("sheetC").hidden=true;CM.map.invalidateSize();CM.map.setView([f.lat,f.lng],f.zoom||17,{animate:false});setTimeout(()=>CM.map.invalidateSize(),60)}
+function cLabel(group,lat,lng,text,col){L.marker([lat,lng],{icon:L.divIcon({className:"lbl",html:'<span style="--c:'+col+'">'+esc(text)+'</span>',iconSize:[0,0]}),interactive:false,keyboard:false}).addTo(group)}
+function drawGeo(group,items,o){o=o||{};(items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre,col=o.color||freqColor(it)||T.c,pts=(it.pts||[]).map(p=>[p[1],p[0]]);
+ if(it.t==="zone"&&pts.length>2){L.polygon(pts,{color:col,weight:o.weight||3,fillColor:col,fillOpacity:o.fill===undefined?.22:o.fill,dashArray:o.dash||null,interactive:false}).addTo(group);const c=pts.reduce((a,p)=>[a[0]+p[0]/pts.length,a[1]+p[1]/pts.length],[0,0]);cLabel(group,c[0],c[1],it.nom||"?",col)}
+ else if(it.t==="trace"&&pts.length>1){L.polyline(pts,{color:col,weight:o.weight||5,lineCap:"round",lineJoin:"round",dashArray:o.dash||(it.k==="vehicule"?"14 8":it.k==="recolte"?"2 8":null),interactive:false}).addTo(group);const m=pts[Math.floor(pts.length/2)];cLabel(group,m[0],m[1],T.e+" "+(it.nom||T.n),col)}
+ else if(it.t==="note")cLabel(group,it.lat,it.lng,"📝 "+(it.txt||""),col)})}
+const CMTYPES=[["zone","🟪 Une zone","un espace : serre, jardin, bâtiment…"],["eau","💧 L'eau","tuyau, forage, réserve…"],["vehicule","🚐 Les véhicules","passage de camion, tracteur…"],["recolte","🧺 La récolte à pied","chemin des caisses, brouettes…"],["libre","✏️ Autre tracé","je le nomme moi-même"]];
+function cmRender(){["over","logic","items","draft"].forEach(k=>CM.g[k].clearLayers());
+ CM.overlays.forEach(o=>drawGeo(CM.g.over,o.items,{color:o.color,fill:.12}));
+ if(CM.logic)drawGeo(CM.g.logic,CM.logic,{color:"#ffd400",dash:"8 6",fill:.1,weight:5});
+ drawGeo(CM.g.items,CM.items);
+ if(CM.verts.length){const ll=CM.verts.map(p=>[p[1],p[0]]);if(ll.length>1)L.polyline(ll,{color:"#14201a",weight:5,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);ll.forEach(q=>L.circleMarker(q,{radius:7,color:"#14201a",fillColor:"#fff",fillOpacity:1,weight:3,interactive:false}).addTo(CM.g.draft))}
+ const pv=CM.pending?CM.pending.pts.map(p=>[p[1],p[0]]):(CM.stroke&&CM.stroke.length>1?CM.stroke.map(s=>[s.lat,s.lng]):null);
+ if(pv){const T=CM.pending&&CM.pending.type?TYPES[CM.pending.type]:null,col=T?T.c:"#14201a";
+  if(T&&CM.pending.type==="zone"&&pv.length>2)L.polygon(pv,{color:col,weight:4,fillColor:col,fillOpacity:.2,dashArray:"6 5",interactive:false}).addTo(CM.g.draft);
+  else L.polyline(pv,{color:col,weight:5,lineCap:"round",lineJoin:"round",dashArray:CM.pending?"6 5":null,interactive:false}).addTo(CM.g.draft)}
+ $("cm").classList.toggle("draw",CM.mode==="draw"&&!CM.readonly&&!CM.pending)}
+function cmVertsDone(){const v=CM.verts.slice();CM.verts=[];if(v.length<2){cmTools();cmTip();cmRender();return}const px=v.map(q=>{const c=CM.map.latLngToContainerPoint({lat:q[1],lng:q[0]});return{x:c.x,y:c.y}});CM.pending={px,pts:v,type:null};cmTools();cmTip();cmSheet();cmRender()}
+function cmSetMode(m){CM.mode=m;CM.noteArmed=false;CM.verts=[];if(CM.map){if(m==="draw"&&!CM.readonly)CM.map.dragging.disable();else CM.map.dragging.enable()}cmTools();cmTip();cmRender()}
+function cmTools(){const t=$("toolsC");
+ if(CM.readonly||CM.pending){t.innerHTML="";t.style.display="none";return}
+ t.style.display="flex";
+ if(CM.verts.length){t.innerHTML='<button class="btn main" id="mDone">✔ J\'ai fini ce dessin</button><button class="btn" id="mUndo">↩ Retirer le dernier point</button><button class="btn" id="mCancel">✖ Tout annuler</button>';
+  $("mDone").onclick=cmVertsDone;$("mUndo").onclick=cmUndo;$("mCancel").onclick=()=>{CM.verts=[];cmTools();cmTip();cmRender()};return}
+ t.innerHTML='<button class="btn'+(CM.mode==="draw"&&!CM.noteArmed?" on":"")+'" id="mDraw">✏️ Dessiner</button><button class="btn'+(CM.mode==="move"&&!CM.noteArmed?" on":"")+'" id="mMove">✋ Déplacer la carte</button><button class="btn'+(CM.noteArmed?" on":"")+'" id="mNote">📝 Écrire une note</button><button class="btn" id="mUndo">↩ Retirer le dernier dessin</button>';
+ $("mDraw").onclick=()=>cmSetMode("draw");$("mMove").onclick=()=>cmSetMode("move");$("mUndo").onclick=cmUndo;
+ $("mNote").onclick=()=>{cmSetMode("move");CM.noteArmed=true;cmTools();cmTip()}}
+function cmTip(){const el=$("tipC"),tx=$("tipCTxt");el.style.display=CM.readonly?"none":"flex";
+ tx.textContent=CM.pending?"C'est dessiné ! Dis-nous ce que c'est, en bas.":CM.verts.length?"Continue à cliquer pour ajouter des points. Double-clique, ou bouton vert, pour finir.":CM.noteArmed?"Clique sur la carte là où tu veux écrire ta note.":CM.mode==="draw"?"✏️ Maintiens le clic et trace. Ou clique point par point, puis double-clique pour finir.":"✋ Zoome avec la molette, glisse pour déplacer. Prêt·e ? Clique sur « Dessiner »."}
+async function cmTap(e){if(CM.readonly)return;const lat=+e.latlng.lat.toFixed(6),lng=+e.latlng.lng.toFixed(6);
+ if(!CM.noteArmed){if(CM.mode==="draw"&&!CM.pending){CM.verts.push([lng,lat]);cmTools();cmTip();cmRender()}return}
+ CM.noteArmed=false;const txt=await ask("Ta note :");cmSetMode("draw");if(txt){CM.items.push({t:"note",lat,lng,txt});cmChanged()}}
+function dpSimplify(pts,tol){if(pts.length<3)return pts;const a=pts[0],b=pts[pts.length-1],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);let max=0,idx=0;
+ for(let i=1;i<pts.length-1;i++){const p=pts[i],d=len<1e-6?Math.hypot(p.x-a.x,p.y-a.y):Math.abs(dy*p.x-dx*p.y+b.x*a.y-b.y*a.x)/len;if(d>max){max=d;idx=i}}
+ if(max>tol){const l=dpSimplify(pts.slice(0,idx+1),tol),r=dpSimplify(pts.slice(idx),tol);return l.slice(0,-1).concat(r)}return[a,b]}
+const ACT=new Set();
+function cmCanDraw(e){return CM.mode==="draw"&&!CM.readonly&&!CM.pending&&!CM.verts.length&&!e.target.closest(".leaflet-control")}
+function cmDown(e){if(e.pointerType==="mouse"&&e.button!==0)return;ACT.add(e.pointerId);
+ if(ACT.size>1){CM.stroke=null;cmRender();return}
+ if(!cmCanDraw(e))return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll);CM.stroke=[{x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng}]}
+function cmMove(e){if(!CM.stroke||ACT.size!==1)return;e.preventDefault();const ll=CM.map.mouseEventToLatLng(e),pt=CM.map.latLngToContainerPoint(ll),l=CM.stroke[CM.stroke.length-1];
+ if(Math.hypot(pt.x-l.x,pt.y-l.y)>=3){CM.stroke.push({x:pt.x,y:pt.y,lat:ll.lat,lng:ll.lng});cmRender()}}
+function cmUp(e){ACT.delete(e.pointerId);if(!CM.stroke)return;const s=CM.stroke;CM.stroke=null;
+ let len=0;for(let i=1;i<s.length;i++)len+=Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y);
+ if(len<20){cmRender();return}
+ const simp=dpSimplify(s,3.5);CM.pending={px:simp,pts:simp.map(p=>[+p.lng.toFixed(6),+p.lat.toFixed(6)]),type:null};cmTools();cmTip();cmSheet();cmRender()}
+function cmSheet(){const sh=$("sheetC");if(!CM.pending){sh.hidden=true;sh.innerHTML="";return}
+ const ty=CM.pending.type;sh.hidden=false;
+ sh.innerHTML='<h4>Qu\'est-ce que tu viens de dessiner ?</h4><div class="types">'+CMTYPES.map(c=>'<button type="button" data-ty="'+c[0]+'" class="'+(ty===c[0]?"on":"")+'" style="--c:'+TYPES[c[0]].c+'">'+c[1]+'<small>'+c[2]+'</small></button>').join("")+'</div>'+
+  '<input id="shName" maxlength="80" placeholder="Son nom, avec tes mots (facultatif)" autocomplete="off"><div id="shMsg"></div><div class="row"><button class="btn main" id="shOk"'+(ty?"":" disabled")+'>✔ Valider</button><button class="btn" id="shNo">✖ Je recommence</button></div>';
+ sh.querySelectorAll("[data-ty]").forEach(b=>b.onclick=()=>{const v=$("shName")?$("shName").value:"";CM.pending.type=b.dataset.ty;cmSheet();$("shName").value=v;cmRender()});
+ $("shNo").onclick=()=>{CM.pending=null;cmSheet();cmTools();cmTip();cmRender()};
+ $("shOk").onclick=async()=>{const t=CM.pending.type,nom=$("shName").value.trim();let pts=CM.pending.pts.slice();
+  if(t==="zone"){const px=CM.pending.px;if(px.length>3&&Math.hypot(px[0].x-px[px.length-1].x,px[0].y-px[px.length-1].y)<25)pts.pop();
+   if(pts.length<3){msg("shMsg","Pour une zone, trace un contour fermé (au moins 3 coins).","err");return}
+   const freq=await askFreq();if(freq===null)return;
+   CM.items.push({t:"zone",nom:nom||"?",freq,pts})}else CM.items.push({t:"trace",k:t,nom,pts});
+  CM.pending=null;CM.lastDel=null;cmSheet();cmChanged()};
+ $("shName").focus()}
+function cmUndo(){if(CM.pending)return;if(CM.verts.length){CM.verts.pop();cmTools();cmTip();cmRender();return}const it=CM.items.pop();if(it)CM.lastDel={item:it,i:CM.items.length};cmChanged()}
+function cmChanged(){cmTools();cmTip();cmRender();if(CM.onChange)CM.onChange()}
+function cmWireList(root){root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const i=+b.dataset.del,it=CM.items.splice(i,1)[0];CM.lastDel={item:it,i};cmChanged()});
+ if($("bRestore"))$("bRestore").onclick=()=>{if(CM.lastDel){CM.items.splice(CM.lastDel.i,0,CM.lastDel.item);CM.lastDel=null;cmChanged()}};
+ root.querySelectorAll("[data-ren]").forEach(b=>b.onclick=async()=>{const it=CM.items[+b.dataset.ren],v=await ask("Nouveau nom :",it.t==="note"?it.txt:it.nom);if(v!==null){if(it.t==="note")it.txt=v;else it.nom=v;cmChanged()}})}
+function creditC(){return'<p class="muted">Fond de carte : photographies aériennes © IGN.</p>'}
+async function eleveCarte(f){CUR=f;$("who").textContent="👤 "+LS.get("prenom","")+" · "+f.nom;await cmInit(f);
+ CM.readonly=false;CM.items=LS.get("schema:"+f.id,[]);CM.logic=null;CM.overlays=[];showLogic=false;CM.onChange=()=>{LS.set("schema:"+f.id,CM.items);panelEleveC()};
+ cmSetMode("move");panelEleveC();$("btnHelp").hidden=false;if(!LS.get("tour_ok",false))showTour(0);
+ clearInterval(pollT);pollT=setInterval(async()=>{const{data}=await sb.from("fermes").select("revele").eq("id",f.id).single();if(data&&data.revele!==CUR.revele){CUR.revele=data.revele;panelEleveC()}},15000)}
+function panelEleveC(){const p=$("panelC");
+ p.innerHTML='<h3>Mon dessin</h3>'+(CM.items.length?"":'<p class="muted">Rien pour l\'instant. Clique sur « Dessiner » pour commencer.</p>')+(CM.items.length?itemList(CM.items,true):"")+
+  (CM.lastDel?'<div class="undo msg">Un dessin a été effacé. <button class="btn small" id="bRestore">↩ Le remettre</button></div>':'')+
+  '<button class="btn main" id="bSendC">📤 Envoyer à mon formateur</button><p class="muted">Rien n\'est envoyé tant que tu n\'appuies pas sur ce bouton. Tu peux modifier puis renvoyer.</p><div id="sendMsgC"></div>'+
+  (CUR.revele?'<button class="btn" id="bLogicC">'+(showLogic?"🙈 Cacher":"👁️ Voir")+' ce que ton formateur a repéré</button>':'')+'<h3>Fréquence des zones</h3>'+FREQLEG+'<h3>Les couleurs</h3>'+LEGEND+creditC();
+ cmWireList(p);$("bSendC").onclick=sendCarte;if($("bLogicC"))$("bLogicC").onclick=async()=>{showLogic=!showLogic;if(showLogic){const{data}=await sb.from("fermes").select("logique").eq("id",CUR.id).single();CM.logic=(data&&data.logique&&data.logique.items)||[]}else CM.logic=null;cmRender();panelEleveC()}}
+async function sendCarte(){if(!CM.items.length){msg("sendMsgC","Tu n'as encore rien dessiné.","err");return}
+ $("bSendC").disabled=true;const c=CM.map.getCenter(),{error}=await sb.from("schemas").insert({ferme_id:CUR.id,auteur:LS.get("prenom","?").slice(0,60),contenu:{mode:"carte",items:CM.items,view:{lat:c.lat,lng:c.lng,zoom:CM.map.getZoom()}}});
+ $("bSendC").disabled=false;msg("sendMsgC",error?"L'envoi n'a pas marché. Vérifie ta connexion internet, puis réessaie.":"✅ Bravo ! Ton dessin est envoyé. Tu peux continuer à le modifier et le renvoyer.",error?"err":"ok")}
+async function editLogicCarte(f){CUR=f;$("who").textContent="🧑‍🌾 Ma logique · "+f.nom;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single();await cmInit(f);
+ CM.readonly=false;CM.items=(data&&data.logique&&data.logique.items)||[];CM.logic=null;CM.overlays=[];CM.onChange=()=>panelLogicC(true);cmSetMode("draw");panelLogicC(false)}
+function panelLogicC(dirty){const p=$("panelC");p.innerHTML='<h3>Ma logique</h3><p class="muted">Dessine ta lecture de la ferme, avec les bons termes.</p>'+itemList(CM.items,true)+'<button class="btn main" id="bSaveLC">💾 Enregistrer'+(dirty?" *":"")+'</button><div id="saveMsgC"></div><button class="btn" id="bBackC">⬅ Retour</button><h3>Légende</h3>'+LEGEND+creditC();
+ cmWireList(p);$("bSaveLC").onclick=async()=>{const{error}=await sb.from("fermes").update({logique:{items:CM.items}}).eq("id",CUR.id);msg("saveMsgC",error?"Erreur : "+error.message:"✅ Enregistré.",error?"err":"ok")};$("bBackC").onclick=()=>dash("fermes")}
+async function openRecusCarte(f,ids){CUR=f;const{data}=await sb.from("fermes").select("logique").eq("id",f.id).single(),logic=(data&&data.logique&&data.logique.items)||[];await cmInit(f);
+ const multi=ids.length>1,all=RECUS.slice();let idx=Math.max(0,all.findIndex(r=>r.id===ids[0])),withLogic=false;CM.readonly=true;CM.onChange=null;cmSetMode("move");
+ const draw=()=>{const cur=all[idx];CM.items=multi?[]:filteredItems((cur.contenu||{}).items||[]);CM.overlays=multi?all.map((r,i)=>({items:filteredItems((r.contenu||{}).items),color:RECUS_FREQ_FILTER==="all"?PEOPLE[i%PEOPLE.length]:null})):[];CM.logic=withLogic?logic:null;cmTools();cmTip();cmRender();
+  $("who").textContent="🧑‍🌾 "+f.nom+" · "+(multi?"tous superposés":cur.auteur);
+  const p=$("panelC");p.innerHTML=(multi?'<h3>Tous superposés</h3><div class="legend">'+all.map((r,i)=>'<div><span class="dot" style="background:'+PEOPLE[i%PEOPLE.length]+'"></span>'+esc(r.auteur)+'</div>').join("")+'</div>':'<h3>'+esc(cur.auteur)+'</h3><div class="row"><button class="btn small" id="cPrev">⬅</button><span class="muted">'+(idx+1)+' / '+all.length+'</span><button class="btn small" id="cNext">➡</button></div>'+itemList(filteredItems((cur.contenu||{}).items||[]),false))+
+   freqFilterBar()+'<button class="btn'+(withLogic?" on":"")+'" id="cWL">'+(withLogic?"🙈 Cacher":"👁️ Montrer")+' ma logique</button><button class="btn" id="cBk">⬅ Retour aux schémas</button>'+(multi?'':'<button class="btn small" id="cDel">🗑️ Supprimer ce schéma</button>');
+  wireFreqFilter(p,draw);$("cWL").onclick=()=>{withLogic=!withLogic;draw()};$("cBk").onclick=()=>{CM.overlays=[];CM.logic=null;dash("recus")};
+  if(!multi){$("cPrev").disabled=idx===0;$("cNext").disabled=idx===all.length-1;$("cPrev").onclick=()=>{idx--;draw()};$("cNext").onclick=()=>{idx++;draw()};$("cDel").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",cur.id);dash("recus")}}};
+ draw()}
+function itemsThumb(items){const pts=[];(items||[]).forEach(it=>{if(it.pts)it.pts.forEach(p=>pts.push(p));if(it.t==="note")pts.push([it.lng,it.lat])});
+ if(!pts.length)return'<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#e9ece6"/></svg>';
+ const lats=pts.map(p=>p[1]),lngs=pts.map(p=>p[0]),la0=Math.min(...lats),la1=Math.max(...lats),ln0=Math.min(...lngs),ln1=Math.max(...lngs),k=Math.cos(((la0+la1)/2)*Math.PI/180),w=Math.max((ln1-ln0)*k,1e-6),hh=Math.max(la1-la0,1e-6),s=Math.min(260/w,160/hh),ox=(300-w*s)/2,oy=(200-hh*s)/2;
+ const X=p=>(ox+(p[0]-ln0)*k*s).toFixed(1),Y=p=>(oy+(la1-p[1])*s).toFixed(1);let o='<svg viewBox="0 0 300 200"><rect width="300" height="200" fill="#dde6d9"/>';
+ (items||[]).forEach(it=>{const T=TYPES[it.t==="trace"?it.k:it.t]||TYPES.libre;
+  if(it.t==="zone"&&it.pts.length>2)o+='<polygon points="'+it.pts.map(p=>X(p)+","+Y(p)).join(" ")+'" fill="'+T.c+'" fill-opacity=".3" stroke="'+T.c+'" stroke-width="2"/>';
+  else if(it.t==="trace"&&it.pts.length>1)o+='<polyline points="'+it.pts.map(p=>X(p)+","+Y(p)).join(" ")+'" fill="none" stroke="'+T.c+'" stroke-width="3" stroke-linecap="round"/>';
+  else if(it.t==="note")o+='<circle cx="'+X([it.lng,it.lat])+'" cy="'+Y([it.lng,it.lat])+'" r="5" fill="'+T.c+'"/>'});
+ return o+'</svg>'}
+function copyLink(id){const url=location.origin+location.pathname+"#ferme="+id;const done=()=>alert("Lien copié :\n"+url+"\n\nEnvoie-le à tes stagiaires.");
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,()=>prompt("Copie ce lien :",url));else prompt("Copie ce lien :",url)}
+async function lienPage(id){await loadFermes();const f=FERMES.find(x=>x.id===id);if(!f){accueil();return}
+ show("vLien");$("lienNom").textContent=f.nom;$("lienPrenom").value=LS.get("prenom","");$("who").textContent="";
+ $("lienGo").onclick=()=>{const p=$("lienPrenom").value.trim();if(!p){msg("lienMsg","Écris d'abord ton prénom.","err");$("lienPrenom").focus();return}LS.set("prenom",p);openStudent(f)}}
+
+
+/* ---------- Visite guidée (3 écrans) ---------- */
+const TOUR=[["🔎","1. Regarde la ferme","Zoome avec la molette de la souris (ou deux doigts qui s'écartent sur le pavé). Clique et glisse pour déplacer la carte."],["✏️","2. Dessine ce que tu vois","Clique sur « Dessiner ». Maintiens le clic et trace une ligne ou un contour. Autre façon : clique point par point, puis double-clique pour finir. Ensuite, dis ce que c'est avec tes mots."],["📤","3. Envoie ton dessin","Quand tu as fini, clique sur « Envoyer à mon formateur ». Rien n'est envoyé avant. Tu peux modifier, puis renvoyer."]];
+function showTour(i){const t=TOUR[i];$("tour").hidden=false;$("tourBody").innerHTML='<div class="step">Étape '+(i+1)+' sur '+TOUR.length+'</div><div class="big" aria-hidden="true">'+t[0]+'</div><h3>'+esc(t[1])+'</h3><p>'+esc(t[2])+'</p>';
+ $("tPrev").disabled=i===0;$("tNext").textContent=i===TOUR.length-1?"✔ C'est parti !":"Suivant ➡";
+ $("tPrev").onclick=()=>showTour(i-1);$("tNext").onclick=()=>{if(i===TOUR.length-1)closeTour();else showTour(i+1)};$("tSkip").onclick=closeTour;$("tNext").focus()}
+function closeTour(){$("tour").hidden=true;LS.set("tour_ok",true)}
+$("btnHelp").onclick=()=>showTour(0);
+
+/* ---------- Navigation ---------- */
+$("btnHome").onclick=()=>{if(location.hash.startsWith("#formateur"))dash();else{clearInterval(pollT);if(location.hash.startsWith("#ferme=")){location.hash="";accueil()}else accueil()}};
+$("btnLogin").onclick=login;$("btnSignup").onclick=signup;
+$("btnLogout").onclick=async()=>{await sb.auth.signOut();location.hash="";accueil()};
+$("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;
+document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+function route(){const m=/^#ferme=([0-9a-f-]{36})/i.exec(location.hash);if(location.hash.startsWith("#formateur"))dash();else if(m)lienPage(m[1]);else accueil()}
+window.addEventListener("hashchange",route);route();
+</script></body></html>
