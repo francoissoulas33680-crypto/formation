@@ -98,12 +98,12 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <!-- ÉLÈVE : connexion simple -->
 <section class="view center" id="vAccueil"><div class="box">
 <h2>👋 Mon espace stagiaire</h2>
-<p class="muted">Première connexion ou nouvel appareil : entre ton prénom et ton e-mail. Tu recevras un lien d’accès. Ensuite, ta session restera ouverte sur cet appareil tant que tu ne te déconnectes pas.</p>
+<p class="muted">Première connexion ou nouvel appareil : entre ton prénom et ton e-mail. Tu recevras un lien d’accès. Ensuite, tu resteras connecté sur cet appareil tant que tu ne te déconnectes pas.</p>
 <label class="f">Ton prénom<input id="inPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
 <label class="f">Ton e-mail<input id="inStudentMail" type="email" autocomplete="email" placeholder="ex. camille@email.fr"></label>
 <button class="btn main" id="btnStudentLink">📩 Recevoir mon lien de connexion</button>
 <div id="studentLoginMsg"></div>
-<p class="muted">Déjà connecté sur cet appareil ? Ton espace s’ouvrira automatiquement.</p>
+<p class="muted">Déjà connecté sur cet appareil ? Ton espace s'ouvrira automatiquement.</p>
 <p class="muted"><a href="#formateur" style="color:var(--muted)">Espace formateur</a></p>
 </div></section>
 
@@ -113,7 +113,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <div><h2 style="margin-bottom:4px">🎓 Mon espace de formation</h2><p class="muted" id="studentIdentity"></p></div>
 <button class="btn small" id="btnStudentLogout">Se déconnecter</button>
 </div>
-<div class="msg ok"><b>Ta progression est enregistrée dans ton compte.</b><br>Sur cet appareil, tu resteras connecté jusqu’à ce que tu choisisses « Se déconnecter ». Sur un nouvel appareil, il suffira de refaire la connexion par e-mail.</div>
+<div class="msg ok"><b>Ta progression est enregistrée.</b><br>Tu peux fermer le navigateur et revenir plus tard : ton accès reste ouvert sur cet appareil tant que tu ne choisis pas « Se déconnecter ».</div>
 <h3>Mon parcours</h3>
 <div class="grid" id="studentFarms"></div>
 <h3>Mon historique</h3>
@@ -139,7 +139,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <!-- Lien direct vers une ferme -->
 <section class="view center" id="vLien"><div class="box">
 <h2 id="lienNom">Ferme</h2>
-<p class="muted">Première connexion ou nouvel appareil : utilise ton e-mail. Ensuite, tu resteras connecté sur cet appareil jusqu’à déconnexion.</p>
+<p class="muted">Première connexion ou nouvel appareil : utilise ton e-mail. Ensuite, ton accès restera ouvert sur cet appareil jusqu’à déconnexion.</p>
 <label class="f">Ton prénom<input id="lienPrenom" maxlength="60" autocomplete="given-name" placeholder="ex. Camille"></label>
 <label class="f">Ton e-mail<input id="lienMail" type="email" autocomplete="email" placeholder="ex. camille@email.fr"></label>
 <button class="btn main" id="lienGo">📩 Recevoir mon lien et commencer</button>
@@ -230,14 +230,7 @@ async function askFreq(){
 
 const PEOPLE=["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032e6","#9a6324","#469990","#800000"];
 /* ====================== */
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{
- auth:{
-  persistSession:true,
-  autoRefreshToken:true,
-  detectSessionInUrl:true,
-  storage:window.localStorage
- }
-});
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 let STUDENT_USER=null;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -350,8 +343,7 @@ function isStudentUser(u){
 }
 async function accueil(){
  clearInterval(pollT);
- const{data}=await sb.auth.getSession();
- const u=data&&data.session&&data.session.user;
+ const u=await getCurrentUser();
  if(u && (u.user_metadata&&u.user_metadata.role)==="trainer"){location.hash="#formateur";return dash()}
  if(u){
   STUDENT_USER=u;
@@ -374,12 +366,11 @@ async function sendStudentMagicLink(farmId=null,fromDirect=false){
  LS.set("pending_student_login",{prenom,email,farmId:farmId||null});
  let redirect=location.origin+location.pathname+"?student=1";
  if(farmId)redirect+="&farm="+encodeURIComponent(farmId);
- const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:redirect,shouldCreateUser:true,data:{role:"student",prenom}}});
- msg(msgId,error?("Impossible d'envoyer le lien : "+error.message):"✅ Lien envoyé. Ouvre ton e-mail et clique dessus. Ensuite, tu resteras connecté sur cet appareil tant que tu ne te déconnectes pas.",error?"err":"ok")
+ const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:redirect,data:{role:"student",prenom}}});
+ msg(msgId,error?("Impossible d'envoyer le lien : "+error.message):"✅ Lien envoyé. Ouvre ton e-mail et clique dessus. Ensuite, tu resteras connecté sur cet appareil jusqu’à ce que tu choisisses « Se déconnecter ».",error?"err":"ok")
 }
 async function studentDash(){
- const{data:sessionData}=await sb.auth.getSession();
- const u=STUDENT_USER||(sessionData&&sessionData.session&&sessionData.session.user)||await getCurrentUser();if(!u){return accueil()}
+ const u=STUDENT_USER||await getCurrentUser();if(!u){return accueil()}
  STUDENT_USER=u;show("vEleveDash");
  const prenom=(u.user_metadata&&u.user_metadata.prenom)||studentName()||"";
  $("who").textContent="👤 "+(prenom||u.email);
@@ -944,7 +935,7 @@ $("btnHelp").onclick=()=>showTour(0);
 $("btnHome").onclick=()=>{clearInterval(pollT);if(location.hash.startsWith("#formateur"))dash();else studentDash()};
 $("btnLogin").onclick=login;$("btnSignup").onclick=signup;
 $("btnStudentLink").onclick=()=>sendStudentMagicLink(null,false);
-$("btnStudentLogout").onclick=async()=>{await sb.auth.signOut({scope:"local"});STUDENT_USER=null;location.hash="";accueil()};
+$("btnStudentLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;location.hash="";accueil()};
 $("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
@@ -974,12 +965,14 @@ async function route(){
  if(m)return lienPage(m[1]);
  return accueil()
 }
-window.addEventListener("hashchange",()=>route());
+// Sécurité d'affichage : on montre immédiatement l'accueil pendant la vérification de session.
+if(!location.hash.startsWith("#formateur")&&!location.hash.startsWith("#ferme="))show("vAccueil");
+window.addEventListener("hashchange",()=>route().catch(e=>{console.error(e);show("vAccueil")}));
 sb.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_IN" && session && !location.hash.startsWith("#formateur") && !new URLSearchParams(location.search).get("student")){
   const role=session.user&&session.user.user_metadata&&session.user.user_metadata.role;
   if(role==="student"){STUDENT_USER=session.user;studentDash()}
  }
 });
-route();
+route().catch(e=>{console.error("Erreur démarrage :",e);show("vAccueil");msg("studentLoginMsg","Une erreur de démarrage est survenue. Recharge la page ou utilise l’espace formateur.","err")});
 </script></body></html>
