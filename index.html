@@ -330,6 +330,7 @@ const PEOPLE=["#e6194b","#3cb44b","#4363d8","#f58231","#911eb4","#42d4f4","#f032
 const sb=window.supabase?window.supabase.createClient(SUPA_URL,SUPA_KEY):null;
 if(!sb){const el=document.getElementById("studentLoginMsg");if(el)el.innerHTML='<div class="msg err"><b>Supabase ne s’est pas chargé.</b> Recharge la page. Si le message reste affiché, envoie-moi une capture.</div>'; }
 let STUDENT_USER=null;
+let STUDENT_VALID_SIG="";
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -350,7 +351,26 @@ function startStudentSession(name,fid){
  setStudentName(name);SS.set("student_farm",fid)
 }
 
-function show(id){document.querySelectorAll(".view").forEach(v=>v.classList.toggle("show",v.id===id));$("btnHome").hidden=id==="vAccueil"||id==="vLogin"||id==="vLien";$("btnHelp").hidden=true}
+let NAV_RESTORING=false;
+function navSnapshot(viewId){
+ const s={...(history.state||{}),teaApp:true,teaView:viewId||document.querySelector(".view.show")?.id||"vAccueil",teaWho:$("who")?$("who").textContent:""};
+ history.replaceState(s,"",location.href)
+}
+function show(id,opt){
+ opt=opt||{};
+ const current=document.querySelector(".view.show")?.id||null;
+ if(!NAV_RESTORING&&!opt.noHistory){
+  if(current){
+   navSnapshot(current);
+   if(current!==id)history.pushState({teaApp:true,teaView:id,teaWho:""},"",location.href)
+  }else if(!(history.state&&history.state.teaApp)){
+   history.replaceState({teaApp:true,teaView:id,teaWho:""},"",location.href)
+  }
+ }
+ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("show",v.id===id));
+ $("btnHome").hidden=id==="vAccueil"||id==="vLogin"||id==="vLien";
+ $("btnHelp").hidden=true
+}
 function ask(label,val=""){return new Promise(res=>{const d=$("dlg");$("dlgLab").textContent=label;$("dlgIn").value=val;d.returnValue="";d.showModal();$("dlgIn").focus();d.onclose=()=>res(d.returnValue==="ok"?$("dlgIn").value.trim():null)})}
 function msg(el,t,cls){$(el).innerHTML=t?'<div class="msg '+(cls||"")+'">'+esc(t)+'</div>':""}
 
@@ -483,6 +503,7 @@ async function studentDash(){
  let history=[];
  const{data,error}=await sb.from("schemas").select("id,ferme_id,created_at,contenu").eq("user_id",u.id).order("created_at",{ascending:false});
  if(!error)history=data||[];
+ STUDENT_VALID_SIG=history.map(h=>h.id+":"+((h.contenu&&h.contenu.validated)?"1":"0")).sort().join("|");
  const counts={},validated={};history.forEach(h=>{const ex=(h.contenu&&h.contenu.exercise)||"ex1",k=h.ferme_id+":"+ex;counts[k]=(counts[k]||0)+1;if(h.contenu&&h.contenu.validated)validated[k]=true});
  $("studentFarms").innerHTML=FERMES.map(f=>{
   const n1=counts[f.id+":ex1"]||0,n2=counts[f.id+":ex2"]||0,n3=counts[f.id+":ex3"]||0,n4=counts[f.id+":ex4"]||0;
@@ -511,9 +532,23 @@ async function studentDash(){
  if($("labMini"))$("labMini").classList.toggle("active",globalDone);
  $("studentLab").innerHTML=globalDone?
   '<div class="labUnlock"><div><div class="labIcon">🔓</div><h3>Mon laboratoire de diagnostic</h3><p>Les 4 outils sont acquis. Tu peux maintenant enquêter librement sur une nouvelle ferme.</p></div><button class="btn main" id="newDiagBtn">🔎 Nouvelle analyse</button></div>':
-  '<div class="labLocked"><div class="labIcon">🔒</div><div><h3>Laboratoire de diagnostic</h3><p>Il se débloque lorsque les 4 exercices ont été validés par le formateur.</p><small>Encore à faire : '+missing.map(x=>({ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"}[x])).join(" · ")+'</small></div></div>';
+  '<div class="labLocked"><div class="labIcon">🔒</div><div style="flex:1"><h3>Laboratoire de diagnostic</h3><p>Il se débloque lorsque les 4 exercices ont été validés par le formateur.</p><small>Encore à valider : '+missing.map(x=>({ex1:"Organisation",ex2:"Eau",ex3:"Déplacements",ex4:"Charges"}[x])).join(" · ")+'</small><div style="margin-top:10px"><button class="btn small" id="studentRefreshValid">🔄 Vérifier mes validations</button></div></div></div>';
  if(globalDone)$("newDiagBtn").onclick=()=>newDiagnostic();
- const diags=await diagList();renderDiagnosticCards(diags,globalDone)
+ if($("studentRefreshValid"))$("studentRefreshValid").onclick=()=>studentDash();
+ const diags=await diagList();renderDiagnosticCards(diags,globalDone);
+
+ // Vérifie automatiquement si le formateur vient de valider depuis un autre appareil.
+ clearInterval(pollT);
+ pollT=setInterval(async()=>{
+  if(!$("vEleveDash")||!$("vEleveDash").classList.contains("show")||!STUDENT_USER)return;
+  const {data:vh,error:ve}=await sb.from("schemas").select("id,contenu").eq("user_id",STUDENT_USER.id);
+  if(ve)return;
+  const sig=(vh||[]).map(h=>h.id+":"+((h.contenu&&h.contenu.validated)?"1":"0")).sort().join("|");
+  if(sig!==STUDENT_VALID_SIG){
+   STUDENT_VALID_SIG=sig;
+   await studentDash()
+  }
+ },8000)
 }
 async function eleve(f){CUR=f;show("vTravail");$("who").textContent="👤 "+studentName()+" · "+f.nom;
  ED.readonly=false;ED.tool=null;ED.draft=[];ED.overlay=null;ED.items=LS.get(studentSchemaKey(f.id,"ex1"),[]);ED.onChange=()=>{LS.set(studentSchemaKey(f.id,"ex1"),ED.items);panelEleve()};ED.refreshPanel=panelEleve;
@@ -854,24 +889,33 @@ function refreshValidationToolbar(){
  document.querySelectorAll(".receivedWrap").forEach(w=>w.classList.toggle("selected",RECUS_SELECTED.has(w.dataset.wrapId)))
 }
 
+async function persistSchemaValidation(r,validated){
+ const c={...(r.contenu||{}),validated:!!validated,validated_at:validated?new Date().toISOString():null};
+ const {data,error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id).select("id,contenu");
+ if(error)return {ok:false,error};
+ if(!data||!data.length){
+  return {ok:false,error:{code:"VALIDATION_NOT_PERSISTED",message:"La base n’a modifié aucune ligne. La règle RLS de la table schemas bloque probablement la validation du formateur."}}
+ }
+ r.contenu=data[0].contenu||c;
+ return {ok:true}
+}
 async function validateSchemaRows(ids){
  const rows=RECUS.filter(r=>ids.includes(r.id));
  if(!rows.length)return {ok:0,errors:[]};
  let ok=0,errors=[];
  for(const r of rows){
-  const c={...(r.contenu||{}),validated:true,validated_at:new Date().toISOString()};
-  const {error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id);
-  if(error)errors.push({id:r.id,auteur:r.auteur,error});
-  else {r.contenu=c;ok++}
+  const res=await persistSchemaValidation(r,true);
+  if(!res.ok)errors.push({id:r.id,auteur:r.auteur,error:res.error});
+  else ok++
  }
  return {ok,errors}
 }
 
 function validationErrorText(err){
  const raw=String((err&&err.message)||err||"Erreur inconnue");
- const rls=/row.level|policy|permission|not authorized|42501/i.test(raw);
+ const rls=(err&&err.code==="VALIDATION_NOT_PERSISTED")||/row.level|policy|permission|not authorized|42501/i.test(raw);
  return rls
-  ? "Supabase refuse la modification de la table schemas. Cela ressemble à une règle RLS manquante pour le compte formateur. Message : "+raw
+  ? "La validation n’est pas enregistrée dans Supabase. La règle RLS de la table schemas empêche probablement le formateur de modifier l’envoi du stagiaire. Applique le SQL V26 fourni avec cette version, puis réessaie. Détail : "+raw
   : "Validation impossible : "+raw
 }
 
@@ -879,7 +923,7 @@ async function loadRecus(){
  const fid=$("selFerme").value;
  if(!fid){$("mosaique").innerHTML="";if($("validationBar"))$("validationBar").hidden=true;return}
  const f=FERMES.find(x=>x.id===fid),ex=$("selExercise")?$("selExercise").value:"ex1";
- const{data,error}=await sb.from("schemas").select("id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");
+ const{data,error}=await sb.from("schemas").select("id,user_id,auteur,contenu,created_at").eq("ferme_id",fid).order("created_at");
  RECUS=error?[]:(data||[]).filter(r=>((r.contenu&&r.contenu.exercise)||"ex1")===ex);
  RECUS_SELECTED=new Set();
 
@@ -914,17 +958,15 @@ async function loadRecus(){
 
  $("mosaique").querySelectorAll("[data-validate-r]").forEach(b=>b.onclick=async()=>{
   const r=RECUS.find(x=>x.id===b.dataset.validateR);if(!r)return;
-  const c={...(r.contenu||{})},nv=!c.validated;
-  c.validated=nv;c.validated_at=nv?new Date().toISOString():null;
+  const nv=!(r.contenu&&r.contenu.validated);
   b.disabled=true;
-  const{error}=await sb.from("schemas").update({contenu:c}).eq("id",r.id);
+  const res=await persistSchemaValidation(r,nv);
   b.disabled=false;
-  if(error){
-   msg("validationRecusMsg",validationErrorText(error),"err");
+  if(!res.ok){
+   msg("validationRecusMsg",validationErrorText(res.error),"err");
    return
   }
-  r.contenu=c;
-  msg("validationRecusMsg",nv?"✅ Présentation validée.":"↩ Validation annulée.","ok");
+  msg("validationRecusMsg",nv?"✅ Présentation réellement validée dans Supabase.":"↩ Validation annulée.","ok");
   await loadRecus()
  });
 
@@ -1893,6 +1935,16 @@ async function route(){
  if(m)return lienPage(m[1]);
  return accueil()
 }
+window.addEventListener("popstate",e=>{
+ if(e.state&&e.state.teaApp&&e.state.teaView){
+  NAV_RESTORING=true;
+  show(e.state.teaView,{noHistory:true});
+  if($("who")&&e.state.teaWho!==undefined)$("who").textContent=e.state.teaWho||"";
+  NAV_RESTORING=false;
+  return
+ }
+ route()
+});
 window.addEventListener("hashchange",()=>route());
 if(sb)sb.auth.onAuthStateChange((event,session)=>{
  if(event==="SIGNED_IN" && session && !location.hash.startsWith("#formateur") && !new URLSearchParams(location.search).get("student")){
@@ -1900,5 +1952,6 @@ if(sb)sb.auth.onAuthStateChange((event,session)=>{
   if(role==="student"){STUDENT_USER=session.user;studentDash()}
  }
 });
+if(!(history.state&&history.state.teaApp))history.replaceState({teaApp:true,teaView:document.querySelector(".view.show")?.id||"vAccueil",teaWho:$("who")?$("who").textContent:""},"",location.href);
 route().catch(e=>{console.error(e);show("vAccueil");msg("studentLoginMsg","Erreur au démarrage : "+(e.message||e),"err")});
 </script></body></html>
