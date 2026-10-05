@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>V37 — TEA Saint-Loup — Espace formation</title>
+<title>V39 — TEA Saint-Loup — Espace formation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -222,6 +222,67 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .importBox input[type=file]{max-width:100%}.waitingCard{border-style:dashed;opacity:.72;justify-content:center;min-height:120px}.privateTag{font-size:12px;color:var(--muted)}
 @media(max-width:820px){.roomWrap{grid-template-columns:1fr}.seatGrid{grid-template-columns:repeat(2,minmax(100px,1fr))}.m1TrainerCards{grid-template-columns:1fr 1fr}.debriefQ{grid-template-columns:44px 1fr}.debriefQ .btn{grid-column:1/-1}}
 @media(max-width:520px){.m1TrainerCards{grid-template-columns:1fr}.seatGrid{grid-template-columns:1fr 1fr}}
+
+
+/* ===== V39 — DIRECTION ARTISTIQUE =====
+   Refonte visuelle uniquement : logique métier et pédagogie inchangées.
+   Référence : interface sobre, dense, fonctionnelle, cartes claires et accents de couleur. */
+:root{
+ --bg:#f3f5f2;--paper:#ffffff;--ink:#17211c;--muted:#69746e;--line:#dfe5e1;
+ --shade:#17211c;--accent:#287a55;--accent-soft:#e9f3ed;--nav:#17251f;
+ --panel:#fff;--border:#dfe5e1;--text:#17211c;--accentSoft:#e9f3ed;
+ --radius:10px;--shadow:0 1px 2px rgba(18,33,25,.06),0 5px 18px rgba(18,33,25,.045)
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --bg:#101713;--paper:#18221d;--ink:#edf3ef;--muted:#a5b1aa;--line:#314039;
+ --shade:#0b100d;--accent:#63bd89;--accent-soft:#1d3528;--nav:#0b100d;
+ --panel:#18221d;--border:#314039;--text:#edf3ef;--accentSoft:#1d3528;
+ --shadow:0 1px 2px rgba(0,0,0,.25),0 8px 22px rgba(0,0,0,.18)
+}}
+:root[data-theme="dark"]{
+ --bg:#101713;--paper:#18221d;--ink:#edf3ef;--muted:#a5b1aa;--line:#314039;
+ --shade:#0b100d;--accent:#63bd89;--accent-soft:#1d3528;--nav:#0b100d;
+ --panel:#18221d;--border:#314039;--text:#edf3ef;--accentSoft:#1d3528;
+ --shadow:0 1px 2px rgba(0,0,0,.25),0 8px 22px rgba(0,0,0,.18)
+}
+body{font-family:Lexend,"Segoe UI",Arial,sans-serif;font-size:16px;line-height:1.45;background:var(--bg)}
+header{min-height:58px;padding:9px 18px;background:var(--nav);color:#f7faf8;border:0;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 2px 10px rgba(0,0,0,.08)}
+header h1{font-size:18px;letter-spacing:-.015em} header .who{color:#b9c8c0}
+header .btn{background:transparent;color:#f7faf8;border-color:rgba(255,255,255,.25);box-shadow:none}
+header .btn:hover{background:rgba(255,255,255,.08)}
+.center{padding:28px 18px}.box{gap:18px}.box h2{font-size:25px;letter-spacing:-.025em}
+.btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:10px 15px;font-size:15px;font-weight:600;box-shadow:none;transition:background .15s ease,border-color .15s ease,transform .08s ease}
+.btn:hover{background:#f7f9f7;border-color:#c8d2cc}.btn:active{transform:translateY(1px);box-shadow:none}
+.btn.main{background:var(--accent);border-color:var(--accent);color:#fff}.btn.main:hover{filter:brightness(.95)}
+.btn.on{background:var(--nav);border-color:var(--nav);color:#fff}.btn.small{padding:6px 10px;font-size:13px;box-shadow:none}
+.btn.danger{border-color:#e3b9b5;color:#a43a31;background:#fff}.btn.danger:hover{background:#fff4f3;border-color:#d79a94}
+label.f{gap:7px;font-size:14px}label.f input,label.f select,.row input,#sheetC input{border:1px solid var(--line);border-radius:8px;padding:10px 11px;outline:none}
+label.f input:focus,label.f select:focus,.row input:focus,#sheetC input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 13%,transparent)}
+.card{border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card .t{padding:11px 12px 6px}.card .s{padding:0 12px 11px}.grid{gap:12px}
+.moduleHero,.traineeCard,.roomPool,.roomPlan,.groupBox,.debriefQ,.m1TrainerCard,.exMini,.importBox{border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);background:var(--paper)}
+.moduleHero{padding:18px;border-left:4px solid var(--accent)}.moduleHero h3{font-size:20px}
+.exerciseStrip{gap:8px}.exMini{min-height:82px;padding:11px}.exMini.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent),var(--shadow);background:var(--accent-soft)}
+.trainerTop{gap:6px;padding:9px 0 11px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(10px)}
+.trainerTop .btn{box-shadow:none}.trainerSection{gap:14px}.trainerGrid{gap:10px}
+.traineeCard{padding:14px}.traineeCard h3{font-size:18px;letter-spacing:-.015em}.traineeMeta{gap:5px}
+.pill{border:0;border-radius:999px;padding:4px 8px;font-size:12px;background:#edf2ef;color:#4d5c54}
+.traineeNote,.debriefNotes{border:1px solid var(--line);border-radius:8px;padding:10px;outline:none}.traineeNote:focus,.debriefNotes:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 13%,transparent)}
+.roomWrap{gap:10px}.seatGrid{gap:8px}.seat{border:1px dashed #bfcac3;border-radius:8px;background:#f7f9f7}.dragPerson{border:1px solid var(--line);border-radius:8px;box-shadow:none;padding:8px 9px;background:#fff}.dragPerson:hover{border-color:var(--accent)}
+.groupBox{padding:14px}.groupNames{font-size:18px}.debriefQ{padding:14px}.debriefQ .num{width:34px;height:34px;border-radius:8px;background:var(--accent);font-size:14px}.debriefQ h3{font-size:18px}
+.m1TrainerCards{gap:8px}.m1TrainerCard{padding:13px}.m1TrainerCard h3{font-size:17px}.m1SubTabs{border-top:1px solid var(--line)}
+.validationBar,.receivedSelect,.validationDiagRow,.modelCard,.measureSummary span{border-color:var(--line);box-shadow:none}.receivedWrap.selected{outline:2px solid color-mix(in srgb,var(--accent) 28%,transparent)}
+.kpi{border:1px solid var(--line);border-radius:8px;background:#f8faf8}.kpi b{font-size:18px}.ex2item{border-color:var(--line);border-radius:8px}
+.msg{border:1px solid #e4d6a7;border-radius:8px;box-shadow:none}.msg.ok{border-color:#b8d8c2}.msg.err{border-color:#e5b5b0}
+dialog{border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.22)}
+aside{border-left:1px solid var(--line)}ul.items li{border-color:var(--line);border-radius:8px}
+.tip span{border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow)}
+#sheetC{border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.14)}
+.types button{border:1px solid var(--line);border-radius:8px}.types button.on{border-color:var(--c)}
+#mb{border:1px solid var(--line);border-radius:9px}.mapSearchBox{border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12)}.mapSearchRow input{border:1px solid var(--line);border-radius:8px}
+.moduleTabs{gap:8px}.moduleTab{border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}.moduleTab.on{outline:0;border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.tourbox{border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.24)}
+@media(max-width:650px){header{padding:8px 12px}header h1{font-size:16px}.center{padding:18px 12px}.trainerTop{top:0}.btn{min-height:40px}.box h2{font-size:22px}}
 
 </style></head><body>
 <header>
