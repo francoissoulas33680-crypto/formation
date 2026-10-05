@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>V35 — Lire une ferme vue du ciel</title>
+<title>V37 — TEA Saint-Loup — Espace formation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -193,6 +193,35 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .moduleTab.on{outline:2px solid var(--accent);background:var(--accentSoft)}
 @media(max-width:620px){.moduleTabs{grid-template-columns:1fr}.moduleTab{min-height:64px}#studentTreeFrame{height:1180px!important}}
 
+
+
+/* ===== V37 — PUPITRE FORMATEUR SIMPLIFIÉ ===== */
+.trainerTop{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:30;background:var(--bg);padding:8px 0 10px;border-bottom:2px solid var(--line)}
+.trainerTop .btn{box-shadow:2px 2px 0 var(--shade)}
+.trainerSection{display:flex;flex-direction:column;gap:16px}
+.trainerGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.traineeCard{border:2px solid var(--line);border-radius:14px;background:var(--paper);padding:13px;display:flex;flex-direction:column;gap:8px}
+.traineeCard h3{margin:0;font-size:20px}.traineeCard p{margin:0}.traineeCard summary{cursor:pointer;font-weight:700}
+.traineeMeta{display:flex;flex-wrap:wrap;gap:6px}.pill{border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:13px;background:var(--bg)}
+.traineeNote{width:100%;min-height:70px;padding:9px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit;resize:vertical}
+.roomWrap{display:grid;grid-template-columns:minmax(210px,.7fr) minmax(360px,1.3fr);gap:14px}
+.roomPool,.roomPlan{border:2px solid var(--line);border-radius:14px;background:var(--paper);padding:12px}
+.roomPool h3,.roomPlan h3{margin:0 0 10px}.seatGrid{display:grid;grid-template-columns:repeat(4,minmax(80px,1fr));gap:10px;min-height:240px}
+.seat{border:2px dashed var(--line);border-radius:12px;min-height:74px;padding:7px;display:flex;align-items:center;justify-content:center;background:var(--bg);text-align:center}
+.seat::before{content:attr(data-seat-label);color:var(--muted);font-size:12px;position:absolute;opacity:0}.seat.dragover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--paper))}
+.dragPerson{border:2px solid var(--shade);border-radius:10px;background:var(--paper);padding:8px 10px;box-shadow:2px 2px 0 var(--shade);cursor:grab;font-weight:700;margin:6px 0;user-select:none}
+.dragPerson small{display:block;color:var(--muted);font-weight:400;margin-top:2px}.dragPerson:active{cursor:grabbing}
+.groupBox{border:2px solid var(--shade);border-radius:14px;padding:13px;background:var(--paper);box-shadow:3px 3px 0 var(--shade)}
+.groupBox h3{margin:0 0 8px}.groupNames{font-size:20px;font-weight:700}.groupWhy{color:var(--muted);font-size:14px;margin-top:6px}
+.debriefQ{border:2px solid var(--line);border-radius:14px;padding:15px;background:var(--paper);display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center}
+.debriefQ .num{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--paper);font-weight:700}.debriefQ h3{margin:0;font-size:20px}.debriefQ p{margin:3px 0 0;color:var(--muted)}
+.debriefNotes{width:100%;min-height:150px;padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);font:inherit;resize:vertical}
+.m1TrainerCards{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px}.m1TrainerCard{border:2px solid var(--line);border-radius:14px;padding:12px;background:var(--paper);display:flex;flex-direction:column;gap:8px}.m1TrainerCard h3{margin:0;font-size:18px}.m1TrainerCard p{margin:0;color:var(--muted);font-size:14px}.m1TrainerCard .question{color:var(--ink);font-weight:700;font-size:16px}.m1SubTabs{display:flex;gap:8px;flex-wrap:wrap;border-top:2px solid var(--line);padding-top:14px}
+.importBox{border:1px dashed var(--line);border-radius:12px;padding:10px;background:var(--bg)}
+.importBox input[type=file]{max-width:100%}.waitingCard{border-style:dashed;opacity:.72;justify-content:center;min-height:120px}.privateTag{font-size:12px;color:var(--muted)}
+@media(max-width:820px){.roomWrap{grid-template-columns:1fr}.seatGrid{grid-template-columns:repeat(2,minmax(100px,1fr))}.m1TrainerCards{grid-template-columns:1fr 1fr}.debriefQ{grid-template-columns:44px 1fr}.debriefQ .btn{grid-column:1/-1}}
+@media(max-width:520px){.m1TrainerCards{grid-template-columns:1fr}.seatGrid{grid-template-columns:1fr 1fr}}
+
 </style></head><body>
 <header>
 <h1>🛰️ Lire une ferme vue du ciel</h1>
@@ -321,10 +350,49 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <div id="loginMsg"></div>
 </div></section>
 
-<!-- FORMATEUR : tableau de bord -->
-<section class="view center" id="vDash"><div class="box" style="max-width:1100px">
-<div class="tabs"><button class="btn on" data-tab="fermes">🗺️ Mes fermes</button><button class="btn" data-tab="recus">📨 Schémas reçus</button><button class="btn" data-tab="module2">🌳 Module 2</button><button class="btn small" id="btnLogout">Se déconnecter</button></div>
-<div id="tabFermes">
+<!-- FORMATEUR : tableau de bord V37 -->
+<section class="view center" id="vDash"><div class="box" style="max-width:1180px">
+<div class="trainerTop">
+  <button class="btn on" data-tab="accueil">👥 Accueil</button>
+  <button class="btn" data-tab="debrief">🚜 Débrief</button>
+  <button class="btn" data-tab="module1">🛰️ Module 1</button>
+  <button class="btn" data-tab="module2">🌳 Module 2</button>
+  <button class="btn small" id="btnLogout" style="margin-left:auto">Se déconnecter</button>
+</div>
+
+<div id="tabAccueil" class="trainerSection">
+  <div class="moduleHero"><h2>👥 Accueil de la journée</h2><p>Fiches projet, plan de salle, notes formateur et proposition de groupes. Ces informations restent dans ta vue formateur.</p></div>
+  <div class="row" style="justify-content:space-between"><div><b id="traineeCount">6 réponses sur 8</b><div class="muted">Les informations personnelles sensibles ne sont pas reprises ici.</div></div><button class="btn" id="btnResetTrainees">↺ Revenir aux 6 réponses actuelles</button></div>
+  <div class="importBox"><b>Actualiser quand les 2 dernières réponses arrivent</b><div class="muted">Télécharge le nouveau CSV du questionnaire puis importe-le ici : les fiches et les groupes seront recalculés.</div><div class="row" style="margin-top:8px"><input id="traineeCsv" type="file" accept=".csv,text/csv"><button class="btn small" id="btnImportTrainees">Importer le CSV</button></div><div id="traineeImportMsg"></div></div>
+  <div class="trainerGrid" id="traineeCards"></div>
+  <div class="roomWrap">
+    <div class="roomPool"><h3>🧑‍🌾 À placer</h3><p class="muted">Glisse les prénoms pour reproduire la salle.</p><div id="roomPool"></div><button class="btn small" id="btnResetSeats">Réinitialiser le plan</button></div>
+    <div class="roomPlan"><h3>🪑 Plan de salle</h3><div class="seatGrid" id="seatGrid"></div></div>
+  </div>
+  <div class="moduleHero"><h3>✨ Proposition de groupes</h3><p>La proposition cherche à mélanger les niveaux d'expérience et à faire dialoguer des projets différents.</p></div>
+  <div class="row"><button class="btn main" id="btnGroups">✨ Proposer les groupes</button><button class="btn" id="btnGroupsAgain">🔄 Autre proposition</button><span class="muted" id="groupStatus"></span></div>
+  <div class="trainerGrid" id="groupResults"></div>
+</div>
+
+<div id="tabDebrief" class="trainerSection" hidden>
+  <div class="moduleHero"><h2>🚜 Débrief de la visite</h2><p>10 à 15 minutes. Un échange oral simple avant de passer au Module 1.</p></div>
+  <div class="debriefQ"><div class="num">1</div><div><h3>Qu'est-ce qui vous a marqué pendant la visite ?</h3><p>Laisser parler librement.</p></div><button class="btn main" data-project-question="Qu’est-ce qui vous a marqué pendant la visite ?" data-project-kicker="DÉBRIEF DE LA VISITE">📽️ Projeter</button></div>
+  <div class="debriefQ"><div class="num">2</div><div><h3>Qu'est-ce que vous avez découvert ou appris ?</h3><p>Relances possibles : organisation · irrigation · serres · pépinière · déplacements · plan de culture · commercialisation.</p></div><button class="btn main" data-project-question="Qu’est-ce que vous avez découvert ou appris ?" data-project-kicker="DÉBRIEF DE LA VISITE">📽️ Projeter</button></div>
+  <div class="debriefQ"><div class="num">3</div><div><h3>Si vous deviez visiter une autre ferme demain, à quoi feriez-vous davantage attention ?</h3><p>Récupérer quelques réponses puis enchaîner.</p></div><button class="btn main" data-project-question="Si vous deviez visiter une autre ferme demain, à quoi feriez-vous davantage attention ?" data-project-kicker="DÉBRIEF DE LA VISITE">📽️ Projeter</button></div>
+  <label class="f">📝 Mes notes<textarea class="debriefNotes" id="debriefNotes" placeholder="Quelques mots-clés suffisent…"></textarea></label>
+  <div class="row"><button class="btn" id="btnSaveDebrief">💾 Enregistrer mes notes</button><button class="btn main" id="btnGoModule1">→ Passer au Module 1</button><span class="muted" id="debriefSaved"></span></div>
+</div>
+
+<div id="tabModule1" class="trainerSection" hidden>
+  <div class="moduleHero"><h2>🛰️ Module 1 — Lire une ferme vue du ciel</h2><p>Observer → faire une hypothèse → représenter → confronter. Les quatre exercices restent ceux déjà construits.</p></div>
+  <div class="m1TrainerCards">
+    <div class="m1TrainerCard"><h3>1 · 🟢 Organisation</h3><div class="question">Où va-t-on tous les jours ?</div><p>À faire émerger : fréquence de visite, proximité, organisation globale.</p><div class="row"><button class="btn small" data-project-question="Où va-t-on tous les jours ?" data-project-kicker="MODULE 1 · ORGANISATION">📽️ Question</button><button class="btn small" data-m1-ex="ex1">Productions</button></div></div>
+    <div class="m1TrainerCard"><h3>2 · 💧 Eau</h3><div class="question">D'où vient l'eau, où va-t-elle ?</div><p>À faire émerger : source, stockage, réseau, relief, points à vérifier.</p><div class="row"><button class="btn small" data-project-question="D’où vient l’eau, où va-t-elle ?" data-project-kicker="MODULE 1 · EAU">📽️ Question</button><button class="btn small" data-m1-ex="ex2">Productions</button></div></div>
+    <div class="m1TrainerCard"><h3>3 · 🚶 Déplacements</h3><div class="question">Combien de pas pour vendre une salade ?</div><p>À faire émerger : trajets, reprises, déplacements inutiles.</p><div class="row"><button class="btn small" data-project-question="Combien de pas pour vendre une salade ?" data-project-kicker="MODULE 1 · DÉPLACEMENTS">📽️ Question</button><button class="btn small" data-m1-ex="ex3">Productions</button></div></div>
+    <div class="m1TrainerCard"><h3>4 · 📦 Charges</h3><div class="question">Combien de kilos portés par an ?</div><p>À faire émerger : nombre de ports, pénibilité, ports à supprimer.</p><div class="row"><button class="btn small" data-project-question="Combien de kilos portés par an ?" data-project-kicker="MODULE 1 · CHARGES PORTÉES">📽️ Question</button><button class="btn small" data-m1-ex="ex4">Productions</button></div></div>
+  </div>
+  <div class="m1SubTabs"><button class="btn on" data-m1tab="fermes">🗺️ Fermes / supports</button><button class="btn" data-m1tab="recus">📨 Productions reçues</button></div>
+  <div id="tabFermes">
 <h2>Mes fermes</h2>
 <div class="grid" id="dashFermes"></div>
 <h3>➕ Ajouter une ferme</h3>
@@ -352,7 +420,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 <button class="btn" id="btnAddFerme">Ajouter avec cette image</button>
 <div id="addMsg"></div>
 </div>
-<div id="tabRecus" hidden>
+  <div id="tabRecus" hidden>
 <h2>Schémas reçus</h2>
 <div class="row"><label class="f" style="flex:1">Ferme<select id="selFerme"></select></label><label class="f" style="flex:1">Exercice<select id="selExercise"><option value="ex1">1 — Organisation</option><option value="ex2">2 — Eau</option><option value="ex3">3 — Déplacements</option><option value="ex4">4 — Charges / manutention</option></select></label></div>
 <div class="row"><button class="btn small" id="btnRefresh">🔄 Actualiser</button><span class="muted" id="nbRecus"></span></div>
@@ -367,7 +435,9 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 </div>
 <div class="grid" id="mosaique"></div>
 </div>
-<div id="tabModule2" hidden>
+</div>
+
+<div id="tabModule2" class="trainerSection" hidden>
   <div class="moduleHero"><h2>🌳 Module 2 — La ferme comme système vivant</h2><p><b>Pupitre formateur :</b> prépare et conduis la présentation. Les notes restent de ton côté.</p></div>
   <div class="row" style="margin-bottom:12px">
     <button class="btn main" id="btnOpenProjection">📽️ Ouvrir la projection</button>
@@ -429,6 +499,72 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const SS={get(k,d){try{const v=sessionStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{sessionStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ===== V37 — données et outils du pupitre formateur ===== */
+const STAGIAIRES_SEED=[{"id":"julie","prenom":"Julie","nomComplet":"Julie Mallet","statut":"En réflexion sur ton projet","experience":"Plus d'un an","contexte":"Chantier d'insertion","surface":"Je n'en ai aucune idée","production":"Quelques productions principales","ventes":"Vente à la ferme, Marché","temps":"30 à 35 h par semaine","priorites":["Maîtriser mon temps de travail","Travailler avec d'autres personnes","Produire des légumes de qualité","Préserver ou améliorer la fertilité du sol","Avoir une relation forte avec mes clients"],"pratique":["Semis direct","Plantation","Désherbage","Récolte","Stockage","Vente"],"chiffres":"Très peu à l'aise","numerique":"Peu à l'aise","sujets":["Construire un plan cultural","Comprendre le fonctionnement du sol","Physiologie végétale","Choix des variétés","Organisation d'une ferme","Organisation du travail","Commercialisation","Économie / rentabilité"],"attente":"Les tableaux, les plans de cultures","relance":"Tu imagines quelques productions principales : qu’est-ce qui te conduit vers ce choix ?"},{"id":"juliette","prenom":"Juliette","nomComplet":"Juliette Robin","statut":"Porteur·se d'un projet d'installation","experience":"Plus d'un an","contexte":"2 saisons d'été sur l'île d'Oléron (mai-octobre) et un hiver en Deux-Sèvres (octobre-avril)","surface":"Plus de 2 ha","production":"Diversifiée, mais avec une gamme maîtrisée","ventes":"Marché, Vente à la ferme, Magasin de producteurs, Restaurants, Boutique ou commandes en ligne","temps":"40 à 45 h par semaine","priorites":["Bien gagner ma vie","Produire des légumes de qualité","Être autonome dans mes décisions","Préserver du temps pour ma vie personnelle","Travailler avec d'autres personnes"],"pratique":["Production de plants","Plantation","Désherbage","Protection des cultures","Récolte","Lavage / conditionnement","Stockage","Vente"],"chiffres":"Moyennement à l'aise","numerique":"Assez à l'aise","sujets":["Économie / rentabilité","Physiologie végétale","Comprendre le fonctionnement du sol","Trouver et utiliser de bonnes références techniques","Ravageurs / maladies","Choix des variétés"],"attente":"M'installer en tant que chef d'entreprise, gérer un budget, être sûre de mes choix variétaux, connaître mon sol","relance":"Tu envisages plus de 2 ha : qu’est-ce qui te fait viser cette échelle ?"},{"id":"noe","prenom":"Noé","nomComplet":"Noé Fourcaud","statut":"Salarié·e agricole","experience":"Plus d'un an","contexte":"4 saisons dans une ferme maraîchère bio diversifiée, principalement en vente directe","surface":"Plus de 2 ha","production":"Diversifiée, mais avec une gamme maîtrisée","ventes":"Marché, Vente à la ferme, Paniers / AMAP, Magasin de producteurs, Restaurants","temps":"35 à 40 h par semaine","priorites":["Produire des légumes de qualité","Préserver ou améliorer la fertilité du sol","Préserver du temps pour ma vie personnelle","Expérimenter / innover","Travailler avec d'autres personnes"],"pratique":["Préparation des planches","Semis direct","Production de plants","Plantation","Irrigation","Désherbage","Fertilisation / amendements","Protection des cultures","Récolte","Lavage / conditionnement","Stockage","Vente"],"chiffres":"Assez à l'aise","numerique":"Assez à l'aise","sujets":["Construire un plan cultural","Comprendre le fonctionnement du sol","Fertilité / fertilisation","Physiologie végétale","Choix des variétés"],"attente":"Construire un plan cultural en prenant en compte un maximum de contraintes liées au terrain et à la ferme","relance":"Tu veux construire un plan cultural en intégrant les contraintes du terrain et de la ferme : lesquelles te semblent les plus importantes ?"},{"id":"karelle","prenom":"Karelle","nomComplet":"Karelle Dumery","statut":"En réflexion sur ton projet","experience":"Quelques jours","contexte":"Aide d'une amie","surface":"De 1 à 2 ha","production":"Très diversifiée, avec beaucoup de légumes différents","ventes":"Vente à la ferme, Paniers / AMAP, Magasin de producteurs, Restaurants","temps":"35 à 40 h par semaine","priorites":["Pouvoir prendre des vacances","Produire des légumes de qualité","Préserver ou améliorer la fertilité du sol","Limiter la pénibilité physique","Préserver du temps pour ma vie personnelle"],"pratique":["Semis direct","Production de plants","Plantation","Désherbage","Récolte"],"chiffres":"Moyennement à l'aise","numerique":"Assez à l'aise","sujets":["Construire un plan cultural","Irrigation","Ravageurs / maladies","Économie / rentabilité","Récolte / stockage / logistique"],"attente":"Taille des arbres fruitiers","relance":"Tu imagines une ferme très diversifiée : qu’est-ce qui t’attire dans cette diversité ?"},{"id":"dimitri","prenom":"Dimitri","nomComplet":"MARTIN-RICOTE Dimitri","statut":"En réflexion sur ton projet","experience":"Jamais","contexte":"Aucun","surface":"De 5 000 m² à 1 ha","production":"Diversifiée, mais avec une gamme maîtrisée","ventes":"Vente à la ferme, Paniers / AMAP, Restaurants","temps":"40 à 45 h par semaine","priorites":["Limiter les investissements et l'endettement","Expérimenter / innover","Limiter la pénibilité physique","Produire des légumes de qualité","Préserver ou améliorer la fertilité du sol"],"pratique":["Désherbage","Semis direct","Production de plants","Plantation","Vente"],"chiffres":"Assez à l'aise","numerique":"Moyennement à l'aise","sujets":["Comprendre le fonctionnement du sol","Fertilité / fertilisation","Physiologie végétale","Ravageurs / maladies","Organisation d'une ferme"],"attente":"Gérer une ferme","relance":"Tu pars avec très peu d’expérience : qu’est-ce que tu veux comprendre en priorité pour pouvoir gérer une ferme ?"},{"id":"louis","prenom":"Louis","nomComplet":"Louis Texier","statut":"Salarié·e agricole","experience":"Plus d'un an","contexte":"6 mois par an dans une ferme en maraîchage diversifié","surface":"De 5 000 m² à 1 ha","production":"Diversifiée, mais avec une gamme maîtrisée","ventes":"Marché, Vente à la ferme, Paniers / AMAP","temps":"45 à 50 h par semaine","priorites":["Produire des légumes de qualité","Préserver ou améliorer la fertilité du sol","Être autonome dans mes décisions","Limiter les investissements et l'endettement","Expérimenter / innover"],"pratique":["Préparation des planches","Semis direct","Production de plants","Plantation","Désherbage","Protection des cultures","Récolte","Lavage / conditionnement","Stockage","Vente","Planification des cultures"],"chiffres":"Très peu à l'aise","numerique":"Moyennement à l'aise","sujets":["Construire un plan cultural","Irrigation","Fertilité / fertilisation","Matériel / investissements","Utilisation d'un outil de planification"],"attente":"Planifier longtemps à l'avance les cultures et les tâches ; avoir une vision claire des besoins en eau, amendements et matériel","relance":"Tu veux planifier longtemps à l’avance : qu’est-ce qui te semble aujourd’hui le plus difficile dans cette planification ?"}];
+let STAGIAIRES=LS.get("tea_stagiaires_v37",STAGIAIRES_SEED);
+let PROJ_WIN=null;
+function slugSimple(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||("stagiaire-"+Date.now())}
+function expScore(s){s=String(s||"").toLowerCase();if(s.includes("plus d'un an")||s.includes("plus d’un an"))return 3;if(s.includes("plusieurs mois")||s.includes("saison"))return 2;if(s.includes("quelques")||s.includes("moins"))return 1;return 0}
+function surfaceScore(s){s=String(s||"").toLowerCase();if(s.includes("plus de 2"))return 3;if(s.includes("1 à 2"))return 2;if(s.includes("5 000")||s.includes("1 ha"))return 1;return 0}
+function prodScore(s){s=String(s||"").toLowerCase();if(s.includes("très divers"))return 3;if(s.includes("gamme maîtrisée"))return 2;if(s.includes("quelques productions"))return 1;return 0}
+function projectSummary(st){return [st.experience,st.surface,st.production].filter(Boolean).join(" · ")}
+function traineeRelance(st){if(st.relance)return st.relance;if(st.attente)return "À la fin de la formation, tu aimerais « "+st.attente.replace(/\s+/g," ").slice(0,150)+" ». Qu’est-ce qui te manque aujourd’hui pour y arriver ?";if(st.surface)return "Tu imagines "+st.surface.toLowerCase()+" : qu’est-ce qui te conduit vers cette échelle ?";return "Dans ton projet, quel est aujourd’hui le point le moins clair ?"}
+function renderTrainees(){
+ const box=$("traineeCards"),count=$("traineeCount");if(!box||!count)return;
+ count.textContent=STAGIAIRES.length+" réponses sur 8";
+ box.innerHTML=STAGIAIRES.map(st=>{
+  const note=LS.get("tea_note_"+st.id,"");
+  return '<div class="traineeCard"><div class="row" style="justify-content:space-between"><h3>👤 '+esc(st.prenom)+'</h3><span class="pill">'+esc(st.experience||"expérience non précisée")+'</span></div><p><b>Projet :</b> '+esc(st.surface||"surface à préciser")+' · '+esc(st.production||"production à préciser")+'</p><p><b>Vente :</b> '+esc(st.ventes||"à préciser")+'</p><p><b>🎯 Attente :</b> '+esc(st.attente||"à préciser")+'</p><div class="msg ok"><b>Relance possible</b><br>'+esc(traineeRelance(st))+'</div><details><summary>Voir la fiche synthétique</summary><p><b>Situation :</b> '+esc(st.statut||"")+'</p><p><b>Contexte :</b> '+esc(st.contexte||"")+'</p><p><b>Temps souhaité :</b> '+esc(st.temps||"")+'</p><p><b>Priorités :</b> '+esc((st.priorites||[]).join(" · "))+'</p><p><b>Sujets à travailler :</b> '+esc((st.sujets||[]).join(" · "))+'</p><p><b>Chiffres :</b> '+esc(st.chiffres||"")+' · <b>Numérique :</b> '+esc(st.numerique||"")+'</p></details><label class="f"><span>📝 Note formateur <span class="privateTag">(privée)</span></span><textarea class="traineeNote" data-trainee-note="'+esc(st.id)+'" placeholder="Ce qu’il ou elle dit pendant la présentation…">'+esc(note)+'</textarea></label></div>'
+ }).join("") + Array.from({length:Math.max(0,8-STAGIAIRES.length)},(_,i)=>'<div class="traineeCard waitingCard"><h3>⏳ Réponse attendue</h3><p class="muted">Stagiaire '+(STAGIAIRES.length+i+1)+' / 8</p></div>').join("");
+ box.querySelectorAll("[data-trainee-note]").forEach(t=>t.addEventListener("input",()=>LS.set("tea_note_"+t.dataset.traineeNote,t.value)));
+ renderRoom();
+}
+function roomState(){return LS.get("tea_room_v37",{})||{}}
+function saveRoom(v){LS.set("tea_room_v37",v)}
+function renderRoom(){
+ const pool=$("roomPool"),grid=$("seatGrid");if(!pool||!grid)return;const rs=roomState();
+ const valid=new Set(STAGIAIRES.map(x=>x.id));Object.keys(rs).forEach(k=>{if(!valid.has(rs[k]))delete rs[k]});saveRoom(rs);
+ const seated=new Set(Object.values(rs));
+ pool.innerHTML=STAGIAIRES.filter(x=>!seated.has(x.id)).map(personHTML).join("")||'<p class="muted">Tout le monde est placé.</p>';
+ grid.innerHTML=Array.from({length:12},(_,i)=>{const sid=String(i+1),id=rs[sid],st=STAGIAIRES.find(x=>x.id===id);return '<div class="seat" data-seat="'+sid+'" data-seat-label="Place '+sid+'">'+(st?personHTML(st):'<span class="muted">Place '+sid+'</span>')+'</div>'}).join("");
+ document.querySelectorAll(".dragPerson").forEach(el=>{el.draggable=true;el.ondragstart=e=>{e.dataTransfer.setData("text/plain",el.dataset.person);e.dataTransfer.effectAllowed="move"}});
+ document.querySelectorAll(".seat").forEach(seat=>{seat.ondragover=e=>{e.preventDefault();seat.classList.add("dragover")};seat.ondragleave=()=>seat.classList.remove("dragover");seat.ondrop=e=>{e.preventDefault();seat.classList.remove("dragover");const id=e.dataTransfer.getData("text/plain");const st=roomState();Object.keys(st).forEach(k=>{if(st[k]===id)delete st[k]});if(seat.dataset.seat)st[seat.dataset.seat]=id;saveRoom(st);renderRoom()}});
+ pool.ondragover=e=>e.preventDefault();pool.ondrop=e=>{e.preventDefault();const id=e.dataTransfer.getData("text/plain");const st=roomState();Object.keys(st).forEach(k=>{if(st[k]===id)delete st[k]});saveRoom(st);renderRoom()};
+}
+function personHTML(st){return '<div class="dragPerson" data-person="'+esc(st.id)+'">'+esc(st.prenom)+'<small>'+esc(st.experience||"")+'</small></div>'}
+function makeGroups(variant=0){
+ const arr=[...STAGIAIRES];if(arr.length<4){$("groupResults").innerHTML='<div class="msg err">Il faut au moins 4 réponses pour proposer des groupes.</div>';return}
+ const seedIds=new Set(["julie","juliette","noe","karelle","dimitri","louis"]);
+ if(variant===0&&arr.length===6&&arr.every(x=>seedIds.has(x.id))){
+  const by=id=>arr.find(x=>x.id===id);const groups=[[by("noe"),by("karelle"),by("julie")],[by("louis"),by("juliette"),by("dimitri")]];
+  $("groupResults").innerHTML=groups.map((g,i)=>'<div class="groupBox"><h3>GROUPE '+(i+1)+'</h3><div class="groupNames">'+g.map(x=>esc(x.prenom)).join(' · ')+'</div><div class="groupWhy">'+groupWhy(g)+'</div></div>').join("");
+  $("groupStatus").textContent="Proposition provisoire : 2 réponses manquent.";LS.set("tea_group_variant_v37",variant);return
+ }
+ const score=x=>expScore(x.experience)*5+surfaceScore(x.surface)*2+prodScore(x.production);
+ arr.sort((a,b)=>score(b)-score(a)||a.prenom.localeCompare(b.prenom));
+ if(variant%2) arr.reverse();
+ const groups=[[],[]], sums=[0,0];
+ arr.forEach((st,i)=>{let g;if(i<2)g=i;else g=(sums[0]<=sums[1]?0:1);groups[g].push(st);sums[g]+=score(st)});
+ // légère permutation pour offrir une autre proposition sans perdre l'équilibre
+ if(variant>1&&groups[0].length>1&&groups[1].length>1){const a=groups[0].pop(),b=groups[1].pop();groups[0].push(b);groups[1].push(a)}
+ $("groupResults").innerHTML=groups.map((g,i)=>'<div class="groupBox"><h3>GROUPE '+(i+1)+'</h3><div class="groupNames">'+g.map(x=>esc(x.prenom)).join(' · ')+'</div><div class="groupWhy">'+groupWhy(g)+'</div></div>').join("");
+ $("groupStatus").textContent=STAGIAIRES.length<8?"Proposition provisoire : "+(8-STAGIAIRES.length)+" réponse(s) manque(nt).":"Proposition calculée sur les 8 réponses.";
+ LS.set("tea_group_variant_v37",variant)
+}
+function groupWhy(g){const ex=g.map(x=>expScore(x.experience));const surfaces=new Set(g.map(x=>x.surface).filter(Boolean));const prod=new Set(g.map(x=>x.production).filter(Boolean));let bits=[];if(Math.max(...ex)!==Math.min(...ex))bits.push("niveaux d’expérience mélangés");if(surfaces.size>1)bits.push("échelles de projet différentes");if(prod.size>1)bits.push("visions de production différentes");return (bits.length?bits.join(" · "):"profils complémentaires")+"."}
+function parseCSV(text){let rows=[],row=[],cell="",q=false;for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(q){if(c==='"'&&n==='"'){cell+='"';i++}else if(c==='"')q=false;else cell+=c}else{if(c==='"')q=true;else if(c===','){row.push(cell);cell=""}else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell=""}else if(c!=='\r')cell+=c}}row.push(cell);if(row.some(x=>x!==""))rows.push(row);return rows}
+function csvField(obj,prefix){const k=Object.keys(obj).find(x=>x.trim()===prefix||x.trim().startsWith(prefix));return k?String(obj[k]||"").trim():""}
+function splitList(v){return String(v||"").split(',').map(x=>x.trim()).filter(Boolean)}
+function fromCsvObject(o,idx){const full=csvField(o,'1. Ton prénom et ton nom');let prenom=(full.split(/\s+/)[0]||('Stagiaire '+(idx+1)));if(/^MARTIN-RICOTE/i.test(full))prenom='Dimitri';return {id:slugSimple(prenom),prenom,nomComplet:full,statut:csvField(o,"2. Aujourd'hui, tu es plutôt..."),experience:csvField(o,'3. As-tu déjà travaillé concrètement en maraîchage ?'),contexte:csvField(o,'4. Si oui, dans quel contexte ?'),surface:csvField(o,'7. Quelle surface cultivée imagines-tu ?'),production:csvField(o,'8. Comment imagines-tu ta production ?'),ventes:csvField(o,'9. Comment aimerais-tu principalement vendre tes légumes ?'),temps:csvField(o,'10. Dans ta ferme idéale, combien aimerais-tu travailler en période normale ?'),priorites:splitList(csvField(o,'13. Choisis les 5 éléments qui comptent le plus pour ta ferme idéale.')),pratique:splitList(csvField(o,"16. Qu'as-tu déjà réellement pratiqué ?")),chiffres:csvField(o,'18. Avec les chiffres, les tableaux et les calculs, tu te sens...'),numerique:csvField(o,'19. Avec les outils numériques, tu te sens...'),sujets:splitList(csvField(o,'20. Choisis les 5 sujets que tu aimerais particulièrement travailler pendant la formation.')),attente:csvField(o,"21. À la fin de cette formation, qu'aimerais-tu être capable de faire que tu ne sais pas encore faire aujourd'hui ?"),relance:""}}
+async function importTraineesCSV(){const f=$("traineeCsv").files&&$("traineeCsv").files[0];if(!f){msg("traineeImportMsg","Choisis d'abord le CSV du questionnaire.","err");return}try{const rows=parseCSV(await f.text());if(rows.length<2)throw new Error("CSV vide");const h=rows[0];const data=rows.slice(1).filter(r=>r.some(x=>String(x).trim())).map(r=>Object.fromEntries(h.map((k,i)=>[k,r[i]||""])));const trainees=data.map(fromCsvObject).filter(x=>x.nomComplet);if(!trainees.length)throw new Error("Aucune réponse reconnue");STAGIAIRES=trainees;LS.set("tea_stagiaires_v37",STAGIAIRES);renderTrainees();makeGroups(0);msg("traineeImportMsg","✅ "+trainees.length+" réponse(s) importée(s). Les fiches et les groupes ont été actualisés.","ok")}catch(e){msg("traineeImportMsg","Import impossible : "+e.message,"err")}}
+function projeterTexte(kicker,question,sub){
+ try{if(!PROJ_WIN||PROJ_WIN.closed)PROJ_WIN=window.open("","tea-question-projection");if(!PROJ_WIN)return alert("Autorise les fenêtres pop-up pour ouvrir la projection.");PROJ_WIN.document.open();PROJ_WIN.document.write('<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Projection TEA</title><style>html,body{height:100%;margin:0}body{display:grid;place-items:center;background:#eef2e6;color:#1f3a2b;font-family:Arial,sans-serif;padding:7vw;box-sizing:border-box;text-align:center}.k{font-size:2.2vw;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:4vh}.q{font-size:5.2vw;line-height:1.15;font-weight:800;max-width:1200px}.s{font-size:2.2vw;margin-top:5vh;opacity:.72}</style></head><body><main><div class="k">'+esc(kicker||'TEA Saint-Loup')+'</div><div class="q">'+esc(question||'')+'</div>'+(sub?'<div class="s">'+esc(sub)+'</div>':'')+'</main></body></html>');PROJ_WIN.document.close();PROJ_WIN.focus()}catch(e){alert("Projection impossible : "+e.message)}
+}
+function saveDebrief(){LS.set("tea_debrief_notes_v37",$("debriefNotes").value);$("debriefSaved").textContent="Enregistré ✓";setTimeout(()=>{$("debriefSaved").textContent=""},1600)}
+function setM1Tab(t){document.querySelectorAll("[data-m1tab]").forEach(b=>b.classList.toggle("on",b.dataset.m1tab===t));$("tabFermes").hidden=t!=="fermes";$("tabRecus").hidden=t!=="recus";if(t==="recus")loadRecus()}
+function initTrainerV37(){if(!$("tabAccueil"))return;renderTrainees();$("debriefNotes").value=LS.get("tea_debrief_notes_v37","");setM1Tab("fermes")}
+
 function newStudentSession(){
  const id=(crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now()+"-"+Math.random().toString(36).slice(2));
  SS.set("student_session_id",id);return id
@@ -617,7 +753,7 @@ function studentValidationDebugHtml(status){
 }
 async function studentDash(){
  const u=STUDENT_USER||await getCurrentUser();if(!u){return accueil()}
- if(u.user_metadata&&u.user_metadata.role==="trainer"){STUDENT_USER=null;return dash("fermes")}
+ if(u.user_metadata&&u.user_metadata.role==="trainer"){STUDENT_USER=null;return dash("accueil")}
  STUDENT_USER=u;show("vEleveDash");
  const prenom=(u.user_metadata&&u.user_metadata.prenom)||studentName()||"";
  $("who").textContent="👤 "+(prenom||u.email);
@@ -938,14 +1074,17 @@ async function isTrainer(){
  return !!(u&&u.user_metadata&&u.user_metadata.role==="trainer")
 }
 async function dash(tab){clearInterval(pollT);if(!await isTrainer()){show("vLogin");return}show("vDash");const{data:u}=await sb.auth.getUser();$("who").textContent="🧑‍🌾 "+(u&&u.user?u.user.email:"");
- await loadFermes();renderDashFermes();fillSel();setTab(tab||"fermes")}
+ await loadFermes();renderDashFermes();fillSel();initTrainerV37();setTab(tab||"accueil")}
 function setTab(t){
- document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
- $("tabFermes").hidden=t!=="fermes";
- $("tabRecus").hidden=t!=="recus";
- $("tabModule2").hidden=t!=="module2";
- if(t==="recus")loadRecus();
- if(t==="module2")loadModule2Access();
+ let top=t;if(t==="fermes"||t==="recus")top="module1";
+ document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("on",b.dataset.tab===top));
+ $("tabAccueil").hidden=top!=="accueil";
+ $("tabDebrief").hidden=top!=="debrief";
+ $("tabModule1").hidden=top!=="module1";
+ $("tabModule2").hidden=top!=="module2";
+ if(top==="accueil")renderTrainees();
+ if(top==="module1")setM1Tab(t==="recus"?"recus":"fermes");
+ if(top==="module2")loadModule2Access();
 }
 function applyStudentModule2Access(unlocked,err){
  const btn=document.querySelector('[data-student-module="2"]');
@@ -2424,6 +2563,17 @@ $("btnLogout").onclick=async()=>{await sb.auth.signOut();STUDENT_USER=null;locat
 $("btnAddFerme").onclick=addFerme;$("btnRefresh").onclick=loadRecus;$("selFerme").onchange=loadRecus;if($("selExercise"))$("selExercise").onchange=loadRecus;wireBulkValidation();
 if($("btnOpenProjection"))$("btnOpenProjection").onclick=()=>window.open("./arbre-ferme-tea.html?vue=projection","arbre-projection");
 if($("btnRefreshModule2Access"))$("btnRefreshModule2Access").onclick=loadModule2Access;
+
+if($("btnImportTrainees"))$("btnImportTrainees").onclick=importTraineesCSV;
+if($("btnResetTrainees"))$("btnResetTrainees").onclick=()=>{if(confirm("Revenir aux 6 réponses actuellement intégrées ?")){STAGIAIRES=[...STAGIAIRES_SEED];LS.set("tea_stagiaires_v37",STAGIAIRES);renderTrainees();makeGroups(0)}};
+if($("btnResetSeats"))$("btnResetSeats").onclick=()=>{LS.set("tea_room_v37",{});renderRoom()};
+if($("btnGroups"))$("btnGroups").onclick=()=>makeGroups(0);
+if($("btnGroupsAgain"))$("btnGroupsAgain").onclick=()=>makeGroups((LS.get("tea_group_variant_v37",0)+1)%4);
+if($("btnSaveDebrief"))$("btnSaveDebrief").onclick=saveDebrief;
+if($("btnGoModule1"))$("btnGoModule1").onclick=()=>setTab("module1");
+document.querySelectorAll("[data-project-question]").forEach(b=>b.onclick=()=>projeterTexte(b.dataset.projectKicker,b.dataset.projectQuestion));
+document.querySelectorAll("[data-m1tab]").forEach(b=>b.onclick=()=>setM1Tab(b.dataset.m1tab));
+document.querySelectorAll("[data-m1-ex]").forEach(b=>b.onclick=()=>{if($("selExercise"))$("selExercise").value=b.dataset.m1Ex;setM1Tab("recus");loadRecus()});
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 
 async function finishStudentAuthIfNeeded(){
