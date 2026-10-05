@@ -140,6 +140,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .receivedSelect input{width:20px;height:20px;accent-color:#245b44}
 .receivedSelect.validated{background:#eef8f1;color:#245b44;cursor:default}
 .receivedWrap.selected{outline:3px solid rgba(36,91,68,.25);outline-offset:3px;border-radius:12px}
+.btn.danger{border-color:#b42318;color:#b42318;background:#fff}.btn.danger:hover{background:#fff1f0}
 
 
 .validationDiag{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
@@ -1312,6 +1313,34 @@ function validationErrorText(err){
  return "Validation impossible : "+raw
 }
 
+async function deleteReceivedProduction(r){
+ if(!r)return false;
+ const ex=((r.contenu&&r.contenu.exercise)||"ex1");
+ const who=r.auteur||"ce stagiaire";
+ if(!confirm("Supprimer définitivement la production reçue de "+who+" ?"))return false;
+
+ const {error}=await sb.from("schemas").delete().eq("id",r.id);
+ if(error){
+  msg("validationRecusMsg","Suppression impossible : "+error.message,"err");
+  return false
+ }
+
+ // Une production supprimée ne doit pas laisser l'exercice affiché comme validé
+ // lors d'un nouvel envoi du même stagiaire.
+ if(r.user_id){
+  const {error:verr}=await sb.from("exercise_validations")
+   .delete().eq("user_id",r.user_id).eq("exercise",ex);
+  if(verr && !/does not exist|42P01/i.test(String(verr.message||""))){
+   msg("validationRecusMsg","✅ Production supprimée. Attention : la validation n’a pas pu être effacée : "+verr.message,"err");
+   await loadRecus();
+   return true
+  }
+ }
+ msg("validationRecusMsg","🗑️ Production supprimée.","ok");
+ await loadRecus();
+ return true
+}
+
 async function loadRecus(){
  const fid=$("selFerme").value;
  if(!fid){$("mosaique").innerHTML="";if($("validationBar"))$("validationBar").hidden=true;return}
@@ -1351,6 +1380,7 @@ async function loadRecus(){
     ?'<div class="receivedSelect validated">✅ Exercice validé</div>'
     :'<label class="receivedSelect"><input type="checkbox" data-select-r="'+r.id+'"> Sélectionner ce stagiaire</label>')+
    '<button class="btn small'+(validated?' on':'')+'" data-validate-r="'+r.id+'">'+(validated?'↩ Annuler la validation':'✅ Valider cet exercice')+'</button>'+
+   '<button class="btn small danger" data-delete-r="'+r.id+'">🗑️ Supprimer la production</button>'+
   '</div>'
  }).join("");
 
@@ -1376,6 +1406,13 @@ async function loadRecus(){
   }
   msg("validationRecusMsg",nv?"✅ Présentation réellement validée dans Supabase.":"↩ Validation annulée.","ok");
   await loadRecus()
+ });
+
+ $("mosaique").querySelectorAll("[data-delete-r]").forEach(b=>b.onclick=async()=>{
+  const r=RECUS.find(x=>x.id===b.dataset.deleteR);if(!r)return;
+  b.disabled=true;
+  const ok=await deleteReceivedProduction(r);
+  if(!ok)b.disabled=false
  });
 
  if($("allSup"))$("allSup").onclick=()=>{
@@ -1490,7 +1527,7 @@ async function openRecus(f,ids){
   if(!multi){
    $("bPrev").disabled=idx===0;$("bNext").disabled=idx===sel.length-1;
    $("bPrev").onclick=()=>{idx--;draw()};$("bNext").onclick=()=>{idx++;draw()};
-   $("bDelR").onclick=async()=>{if(!confirm("Supprimer ce schéma ?"))return;await sb.from("schemas").delete().eq("id",sel[idx].id);ED.overlay=null;dash("recus")}
+   $("bDelR").onclick=async()=>{const r=sel[idx];const ok=await deleteReceivedProduction(r);if(ok){ED.overlay=null;dash("recus")}}
   }
  };
  if(!multi){
